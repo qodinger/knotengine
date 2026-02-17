@@ -2,6 +2,7 @@ import { Invoice, IInvoice, Merchant, WebhookEvent } from "@tyepay/database";
 import { DEFAULT_CONFIRMATIONS } from "@tyepay/types";
 import { SocketService } from "../infra/socket-service";
 import { WebhookDispatcher } from "../infra/webhook-dispatcher";
+import { TatumProvider } from "../infra/tatum-provider";
 
 /**
  * 🔒 ConfirmationEngine
@@ -95,6 +96,11 @@ export class ConfirmationEngine {
     // 6. Trigger outbound webhook if confirmed
     if (newStatus === "confirmed") {
       WebhookDispatcher.dispatch(invoice.invoiceId, "invoice.confirmed");
+
+      // 7. Cleanup Tatum monitoring
+      if (invoice.tatumSubscriptionId) {
+        TatumProvider.deleteSubscription(invoice.tatumSubscriptionId);
+      }
     }
 
     console.log(
@@ -152,20 +158,26 @@ export class ConfirmationEngine {
    * Should be called periodically (e.g., every 60 seconds).
    */
   public static async expireStaleInvoices(): Promise<number> {
-    const result = await Invoice.updateMany(
-      {
-        status: { $in: ["pending", "mempool_detected"] },
-        expiresAt: { $lt: new Date() },
-      },
-      { $set: { status: "expired" } },
-    );
+    const staleInvoices = await Invoice.find({
+      status: { $in: ["pending", "mempool_detected", "confirming"] },
+      expiresAt: { $lt: new Date() },
+    });
 
-    if (result.modifiedCount > 0) {
-      console.log(`⏰ Expired ${result.modifiedCount} stale invoice(s).`);
-      // Note: Ideally we would find the IDs and emit 'expired' for each
-      // but for now, we'll let the frontend handle the TTL locally.
+    if (staleInvoices.length === 0) return 0;
+
+    for (const invoice of staleInvoices) {
+      await Invoice.findByIdAndUpdate(invoice._id, {
+        $set: { status: "expired" },
+      });
+
+      // Cleanup Tatum monitoring
+      if (invoice.tatumSubscriptionId) {
+        TatumProvider.deleteSubscription(invoice.tatumSubscriptionId);
+      }
+
+      console.log(`⏰ Invoice ${invoice.invoiceId} expired.`);
     }
 
-    return result.modifiedCount;
+    return staleInvoices.length;
   }
 }

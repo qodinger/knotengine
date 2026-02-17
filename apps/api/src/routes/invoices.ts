@@ -6,6 +6,7 @@ import { Derivator } from "@tyepay/crypto";
 import { PriceOracle } from "../infra/price-feed";
 import { ConfirmationEngine } from "../core/confirmation-engine";
 import { Currency } from "@tyepay/types";
+import { TatumProvider } from "../infra/tatum-provider";
 import * as crypto from "crypto";
 
 /**
@@ -87,6 +88,8 @@ export async function invoiceRoutes(app: FastifyInstance) {
         payAddress = Derivator.deriveBitcoinAddress(
           merchant.btcXpub,
           nextIndex,
+          (process.env.BITCOIN_NETWORK as "bitcoin" | "testnet" | "regtest") ||
+            "bitcoin",
         );
       } else {
         if (!merchant.ethAddress) {
@@ -134,6 +137,22 @@ export async function invoiceRoutes(app: FastifyInstance) {
       await Merchant.findByIdAndUpdate(merchant._id, {
         derivationIndex: nextIndex,
       });
+
+      // 7. SaaS Automation: Subscribe to the derived address in Tatum
+      if (process.env.PUBLIC_URL) {
+        const tatumWebhookUrl = `${process.env.PUBLIC_URL}/v1/webhooks/tatum`;
+        const subId = await TatumProvider.subscribeAddress(
+          payAddress,
+          currency,
+          tatumWebhookUrl,
+        );
+
+        if (subId) {
+          await Invoice.findByIdAndUpdate(invoice._id, {
+            $set: { tatumSubscriptionId: subId },
+          });
+        }
+      }
 
       server.log.info(`🧾 Invoice created: ${invoiceId} for $${amount_usd}`);
 

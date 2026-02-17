@@ -89,6 +89,8 @@ export interface IInvoice extends Document {
   webhookDelivered: boolean;
   webhookAttempts: number;
   lastWebhookAttempt?: Date;
+  /** Tatum Notification Subscription ID */
+  tatumSubscriptionId?: string;
   /** Arbitrary metadata from merchant */
   metadata?: Record<string, unknown>;
   paidAt?: Date;
@@ -131,6 +133,7 @@ const InvoiceSchema: Schema = new Schema(
     webhookDelivered: { type: Boolean, default: false },
     webhookAttempts: { type: Number, default: 0 },
     lastWebhookAttempt: { type: Date },
+    tatumSubscriptionId: { type: String },
     metadata: { type: Schema.Types.Mixed },
     paidAt: { type: Date },
   },

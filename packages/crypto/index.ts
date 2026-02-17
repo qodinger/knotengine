@@ -14,8 +14,11 @@ export class Derivator {
   public static deriveBitcoinAddress(
     xpub: string,
     index: number,
-    network: bitcoin.Network = bitcoin.networks.bitcoin,
+    networkName: "bitcoin" | "testnet" | "regtest" = "bitcoin",
   ): string {
+    const network =
+      bitcoin.networks[networkName as keyof typeof bitcoin.networks] ||
+      bitcoin.networks.bitcoin;
     const node: BIP32Interface = bip32.fromBase58(xpub, network);
     const child = node.derive(0).derive(index);
 
