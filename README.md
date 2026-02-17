@@ -60,6 +60,46 @@ Or run services individually:
 
 - **Run Unit Tests**: `pnpm test`
 
+## 🛒 Merchant Workflow
+
+TyePay is designed to be integrated into any application in under 5 minutes.
+
+### 1. Register as a Merchant
+
+Send a `POST` request to the API to get your unique credentials:
+
+```bash
+curl -X POST http://localhost:5050/v1/merchants \
+  -H "Content-Type: application/json" \
+  -d '{ "name": "My Store", "btcXpub": "[Your tpub/xpub]" }'
+```
+
+Take note of your `apiKey`.
+
+### 2. Create an Invoice
+
+When a customer is ready to pay, generate an invoice:
+
+```bash
+curl -X POST http://localhost:5050/v1/invoices \
+  -H "x-api-key: [YOUR_API_KEY]" \
+  -H "Content-Type: application/json" \
+  -d '{ "amount_usd": 49.99, "currency": "BTC" }'
+```
+
+You will receive a `pay_address` and a `checkout_url`.
+
+### 3. Redirect the Customer
+
+Redirect your user to the `checkout_url` provided. This page handles the QR code display, live price updates, and real-time payment detection via WebSockets.
+
+### 4. Receive Funds & Notifications
+
+- **Funds**: Go directly to the wallet associated with your `xpub`. TyePay is non-custodial.
+- **Notifications**: Once confirmed on-chain, TyePay sends an HMAC-signed webhook to your `webhookUrl` (configurable in merchant settings).
+
+---
+
 ## 🏗️ Project Structure
 
 - `apps/api`: Fastify-based core engine

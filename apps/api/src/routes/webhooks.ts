@@ -155,20 +155,34 @@ export async function webhookRoutes(app: FastifyInstance) {
    * Allows simulating a blockchain event for testing.
    */
   app.post("/v1/webhooks/simulate", async (request, reply) => {
-    if (process.env.NODE_ENV === "production") {
+    if (
+      process.env.NODE_ENV === "production" &&
+      !process.env.ALLOW_SIMULATION
+    ) {
       return reply.code(403).send({ error: "Not available in production" });
     }
 
-    const body = request.body as SimulateWebhookBody;
+    const body = request.body as SimulateWebhookBody & { invoiceId?: string };
+    let targetAddress = body.toAddress;
 
-    if (!body?.toAddress || !body?.txHash) {
+    // 1. If invoiceId is provided, look up the payAddress
+    if (body.invoiceId && !targetAddress) {
+      const { Invoice } = await import("@tyepay/database");
+      const invoice = await Invoice.findOne({ invoiceId: body.invoiceId });
+      if (!invoice) {
+        return reply.code(404).send({ error: "Invoice not found" });
+      }
+      targetAddress = invoice.payAddress;
+    }
+
+    if (!targetAddress || !body.txHash) {
       return reply
         .code(400)
-        .send({ error: "toAddress and txHash are required" });
+        .send({ error: "toAddress (or invoiceId) and txHash are required" });
     }
 
     const result = await ConfirmationEngine.processBlockchainEvent({
-      toAddress: body.toAddress.toLowerCase(),
+      toAddress: targetAddress.toLowerCase(),
       txHash: body.txHash,
       blockNumber: body.blockNumber || -1,
       confirmations: body.confirmations || 0,

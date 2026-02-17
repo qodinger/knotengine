@@ -2,11 +2,11 @@
 
 > **Minimalist, Non-Custodial Crypto Payment Infrastructure for Humans.**
 
-| Attribute    | Details                         |
-| :----------- | :------------------------------ |
-| **Brand**    | Tyecode                         |
-| **Status**   | 🌗 Phase 4 In-Progress (v0.1.0) |
-| **Category** | FinTech / Web3 Infrastructure   |
+| Attribute    | Details                                   |
+| :----------- | :---------------------------------------- |
+| **Brand**    | Tyecode                                   |
+| Status       | 🌑 Phase 4: Scaling & Compliance (v0.1.0) |
+| **Category** | FinTech / Web3 Infrastructure             |
 
 ---
 
