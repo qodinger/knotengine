@@ -2,11 +2,11 @@
 
 > **Minimalist, Non-Custodial Crypto Payment Infrastructure for Humans & AI.**
 
-| Attribute    | Details                       |
-| :----------- | :---------------------------- |
-| **Brand**    | Tyecode                       |
-| **Status**   | 🌑 Planning Phase (v0.1.0)    |
-| **Category** | FinTech / Web3 Infrastructure |
+| Attribute    | Details                         |
+| :----------- | :------------------------------ |
+| **Brand**    | Tyecode                         |
+| **Status**   | 🌗 Phase 3 In-Progress (v0.1.0) |
+| **Category** | FinTech / Web3 Infrastructure   |
 
 ---
 
@@ -54,26 +54,43 @@ By leveraging **HD Wallet Derivation (BIP44)**, the system generates unique, one
 - [x] **Price Feed Service:** Real-time USD ↔ Crypto conversion microservice.
 - [x] **Quality Assurance:** Unit test suite (4/4 passed) — BTC derivation, idempotency, EVM derivation, webhook signing.
 
-### Phase 2: Monitoring & Persistence 🌑
+### Phase 2: Monitoring & Persistence ✅
 
-- [ ] **Schema Design:** Deploy MongoDB container with Mongoose models.
-- [ ] **Webhook Listeners:** Integrate Alchemy/Tatum webhooks to track transaction state transitions.
-- [ ] **Agentic Testing:** Simulate an AI agent paying an invoice via x402 headers without a browser.
-- [ ] **Confirmation Logic:** Implement configurable block-depth checks (e.g., 2 blocks for BTC/LTC).
-- [ ] **API V1:** Create robust endpoints for invoice lifecycle management (`POST /v1/invoices`).
+- [x] **Schema Design:** MongoDB + Mongoose models with enhanced lifecycle tracking (`Merchant`, `Invoice`, `WebhookEvent`).
+- [x] **Webhook Listeners:** Alchemy/Tatum webhook routes with HMAC signature verification + dev simulation endpoint.
+- [x] **Agentic Testing:** Full x402 agent simulation script (`agent-simulation.ts`) exercising the complete flow.
+- [x] **Confirmation Logic:** Configurable block-depth engine with merchant-level policy overrides + auto-expiration.
+- [x] **API V1:** Complete invoice lifecycle endpoints (`POST /v1/invoices`, `GET /v1/invoices/:id`, list, cancel).
+- [x] **SaaS Onboarding:** Automated xPub subscription with Tatum API on merchant registration.
+- [x] **Tyecode Tax:** Built-in 0.5% platform fee calculation and tracking in every invoice.
 
 ### Phase 3: Checkout Experience & Webhooks 🌑
 
-- [ ] **Dynamic Checkout:** Build a responsive, brandable checkout page with QR code generation.
-- [ ] **Real-time Updates:** Socket.io integration for instant "Payment Confirmed" UI feedback.
-- [ ] **Reliable Dispatcher:** Webhook engine featuring exponential backoff and idempotency keys.
-- [ ] **Merchant Console:** Lightweight dashboard for managing API keys and viewing volume metrics.
+- [x] **Dynamic Checkout:** Build a responsive, brandable checkout page with QR code generation (Port 5051).
+- [x] **Real-time Updates:** Socket.io integration for instant "Payment Confirmed" UI feedback.
+- [x] **Reliable Dispatcher:** Webhook engine featuring exponential backoff and idempotency keys.
+- [🌗] **Merchant Console:** Lightweight dashboard for management and analytics (Port 5052).
+  - [ ] **Invoices List:** Connect to the API to show real, searchable merchant invoices.
+  - [ ] **API Keys Management:** Build the UI to generate and revoke merchant secrets.
+  - [ ] **Wallet Strategy:** UI for merchants to set up their `btcXpub` and choose confirmation rules.
 
 ### Phase 4: Scaling & Compliance 🌑
 
 - [ ] **Legal Framework:** Register with Lao E-Trust under Tyecode IT Services.
-- [ ] **Monetization:** Implement the 0.5% "Tyecode Tax" via auto-routing logic.
+- [ ] **Monetization:** Implement the 0.5% "Tyecode Tax" via auto-routing logic (On-chain settlement).
 - [ ] **Ecosystem:** Launch documentation portal and official `@tyecode/pay` NPM package.
+
+---
+
+## 🌐 Port Mapping (Knot Ecosystem)
+
+To avoid conflict with other services, TyePay uses a unique port range:
+
+| Service         | Port | Description                  |
+| :-------------- | :--- | :--------------------------- |
+| **Knot Engine** | 5050 | Core API & Socket.io Server  |
+| **Checkout UI** | 5051 | Customer-facing payment page |
+| **Dashboard**   | 5052 | Merchant Console & Stats     |
 
 ---
 

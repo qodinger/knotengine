@@ -4,17 +4,6 @@ import { Derivator } from "./index";
 describe("Derivator (The Knot Engine Core)", () => {
   // A known public test vector (Mnemonic: "abandon abandon ...")
   // xPub for Path m/84'/0'/0' (Native Segwit)
-  const TEST_XPUB =
-    "xpub6CesK8q9bQsa2D372y2N96yJ4948L1cTjC2r6qN4A3z4v8yJ9rL7mX4z5F3v2qN9A4z6F3v2qN9A4z6F3v2qN9A4z6F3v2qN9A4z6F3v2qN9A4";
-
-  // NOTE: In a real scenario, use zpub/ypub for SegWit, but bip32 library handles xpub
-  // conversion generally if avoiding strict slip-0132 checks or if using legacy.
-  // For this test, we accept standard xpub but will test with a known standard vector if possible.
-  // Let's use a standard vector from BIP84 to be precise.
-
-  // Official BIP84 vector zpub
-  const TEST_ZPUB =
-    "zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xXY7ofb8kce7Fxx8n4x5yH5w7q6Q4r5yH5w7q6Q4r5yH5w7q6Q4r5yH5w7q6Q4r5yH5w7q6Q";
 
   // However, our Derivator expects an "xpub" string format usually.
   // Let's use a standard generic xpub and verify consistency.

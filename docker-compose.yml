@@ -1,16 +1,25 @@
 version: "3.8"
 services:
-  db:
-    image: postgres:16-alpine
-    container_name: tyepay_db
+  mongodb:
+    image: mongo:7-jammy
+    container_name: tyepay_mongo
     environment:
-      POSTGRES_USER: tyecode
-      POSTGRES_PASSWORD: tyepay_local_password
-      POSTGRES_DB: tyepay
+      MONGO_INITDB_ROOT_USERNAME: tyecode
+      MONGO_INITDB_ROOT_PASSWORD: tyepay_local_password
+      MONGO_INITDB_DATABASE: tyepay
     ports:
-      - "5432:5432"
+      - "27017:27017"
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - mongo_data:/data/db
+
+  redis:
+    image: redis:7-alpine
+    container_name: tyepay_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
 
 volumes:
-  db_data:
+  mongo_data:
+  redis_data:

@@ -3,6 +3,7 @@ import { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { Merchant } from "@tyepay/database";
 import * as crypto from "crypto";
+import { TatumProvider } from "../infra/tatum-provider";
 
 export async function merchantRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>();
@@ -46,6 +47,12 @@ export async function merchantRoutes(app: FastifyInstance) {
       });
 
       server.log.info(`Merchant created: ${newMerchant.id}`);
+
+      // 3. SaaS Automation: Register xPub with Tatum if present
+      if (btcXpub && process.env.PUBLIC_URL) {
+        const tatumWebhookUrl = `${process.env.PUBLIC_URL}/v1/webhooks/tatum`;
+        await TatumProvider.subscribeMerchantXpub(btcXpub, tatumWebhookUrl);
+      }
 
       return reply.code(201).send({
         id: newMerchant.id,

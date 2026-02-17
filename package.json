@@ -4,10 +4,19 @@
   "description": "Minimalist, Non-Custodial Crypto Payment Infrastructure",
   "scripts": {
     "dev": "turbo run dev",
+    "dev:api": "turbo run dev --filter api",
+    "dev:checkout": "turbo run dev --filter checkout",
+    "dev:dashboard": "turbo run dev --filter dashboard",
+    "dev:full": "bash scripts/docker-up.sh && turbo run dev --filter api",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
-    "prepare": "husky"
+    "prepare": "husky",
+    "docker:up": "bash scripts/docker-up.sh",
+    "docker:down": "bash scripts/docker-down.sh",
+    "docker:status": "bash scripts/docker-status.sh",
+    "docker:logs": "docker logs -f tyepay_mongo",
+    "simulate": "npx tsx apps/api/src/tests/agent-simulation.ts"
   },
   "lint-staged": {
     "*.{ts,tsx,js,json,md}": [

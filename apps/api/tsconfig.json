@@ -8,6 +8,7 @@
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
     "baseUrl": ".",
+    "resolveJsonModule": true,
     "paths": {
       "@tyepay/*": ["../../packages/*"]
     }

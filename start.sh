@@ -6,7 +6,7 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-echo -e "${GREEN}🚀 TyePay (Knot Engine) Startup Script${NC}"
+echo -e "${GREEN}🚀 TyePay (Knot Engine v0.2.0) Startup Script${NC}"
 
 # 1. Check Docker
 if ! docker info > /dev/null 2>&1; then
@@ -15,22 +15,21 @@ if ! docker info > /dev/null 2>&1; then
   exit 1
 fi
 
-# 2. Start DB
-echo -e "${YELLOW}🐳 Starting PostgreSQL...${NC}"
-docker compose up -d
+# 2. Start MongoDB + Redis
+echo -e "${YELLOW}🐳 Starting MongoDB + Redis...${NC}"
+docker-compose up -d
 
-echo "Waiting 5s for DB to initialize..."
+echo "Waiting 5s for services to initialize..."
 sleep 5
 
-# 3. Push Schema
-echo -e "${YELLOW}📦 Pushing Drizzle Schema...${NC}"
-cd packages/database
-pnpm push
-if [ $? -ne 0 ]; then
-  echo -e "${RED}❌ Database push failed.${NC}"
+# 3. Verify MongoDB is reachable
+echo -e "${YELLOW}🔍 Checking MongoDB connection...${NC}"
+if docker exec tyepay_mongo mongosh --quiet --eval "db.runCommand({ ping: 1 })" > /dev/null 2>&1; then
+  echo -e "${GREEN}✅ MongoDB is ready${NC}"
+else
+  echo -e "${RED}❌ MongoDB is not reachable. Check docker logs.${NC}"
   exit 1
 fi
-cd ../..
 
 # 4. Start API
 echo -e "${GREEN}✨ Starting Knot Engine API...${NC}"

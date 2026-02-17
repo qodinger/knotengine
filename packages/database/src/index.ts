@@ -4,10 +4,15 @@ export * from "./models";
 
 export const connectToDatabase = async (uri: string) => {
   try {
-    await mongoose.connect(uri);
-    console.log("Connected to MongoDB at", uri);
+    await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 5000,
+    });
+    console.log("✅ Connected to MongoDB");
   } catch (error) {
-    console.error("Error connecting to MongoDB", error);
-    process.exit(1);
+    console.error("❌ MongoDB connection failed:", (error as Error).message);
+    console.warn(
+      "⚠️  Server will start without database. Some features will be unavailable.",
+    );
+    console.warn("   Run 'docker-compose up -d' to start MongoDB.");
   }
 };
