@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Search,
   Filter,
@@ -43,15 +43,7 @@ export default function InvoicesPage() {
     typeof window !== "undefined" ? localStorage.getItem("tp_api_key") : null,
   );
 
-  useEffect(() => {
-    if (apiKey) {
-      fetchInvoices();
-    } else {
-      setLoading(false);
-    }
-  }, [apiKey, statusFilter]);
-
-  const fetchInvoices = async () => {
+  const fetchInvoices = useCallback(async () => {
     setLoading(true);
     try {
       const params: Record<string, string> = {};
@@ -67,7 +59,15 @@ export default function InvoicesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiKey, statusFilter]);
+
+  useEffect(() => {
+    if (apiKey) {
+      fetchInvoices();
+    } else {
+      setLoading(false);
+    }
+  }, [apiKey, statusFilter, fetchInvoices]);
 
   const filteredInvoices = invoices.filter(
     (inv) =>

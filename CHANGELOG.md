@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **@tyepay/crypto** — HD wallet derivation engine for BTC (P2WPKH) and EVM (ERC-20) monitoring.
 - **@tyepay/database** — MongoDB persistence layer with Mongoose models for Merchant and Invoice lifecycle.
 - **Price Oracle** — Real-time USD ↔ crypto conversion with 1-minute caching and stale fallbacks.
-- **x402 Protocol** — Native support for agentic payment handshakes via HTTP 402 headers.
+- **Verification Suite** — Finalized system-wide testing workflow including @tyepay/sdk unit tests and manual simulation endpoints.
 
 ### Changed
 

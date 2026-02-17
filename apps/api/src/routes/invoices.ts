@@ -63,15 +63,12 @@ export async function invoiceRoutes(app: FastifyInstance) {
           /** Invoice TTL in minutes (default: 30) */
           ttl_minutes: z.number().int().min(5).max(1440).default(30),
           metadata: z.record(z.unknown()).optional(),
-          /** Flag for x402 agentic payment */
-          is_agentic: z.boolean().default(false),
         }),
       },
     },
     async (request, reply) => {
       const merchant = (request as any).merchant;
-      const { amount_usd, currency, ttl_minutes, metadata, is_agentic } =
-        request.body;
+      const { amount_usd, currency, ttl_minutes, metadata } = request.body;
 
       // 1. Get real-time crypto price
       const priceUsd = await PriceOracle.getPrice(currency as Currency);
@@ -130,7 +127,6 @@ export async function invoiceRoutes(app: FastifyInstance) {
         derivationIndex: nextIndex,
         requiredConfirmations,
         expiresAt,
-        isAgenticPayment: is_agentic,
         metadata,
       });
 
@@ -152,7 +148,6 @@ export async function invoiceRoutes(app: FastifyInstance) {
         fee_crypto: invoice.feeCrypto,
         required_confirmations: invoice.requiredConfirmations,
         expires_at: invoice.expiresAt.toISOString(),
-        is_agentic_payment: invoice.isAgenticPayment,
         created_at: invoice.createdAt.toISOString(),
       });
     },
@@ -185,7 +180,6 @@ export async function invoiceRoutes(app: FastifyInstance) {
         required_confirmations: invoice.requiredConfirmations,
         tx_hash: invoice.txHash || null,
         expires_at: invoice.expiresAt.toISOString(),
-        is_agentic_payment: invoice.isAgenticPayment,
         paid_at: invoice.paidAt?.toISOString() || null,
         created_at: invoice.createdAt.toISOString(),
       };

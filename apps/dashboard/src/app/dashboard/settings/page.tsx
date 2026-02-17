@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Save,
   Wallet,
@@ -37,15 +37,7 @@ export default function SettingsPage() {
     },
   });
 
-  useEffect(() => {
-    if (apiKey) {
-      fetchSettings();
-    } else {
-      setLoading(false);
-    }
-  }, [apiKey]);
-
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     try {
       const res = await axios.get(`${API_BASE_URL}/v1/merchants/me`, {
         headers: { "x-api-key": apiKey },
@@ -66,7 +58,15 @@ export default function SettingsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiKey]);
+
+  useEffect(() => {
+    if (apiKey) {
+      fetchSettings();
+    } else {
+      setLoading(false);
+    }
+  }, [apiKey, fetchSettings]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();

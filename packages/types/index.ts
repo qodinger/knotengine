@@ -42,9 +42,8 @@ export interface Invoice {
   expires_at: Date;
   tx_hash?: string;
   block_number?: number;
-  is_agentic_payment: boolean;
   metadata?: Record<string, unknown>;
-  paid_at?: Date;
+  paidAt?: Date;
 }
 
 export interface WebhookEvent {
@@ -59,26 +58,6 @@ export interface WebhookEvent {
   confirmations: number;
   processed: boolean;
   invoice_id?: string;
-}
-
-/** x402 Payment Required response structure */
-export interface X402PaymentRequired {
-  error: "Payment Required";
-  invoice_id: string;
-  payment_details: {
-    amount: number;
-    currency: Currency;
-    address: string;
-    expires_at: string;
-  };
-}
-
-/** x402 Payment header from an AI agent */
-export interface X402PaymentHeader {
-  /** The invoice ID being paid */
-  invoice_id: string;
-  /** Transaction hash proving payment */
-  tx_hash: string;
 }
 
 /** Default confirmation depths per currency */

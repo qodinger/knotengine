@@ -15,8 +15,7 @@
     "docker:up": "bash scripts/docker-up.sh",
     "docker:down": "bash scripts/docker-down.sh",
     "docker:status": "bash scripts/docker-status.sh",
-    "docker:logs": "docker logs -f tyepay_mongo",
-    "simulate": "npx tsx apps/api/src/tests/agent-simulation.ts"
+    "docker:logs": "docker logs -f tyepay_mongo"
   },
   "lint-staged": {
     "*.{ts,tsx,js,json,md}": [
@@ -37,6 +36,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "prettier": "^3.8.1",
+    "tsup": "^8.5.1",
     "turbo": "latest"
   },
   "packageManager": "pnpm@9.0.0"

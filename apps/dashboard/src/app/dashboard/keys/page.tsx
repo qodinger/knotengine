@@ -81,7 +81,7 @@ export default function KeysPage() {
           API Keys
         </h1>
         <p className="text-white/40 text-sm font-medium">
-          Secure credentials for your agentic payment bridge.
+          Secure credentials for your payment integration.
         </p>
       </div>
 

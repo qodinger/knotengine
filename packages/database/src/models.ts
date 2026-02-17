@@ -89,8 +89,6 @@ export interface IInvoice extends Document {
   webhookDelivered: boolean;
   webhookAttempts: number;
   lastWebhookAttempt?: Date;
-  /** x402 agentic payment flag */
-  isAgenticPayment: boolean;
   /** Arbitrary metadata from merchant */
   metadata?: Record<string, unknown>;
   paidAt?: Date;
@@ -133,7 +131,6 @@ const InvoiceSchema: Schema = new Schema(
     webhookDelivered: { type: Boolean, default: false },
     webhookAttempts: { type: Number, default: 0 },
     lastWebhookAttempt: { type: Date },
-    isAgenticPayment: { type: Boolean, default: false },
     metadata: { type: Schema.Types.Mixed },
     paidAt: { type: Date },
   },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
@@ -29,7 +29,20 @@ export default function DashboardOverview() {
   const apiKey =
     typeof window !== "undefined" ? localStorage.getItem("tp_api_key") : null;
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<Record<string, any> | null>(null);
+  const [data, setData] = useState<Record<string, unknown> | null>(null);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/v1/merchants/me/stats`, {
+        headers: { "x-api-key": apiKey },
+      });
+      setData(res.data as Record<string, unknown>);
+    } catch (err) {
+      console.error("Failed to fetch stats", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [apiKey]);
 
   useEffect(() => {
     if (apiKey) {
@@ -37,32 +50,21 @@ export default function DashboardOverview() {
     } else {
       setLoading(false);
     }
-  }, [apiKey]);
-
-  const fetchStats = async () => {
-    try {
-      const res = await axios.get(`${API_BASE_URL}/v1/merchants/me/stats`, {
-        headers: { "x-api-key": apiKey },
-      });
-      setData(res.data);
-    } catch (err) {
-      console.error("Failed to fetch stats", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [apiKey, fetchStats]);
 
   const stats = [
     {
       label: "Total Volume",
-      value: data ? `$${data.totalVolume.toLocaleString()}` : "$0.00",
+      value: data
+        ? `$${(data.totalVolume as number).toLocaleString()}`
+        : "$0.00",
       change: "+0.0%",
       icon: TrendingUp,
       color: "text-neon-blue",
     },
     {
       label: "Active Invoices",
-      value: data ? data.activeInvoices.toString() : "0",
+      value: data ? (data.activeInvoices as number).toString() : "0",
       change: "+0",
       icon: Activity,
       color: "text-neon-purple",
@@ -76,7 +78,7 @@ export default function DashboardOverview() {
     },
     {
       label: "Success Rate",
-      value: data ? data.successRate : "0.0%",
+      value: data ? (data.successRate as string) : "0.0%",
       change: "+0.0%",
       icon: CreditCard,
       color: "text-green-500",
@@ -159,7 +161,9 @@ export default function DashboardOverview() {
           </h3>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data?.chartData || []}>
+              <AreaChart
+                data={(data?.chartData as Record<string, unknown>[]) || []}
+              >
                 <defs>
                   <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#00f2ff" stopOpacity={0.3} />

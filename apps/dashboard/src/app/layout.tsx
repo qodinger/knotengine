@@ -6,7 +6,7 @@ import { CyberpunkBackground } from "@/components/CyberpunkBackground";
 
 export const metadata: Metadata = {
   title: "TyePay | Merchant Console",
-  description: "Manage your agentic payment infrastructure.",
+  description: "Manage your non-custodial payment infrastructure.",
 };
 
 export default function RootLayout({

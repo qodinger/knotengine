@@ -7,7 +7,6 @@ import {
 import { merchantRoutes } from "./routes/merchants";
 import { invoiceRoutes } from "./routes/invoices";
 import { webhookRoutes } from "./routes/webhooks";
-import { agentRoutes } from "./routes/agent";
 import { PriceOracle } from "./infra/price-feed";
 import { ConfirmationEngine } from "./core/confirmation-engine";
 import { WebhookDispatcher } from "./infra/webhook-dispatcher";
@@ -77,7 +76,6 @@ server.get("/health", async () => {
 server.register(merchantRoutes);
 server.register(invoiceRoutes);
 server.register(webhookRoutes);
-server.register(agentRoutes);
 
 // ──────────────────────────────────────────────
 // Price Oracle Endpoint (Phase 1)

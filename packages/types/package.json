@@ -1,10 +1,23 @@
 {
   "name": "@tyepay/types",
   "version": "0.1.0",
-  "private": true,
-  "main": "./index.ts",
-  "types": "./index.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
+    "build": "tsup index.ts --format cjs,esm --dts --clean",
+    "dev": "tsup index.ts --format cjs,esm --dts --watch",
     "lint": "eslint ."
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "typescript": "^5.3.3"
   }
 }

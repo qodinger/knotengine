@@ -1,6 +1,7 @@
 {
-  "name": "@tyepay/crypto",
+  "name": "@tyepay/sdk",
   "version": "0.1.0",
+  "description": "Standard Node.js SDK for TyePay — The Non-Custodial Payment Gateway.",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -11,18 +12,16 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup index.ts --format cjs,esm --dts --clean",
-    "dev": "tsup index.ts --format cjs,esm --dts --watch",
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
     "test": "vitest run"
   },
   "dependencies": {
-    "bip32": "^4.0.0",
-    "bitcoinjs-lib": "^6.1.0",
-    "ethers": "^6.10.0",
-    "tiny-secp256k1": "^2.2.3"
+    "axios": "^1.6.7"
   },
   "devDependencies": {
-    "@types/node": "^20.11.16",
+    "@tyepay/types": "workspace:*",
+    "@types/node": "^25.2.3",
     "tsup": "^8.5.1",
     "typescript": "^5.3.3",
     "vitest": "^1.2.2"
