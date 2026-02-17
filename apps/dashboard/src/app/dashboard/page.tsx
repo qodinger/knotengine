@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
@@ -9,6 +10,7 @@ import {
   Activity,
   ArrowUpRight,
   ArrowDownRight,
+  Loader2,
 } from "lucide-react";
 import {
   XAxis,
@@ -19,49 +21,86 @@ import {
   AreaChart,
   Area,
 } from "recharts";
+import axios from "axios";
 
-const data = [
-  { name: "Mon", volume: 2400 },
-  { name: "Tue", volume: 1398 },
-  { name: "Wed", volume: 9800 },
-  { name: "Thu", volume: 3908 },
-  { name: "Fri", volume: 4800 },
-  { name: "Sat", volume: 3800 },
-  { name: "Sun", volume: 4300 },
-];
-
-const stats = [
-  {
-    label: "Total Volume",
-    value: "$12,842.50",
-    change: "+12.5%",
-    icon: TrendingUp,
-    color: "text-neon-blue",
-  },
-  {
-    label: "Active Invoices",
-    value: "24",
-    change: "+3",
-    icon: Activity,
-    color: "text-neon-purple",
-  },
-  {
-    label: "Total Merchants",
-    value: "1",
-    change: "0%",
-    icon: Users,
-    color: "text-neon-pink",
-  },
-  {
-    label: "Success Rate",
-    value: "99.2%",
-    change: "+0.4%",
-    icon: CreditCard,
-    color: "text-green-500",
-  },
-];
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5050";
 
 export default function DashboardOverview() {
+  const apiKey =
+    typeof window !== "undefined" ? localStorage.getItem("tp_api_key") : null;
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<Record<string, any> | null>(null);
+
+  useEffect(() => {
+    if (apiKey) {
+      fetchStats();
+    } else {
+      setLoading(false);
+    }
+  }, [apiKey]);
+
+  const fetchStats = async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/v1/merchants/me/stats`, {
+        headers: { "x-api-key": apiKey },
+      });
+      setData(res.data);
+    } catch (err) {
+      console.error("Failed to fetch stats", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const stats = [
+    {
+      label: "Total Volume",
+      value: data ? `$${data.totalVolume.toLocaleString()}` : "$0.00",
+      change: "+0.0%",
+      icon: TrendingUp,
+      color: "text-neon-blue",
+    },
+    {
+      label: "Active Invoices",
+      value: data ? data.activeInvoices.toString() : "0",
+      change: "+0",
+      icon: Activity,
+      color: "text-neon-purple",
+    },
+    {
+      label: "Total Merchants",
+      value: "1",
+      change: "0%",
+      icon: Users,
+      color: "text-neon-pink",
+    },
+    {
+      label: "Success Rate",
+      value: data ? data.successRate : "0.0%",
+      change: "+0.0%",
+      icon: CreditCard,
+      color: "text-green-500",
+    },
+  ];
+
+  if (!apiKey) {
+    return (
+      <div className="h-[60vh] flex items-center justify-center">
+        <p className="text-white/40 italic uppercase tracking-widest font-black">
+          Session Authentication Required
+        </p>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="h-[60vh] flex items-center justify-center">
+        <Loader2 className="text-neon-blue animate-spin" size={32} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       {/* Header */}
@@ -70,12 +109,12 @@ export default function DashboardOverview() {
           Merchant Console
         </h1>
         <p className="text-white/40 text-sm font-medium">
-          Welcome back, Admin. System performance is optimal.
+          Welcome back. System performance is optimal.
         </p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-stat gap-6 stats-grid">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, i) => (
           <motion.div
             key={stat.label}
@@ -120,7 +159,7 @@ export default function DashboardOverview() {
           </h3>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data}>
+              <AreaChart data={data?.chartData || []}>
                 <defs>
                   <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#00f2ff" stopOpacity={0.3} />
@@ -172,9 +211,9 @@ export default function DashboardOverview() {
           <div className="space-y-6">
             <HealthIndicator
               label="Blockchain Sync"
-              status="Degraded"
-              value="98%"
-              color="text-yellow-500"
+              status="Optimal"
+              value="100%"
+              color="text-green-500"
             />
             <HealthIndicator
               label="API Latency"
@@ -189,9 +228,9 @@ export default function DashboardOverview() {
               color="text-green-500"
             />
             <HealthIndicator
-              label="Redis Cache"
+              label="Node Health"
               status="Optimal"
-              value="0.2ms"
+              value="99.9%"
               color="text-green-500"
             />
           </div>
@@ -232,7 +271,7 @@ function HealthIndicator({
         <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
           <div
             className={cn("h-full bg-current", color)}
-            style={{ width: value }}
+            style={{ width: value.includes("%") ? value : "100%" }}
           />
         </div>
         <span className="text-xs font-mono font-bold opacity-60">{value}</span>
