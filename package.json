@@ -1,0 +1,15 @@
+{
+  "name": "tyepay",
+  "private": true,
+  "description": "Minimalist, Non-Custodial Crypto Payment Infrastructure",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test"
+  },
+  "devDependencies": {
+    "turbo": "latest"
+  },
+  "packageManager": "pnpm@9.0.0"
+}
