@@ -4,20 +4,55 @@ import { useState, useEffect, useCallback } from "react";
 import {
   Search,
   Filter,
-  ArrowUpDown,
   ExternalLink,
   MoreHorizontal,
   Clock,
   CheckCircle2,
   XCircle,
   AlertCircle,
+  Plus,
+  ChevronRight,
+  ChevronLeft,
+  Calendar,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import axios from "axios";
 import { format } from "date-fns";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5050";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { api, getAuthHeaders } from "@/lib/api";
 
 type Invoice = {
   invoice_id: string;
@@ -39,18 +74,14 @@ export default function InvoicesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  const [apiKey, setApiKey] = useState<string | null>(
-    typeof window !== "undefined" ? localStorage.getItem("tp_api_key") : null,
-  );
-
   const fetchInvoices = useCallback(async () => {
     setLoading(true);
     try {
       const params: Record<string, string> = {};
       if (statusFilter !== "all") params.status = statusFilter;
 
-      const res = await axios.get(`${API_BASE_URL}/v1/invoices`, {
-        headers: { "x-api-key": apiKey },
+      const res = await api.get("/v1/invoices", {
+        headers: getAuthHeaders(),
         params,
       });
       setInvoices(res.data.data);
@@ -59,15 +90,17 @@ export default function InvoicesPage() {
     } finally {
       setLoading(false);
     }
-  }, [apiKey, statusFilter]);
+  }, [statusFilter]);
 
   useEffect(() => {
+    const apiKey =
+      typeof window !== "undefined" ? localStorage.getItem("tp_api_key") : null;
     if (apiKey) {
       fetchInvoices();
     } else {
       setLoading(false);
     }
-  }, [apiKey, statusFilter, fetchInvoices]);
+  }, [statusFilter, fetchInvoices]);
 
   const filteredInvoices = invoices.filter(
     (inv) =>
@@ -75,194 +108,230 @@ export default function InvoicesPage() {
       inv.crypto_currency.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
+  const apiKey =
+    typeof window !== "undefined" ? localStorage.getItem("tp_api_key") : null;
+
   if (!apiKey) {
     return (
-      <ApiKeyRequired
-        onSetKey={(key) => {
-          localStorage.setItem("tp_api_key", key);
-          setApiKey(key);
-        }}
-      />
+      <div className="flex items-center justify-center h-[50vh]">
+        <Card className="w-full max-w-sm">
+          <CardHeader className="text-center">
+            <CardTitle>Session locked</CardTitle>
+            <CardDescription>
+              Authenticate to access system records.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button className="w-full" onClick={() => window.location.reload()}>
+              Authenticate
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
-      {/* Header */}
+    <div className="flex flex-col gap-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-black tracking-tighter uppercase mb-2">
-            Invoices
+          <h1 className="text-2xl font-bold tracking-tight">
+            Ledger Operations
           </h1>
-          <p className="text-white/40 text-sm font-medium">
-            Manage and track your merchant payment requests.
+          <p className="text-muted-foreground text-sm font-medium">
+            Monitor and audit all incoming merchant payment requests.
           </p>
         </div>
-        <button className="px-6 py-3 bg-neon-purple text-black font-black uppercase tracking-widest rounded-xl hover:bg-neon-purple/80 transition-all text-xs">
-          Create Invoice
-        </button>
+        <Button className="font-bold uppercase text-[10px] tracking-widest gap-2">
+          <Plus className="size-3" />
+          Create Settlement
+        </Button>
       </div>
 
-      {/* Filters & Search */}
-      <div className="flex flex-col lg:flex-row gap-4">
-        <div className="flex-1 relative group">
-          <Search
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-hover:text-neon-blue transition-colors"
-            size={18}
-          />
-          <input
-            type="text"
-            placeholder="Search by ID or Currency..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full glass bg-white/5 border-white/5 rounded-xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:neon-border transition-all"
-          />
-        </div>
-
-        <div className="flex gap-4">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="glass bg-black border-white/5 rounded-xl px-4 py-4 text-sm font-bold focus:outline-none hover:bg-white/5 transition-all outline-none appearance-none cursor-pointer min-w-[140px]"
-          >
-            <option value="all">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="expired">Expired</option>
-          </select>
-
-          <button className="glass bg-white/5 border-white/5 rounded-xl px-4 py-4 hover:neon-border transition-all flex items-center gap-2 text-sm font-bold">
-            <Filter size={18} />
-            Sort
-          </button>
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="glass-card overflow-hidden border-white/5">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-white/5 text-[10px] font-black uppercase tracking-widest text-white/40">
-                <th className="px-6 py-5 cursor-pointer hover:text-white transition-colors">
-                  <div className="flex items-center gap-2">
-                    Invoice ID <ArrowUpDown size={12} />
-                  </div>
-                </th>
-                <th className="px-6 py-5">Status</th>
-                <th className="px-6 py-5 text-right">Amount (USD)</th>
-                <th className="px-6 py-5">Crypto Amount</th>
-                <th className="px-6 py-5">Created</th>
-                <th className="px-6 py-5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/[0.02]">
-              <AnimatePresence mode="popLayout">
-                {loading ? (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="px-6 py-12 text-center text-white/20 font-black italic uppercase tracking-widest animate-pulse"
-                    >
-                      Encrypting Data Streams...
-                    </td>
-                  </tr>
-                ) : filteredInvoices.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="px-6 py-12 text-center text-white/20 font-black italic uppercase tracking-widest"
-                    >
-                      No Records Found in Database
-                    </td>
-                  </tr>
-                ) : (
-                  filteredInvoices.map((inv, i) => (
-                    <motion.tr
-                      key={inv.invoice_id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      className="group hover:bg-white/[0.02] transition-colors"
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col">
-                          <span className="text-xs font-mono font-bold group-hover:text-neon-blue transition-colors">
-                            {inv.invoice_id}
-                          </span>
-                          {inv.tx_hash && (
-                            <div className="flex items-center gap-1 mt-1 text-[8px] opacity-30 group-hover:opacity-60">
-                              <CheckCircle2
-                                size={10}
-                                className="text-green-500"
-                              />
-                              <span className="truncate max-w-[100px]">
-                                {inv.tx_hash}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <StatusBadge status={inv.status} />
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <span className="text-sm font-black">
-                          ${inv.amount_usd.toFixed(2)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold">
-                            {inv.crypto_amount}
-                          </span>
-                          <span className="text-[10px] bg-white/5 px-1.5 py-0.5 rounded opacity-60 font-black">
-                            {inv.crypto_currency}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-xs opacity-40 font-medium">
-                          {format(new Date(inv.created_at), "MMM dd, HH:mm")}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-2">
-                          <button className="p-2 hover:bg-white/5 rounded-lg transition-colors text-white/40 hover:text-neon-blue">
-                            <ExternalLink size={16} />
-                          </button>
-                          <button className="p-2 hover:bg-white/5 rounded-lg transition-colors text-white/40 hover:text-white">
-                            <MoreHorizontal size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))
-                )}
-              </AnimatePresence>
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination Placeholder */}
-        <div className="px-6 py-4 border-t border-white/5 flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-white/20">
-          <span>Showing {filteredInvoices.length} entries</span>
-          <div className="flex gap-2">
-            <button
-              disabled
-              className="px-3 py-1 glass rounded-md opacity-20 cursor-not-allowed"
-            >
-              Prev
-            </button>
-            <button
-              disabled
-              className="px-3 py-1 glass rounded-md opacity-20 cursor-not-allowed"
-            >
-              Next
-            </button>
+      <Card className="border-none shadow-none bg-background/50 border overflow-hidden">
+        <CardHeader className="border-b bg-muted/20 pb-6">
+          <div className="flex flex-col lg:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                size={14}
+              />
+              <Input
+                placeholder="Lookup by Invoice ID or Currency..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 bg-background/50 border-none transition-all hover:bg-background/80"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[160px] bg-background/50 border-none text-xs font-bold uppercase tracking-tight">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Records</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="confirmed">Confirmed</SelectItem>
+                  <SelectItem value="expired">Expired</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="gap-2 font-bold uppercase text-[10px] tracking-widest"
+              >
+                <Filter className="size-3" />
+                Filters
+              </Button>
+            </div>
           </div>
-        </div>
-      </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader className="bg-muted/30">
+              <TableRow className="hover:bg-transparent border-none">
+                <TableHead className="w-[200px] text-[10px] font-bold uppercase tracking-wider h-10">
+                  Invoice ID
+                </TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider h-10">
+                  Status
+                </TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider h-10 text-right">
+                  Settlement (USD)
+                </TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider h-10">
+                  Asset Pool
+                </TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider h-10">
+                  Timestamp
+                </TableHead>
+                <TableHead className="text-right h-10"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                Array.from({ length: 8 }).map((_, i) => (
+                  <TableRow key={i} className="border-b last:border-0">
+                    <TableCell>
+                      <Skeleton className="h-4 w-24" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-16" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-12 ml-auto" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-20" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-24" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-8 w-8 ml-auto" />
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : filteredInvoices.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={6}
+                    className="h-32 text-center text-muted-foreground font-medium"
+                  >
+                    No ledger entries matching current filters.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredInvoices.map((inv) => (
+                  <TableRow
+                    key={inv.invoice_id}
+                    className="border-b last:border-0 hover:bg-muted/10 transition-colors"
+                  >
+                    <TableCell className="font-mono text-[10px] font-bold tracking-tight text-primary">
+                      {inv.invoice_id}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge status={inv.status} />
+                    </TableCell>
+                    <TableCell className="text-right font-bold text-sm">
+                      $
+                      {inv.amount_usd.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                      })}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold font-mono">
+                          {inv.crypto_amount}
+                        </span>
+                        <Badge
+                          variant="secondary"
+                          className="text-[9px] py-0 px-1.5 h-4 font-bold tracking-wider"
+                        >
+                          {inv.crypto_currency}
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-[10px] font-medium text-muted-foreground whitespace-nowrap">
+                      <span className="flex items-center gap-1.5">
+                        <Calendar className="size-3" />
+                        {format(new Date(inv.created_at), "MMM d, HH:mm")}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                            Operations
+                          </DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-xs font-medium"
+                            onClick={() =>
+                              window.open(
+                                `http://localhost:5051/checkout/${inv.invoice_id}`,
+                                "_blank",
+                              )
+                            }
+                          >
+                            <ExternalLink className="mr-2 h-3.5 w-3.5" />
+                            Launch Checkout
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-xs font-medium">
+                            Copy Entry ID
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+        <CardFooter className="py-4 border-t bg-muted/20 flex items-center justify-between">
+          <p className="text-[10px] text-muted-foreground font-medium">
+            Showing 1-10 of {filteredInvoices.length} transactions
+          </p>
+          <div className="flex gap-2">
+            <Button variant="secondary" size="icon" className="size-8" disabled>
+              <ChevronLeft className="size-4" />
+            </Button>
+            <Button variant="secondary" size="icon" className="size-8" disabled>
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
+        </CardFooter>
+      </Card>
     </div>
   );
 }
@@ -272,22 +341,22 @@ function StatusBadge({ status }: { status: Invoice["status"] }) {
     pending: {
       label: "Pending",
       icon: Clock,
-      color: "text-yellow-500 bg-yellow-500/10 border-yellow-500/20",
+      className: "text-amber-500 bg-amber-500/10 border-amber-500/20",
     },
     confirmed: {
-      label: "Confirmed",
+      label: "Settled",
       icon: CheckCircle2,
-      color: "text-green-500 bg-green-500/10 border-green-500/20",
+      className: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
     },
     expired: {
       label: "Expired",
       icon: XCircle,
-      color: "text-red-500 bg-red-500/10 border-red-500/20",
+      className: "text-rose-500 bg-rose-500/10 border-rose-500/20",
     },
     partially_paid: {
-      label: "Warning",
+      label: "Partial",
       icon: AlertCircle,
-      color: "text-neon-pink bg-neon-pink/10 border-neon-pink/20",
+      className: "text-orange-500 bg-orange-500/10 border-orange-500/20",
     },
   };
 
@@ -295,50 +364,15 @@ function StatusBadge({ status }: { status: Invoice["status"] }) {
   const Icon = config.icon;
 
   return (
-    <div
+    <Badge
+      variant="outline"
       className={cn(
-        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-black uppercase tracking-tighter",
-        config.color,
+        "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider text-[9px] border-none shadow-none",
+        config.className,
       )}
     >
-      <Icon size={12} />
+      <Icon size={10} />
       {config.label}
-    </div>
-  );
-}
-
-function ApiKeyRequired({ onSetKey }: { onSetKey: (key: string) => void }) {
-  const [input, setInput] = useState("");
-
-  return (
-    <div className="h-[70vh] flex flex-col items-center justify-center p-8 animate-in zoom-in duration-500">
-      <div className="glass-card p-10 max-w-md w-full text-center border-neon-purple/50">
-        <div className="w-16 h-16 bg-neon-purple/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
-          <Search size={32} className="text-neon-purple" />
-        </div>
-        <h2 className="text-3xl font-black uppercase tracking-tighter mb-4">
-          API Key Required
-        </h2>
-        <p className="text-white/40 text-sm mb-8">
-          Accessing protected merchant records requires a secure TyePay API key.
-        </p>
-
-        <div className="space-y-4">
-          <input
-            type="password"
-            placeholder="tye_..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            className="w-full glass bg-black border-white/10 rounded-xl px-5 py-4 font-mono text-sm focus:neon-border outline-none transition-all"
-          />
-          <button
-            onClick={() => onSetKey(input)}
-            className="w-full py-4 bg-neon-purple text-black font-black uppercase tracking-widest rounded-xl hover:neon-purple/80 transition-all text-xs"
-          >
-            Authenticate Session
-          </button>
-        </div>
-      </div>
-    </div>
+    </Badge>
   );
 }

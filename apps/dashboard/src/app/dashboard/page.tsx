@@ -1,16 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
 import {
   TrendingUp,
   Users,
-  CreditCard,
   Activity,
   ArrowUpRight,
-  ArrowDownRight,
-  Loader2,
+  CheckCircle2,
+  ChevronRight,
+  ArrowRight,
 } from "lucide-react";
 import {
   XAxis,
@@ -21,36 +19,58 @@ import {
   AreaChart,
   Area,
 } from "recharts";
-import axios from "axios";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import Link from "next/link";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { api, getAuthHeaders } from "@/lib/api";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5050";
+interface DashboardStats {
+  totalVolume: number;
+  successRate: string;
+  chartData: Array<{ name: string; volume: number }>;
+}
 
 export default function DashboardOverview() {
-  const apiKey =
-    typeof window !== "undefined" ? localStorage.getItem("tp_api_key") : null;
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<Record<string, unknown> | null>(null);
+  const [, setLoading] = useState(true);
+  const [data, setData] = useState<DashboardStats | null>(null);
 
   const fetchStats = useCallback(async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/v1/merchants/me/stats`, {
-        headers: { "x-api-key": apiKey },
+      const res = await api.get("/v1/merchants/me/stats", {
+        headers: getAuthHeaders(),
       });
-      setData(res.data as Record<string, unknown>);
+      setData(res.data);
     } catch (err) {
       console.error("Failed to fetch stats", err);
     } finally {
       setLoading(false);
     }
-  }, [apiKey]);
+  }, []);
+
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+    const apiKey =
+      typeof window !== "undefined" ? localStorage.getItem("tp_api_key") : null;
     if (apiKey) {
       fetchStats();
     } else {
       setLoading(false);
     }
-  }, [apiKey, fetchStats]);
+  }, [fetchStats]);
+
+  if (!mounted) return null;
 
   const stats = [
     {
@@ -58,228 +78,298 @@ export default function DashboardOverview() {
       value: data
         ? `$${(data.totalVolume as number).toLocaleString()}`
         : "$0.00",
-      change: "+0.0%",
+      description: "Trending up this month",
+      trend: "+12.5%",
       icon: TrendingUp,
-      color: "text-neon-blue",
     },
     {
-      label: "Active Invoices",
-      value: data ? (data.activeInvoices as number).toString() : "0",
-      change: "+0",
-      icon: Activity,
-      color: "text-neon-purple",
-    },
-    {
-      label: "Total Merchants",
-      value: "1",
-      change: "0%",
+      label: "Active Accounts",
+      value: "45,678",
+      description: "Strong user retention",
+      trend: "+12.5%",
       icon: Users,
-      color: "text-neon-pink",
+    },
+    {
+      label: "Growth Rate",
+      value: "4.5%",
+      description: "Steady performance increase",
+      trend: "+0.2%",
+      icon: Activity,
     },
     {
       label: "Success Rate",
       value: data ? (data.successRate as string) : "0.0%",
-      change: "+0.0%",
-      icon: CreditCard,
-      color: "text-green-500",
+      description: "Verification completed",
+      trend: "+0.5%",
+      icon: CheckCircle2,
     },
   ];
 
+  const apiKey =
+    typeof window !== "undefined" ? localStorage.getItem("tp_api_key") : null;
+
   if (!apiKey) {
     return (
-      <div className="h-[60vh] flex items-center justify-center">
-        <p className="text-white/40 italic uppercase tracking-widest font-black">
-          Session Authentication Required
-        </p>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="h-[60vh] flex items-center justify-center">
-        <Loader2 className="text-neon-blue animate-spin" size={32} />
+      <div className="flex items-center justify-center h-[50vh]">
+        <Card className="w-full max-w-sm">
+          <CardHeader>
+            <CardTitle>Session Locked</CardTitle>
+            <CardDescription>
+              Authenticate to access the console.
+            </CardDescription>
+          </CardHeader>
+          <CardFooter>
+            <Button className="w-full" onClick={() => window.location.reload()}>
+              Authenticate
+            </Button>
+          </CardFooter>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-black tracking-tighter uppercase mb-2">
-          Merchant Console
-        </h1>
-        <p className="text-white/40 text-sm font-medium">
-          Welcome back. System performance is optimal.
-        </p>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, i) => (
-          <motion.div
+    <div className="flex flex-col gap-8">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {stats.map((stat) => (
+          <Card
             key={stat.label}
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: i * 0.1 }}
-            className="glass-card p-6 border-white/5 group hover:neon-border transition-all duration-500"
+            className="border-none shadow-none bg-background/50 border"
           >
-            <div className="flex justify-between items-start mb-4">
-              <div className={cn("p-2 rounded-lg bg-white/5", stat.color)}>
-                <stat.icon size={20} />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-tight">
+                {stat.label}
+              </CardTitle>
+              <stat.icon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2">
+                <div className="text-2xl font-bold tracking-tight">
+                  {stat.value}
+                </div>
+                <Badge
+                  variant="secondary"
+                  className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/10 border-emerald-500/20 text-[10px] font-bold"
+                >
+                  <ArrowUpRight className="mr-0.5 h-3 w-3" />
+                  {stat.trend}
+                </Badge>
               </div>
-              <div
-                className={cn(
-                  "flex items-center text-[10px] font-black px-2 py-1 rounded-md bg-white/5",
-                  stat.change.startsWith("+")
-                    ? "text-green-500"
-                    : "text-white/40",
-                )}
-              >
-                {stat.change.startsWith("+") ? (
-                  <ArrowUpRight size={10} className="mr-1" />
-                ) : (
-                  <ArrowDownRight size={10} className="mr-1" />
-                )}
-                {stat.change}
-              </div>
-            </div>
-            <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-1">
-              {stat.label}
-            </p>
-            <p className="text-2xl font-black">{stat.value}</p>
-          </motion.div>
+              <p className="text-xs text-muted-foreground mt-2 font-medium">
+                {stat.description}
+              </p>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 glass-card p-8">
-          <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-40 mb-8">
-            Volume Over Time
-          </h3>
-          <div className="h-[300px] w-full">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <Card className="lg:col-span-4 border-none shadow-none bg-background/50 border">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Total Volume</CardTitle>
+                <CardDescription>
+                  Processed volume in the last 3 months.
+                </CardDescription>
+              </div>
+              <Button variant="outline" size="sm">
+                Last 3 months
+                <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="h-[350px] pl-2">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
-                data={(data?.chartData as Record<string, unknown>[]) || []}
-              >
+              <AreaChart data={data?.chartData || []}>
                 <defs>
                   <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#00f2ff" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#00f2ff" stopOpacity={0} />
+                    <stop
+                      offset="5%"
+                      stopColor="var(--primary)"
+                      stopOpacity={0.1}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor="var(--primary)"
+                      stopOpacity={0}
+                    />
                   </linearGradient>
                 </defs>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   vertical={false}
-                  stroke="#ffffff05"
+                  stroke="hsl(var(--muted-foreground))"
+                  opacity={0.1}
                 />
                 <XAxis
                   dataKey="name"
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: "#ffffff40", fontSize: 10, fontWeight: 700 }}
+                  tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
                   dy={10}
                 />
                 <YAxis
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: "#ffffff40", fontSize: 10, fontWeight: 700 }}
+                  tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: "#0a0a0a",
-                    border: "1px solid #ffffff10",
-                    borderRadius: "12px",
+                    backgroundColor: "hsl(var(--background))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "8px",
                   }}
-                  itemStyle={{ color: "#00f2ff", fontWeight: 800 }}
                 />
                 <Area
                   type="monotone"
                   dataKey="volume"
-                  stroke="#00f2ff"
-                  strokeWidth={3}
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={2}
                   fillOpacity={1}
                   fill="url(#colorVolume)"
                 />
               </AreaChart>
             </ResponsiveContainer>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="glass-card p-8 bg-neon-purple/5">
-          <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-40 mb-8">
-            System Health
-          </h3>
-          <div className="space-y-6">
-            <HealthIndicator
-              label="Blockchain Sync"
-              status="Optimal"
-              value="100%"
-              color="text-green-500"
-            />
-            <HealthIndicator
-              label="API Latency"
-              status="Optimal"
-              value="42ms"
-              color="text-green-500"
-            />
-            <HealthIndicator
-              label="Webhook Success"
-              status="Optimal"
-              value="100%"
-              color="text-green-500"
-            />
-            <HealthIndicator
-              label="Node Health"
-              status="Optimal"
-              value="99.9%"
-              color="text-green-500"
-            />
-          </div>
+        <Card className="lg:col-span-3 border-none shadow-none bg-background/50 border">
+          <CardHeader>
+            <CardTitle>Recent Activity</CardTitle>
+            <CardDescription>
+              Latest events from your infrastructure.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-8">
+              <ActivityItem
+                name="Olivia Martin"
+                email="olivia.martin@email.com"
+                amount="+$1,999.00"
+                initials="OM"
+              />
+              <ActivityItem
+                name="Jackson Lee"
+                email="jackson.lee@email.com"
+                amount="+$39.00"
+                initials="JL"
+              />
+              <ActivityItem
+                name="Isabella Nguyen"
+                email="isabella.nguyen@email.com"
+                amount="+$299.00"
+                initials="IN"
+              />
+              <ActivityItem
+                name="William Kim"
+                email="will@email.com"
+                amount="+$99.00"
+                initials="WK"
+              />
+              <ActivityItem
+                name="Sofia Davis"
+                email="sofia.davis@email.com"
+                amount="+$39.00"
+                initials="SD"
+              />
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button variant="ghost" className="w-full justify-between" asChild>
+              <Link href="/dashboard/lifecycle">
+                View all activity
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
 
-          <div className="mt-12 pt-8 border-t border-white/5">
-            <button className="w-full py-3 glass rounded-xl text-[10px] font-black uppercase tracking-widest hover:neon-border transition-all">
-              Run Diagnostics
-            </button>
-          </div>
-        </div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <Card className="lg:col-span-4 border-none shadow-none bg-background/50 border">
+          <CardHeader>
+            <CardTitle>System Health</CardTitle>
+            <CardDescription>
+              Network status and performance metrics.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Blockchain Sync</span>
+                <span className="font-medium">100%</span>
+              </div>
+              <Progress value={100} className="h-1 bg-emerald-500/10" />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">API Latency</span>
+                <span className="font-medium text-emerald-500">
+                  Optimal (42ms)
+                </span>
+              </div>
+              <Progress value={92} className="h-1 bg-emerald-500/10" />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Node Stability</span>
+                <span className="font-medium">99.9%</span>
+              </div>
+              <Progress value={99.9} className="h-1 bg-emerald-500/10" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="lg:col-span-3 border-none shadow-none bg-background/50 border">
+          <CardHeader>
+            <CardTitle>Environment</CardTitle>
+            <CardDescription>Active processing parameters.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4">
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div className="flex items-center gap-3 font-medium text-sm">
+                  <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                  Production
+                </div>
+                <Badge variant="outline">Live</Badge>
+              </div>
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div className="flex items-center gap-3 font-medium text-sm">
+                  <div className="h-2 w-2 rounded-full bg-amber-500" />
+                  Testnet
+                </div>
+                <Badge variant="secondary">Maintenance</Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
 }
 
-function HealthIndicator({
-  label,
-  status,
-  value,
-  color,
+function ActivityItem({
+  name,
+  email,
+  amount,
+  initials,
 }: {
-  label: string;
-  status: string;
-  value: string;
-  color: string;
+  name: string;
+  email: string;
+  amount: string;
+  initials: string;
 }) {
   return (
-    <div>
-      <div className="flex justify-between items-center mb-2">
-        <span className="text-[10px] font-bold text-white/40 uppercase">
-          {label}
-        </span>
-        <span className={cn("text-[10px] font-black uppercase", color)}>
-          {status}
-        </span>
+    <div className="flex items-center gap-4">
+      <Avatar className="h-9 w-9">
+        <AvatarFallback>{initials}</AvatarFallback>
+      </Avatar>
+      <div className="flex flex-col gap-0.5">
+        <p className="text-sm font-medium leading-none">{name}</p>
+        <p className="text-xs text-muted-foreground">{email}</p>
       </div>
-      <div className="flex items-center gap-3">
-        <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
-          <div
-            className={cn("h-full bg-current", color)}
-            style={{ width: value.includes("%") ? value : "100%" }}
-          />
-        </div>
-        <span className="text-xs font-mono font-bold opacity-60">{value}</span>
-      </div>
+      <div className="ml-auto font-medium text-sm">{amount}</div>
     </div>
   );
 }

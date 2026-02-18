@@ -3,319 +3,375 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Save,
-  Wallet,
-  ShieldCheck,
-  Webhook,
-  User,
-  Info,
-  Bitcoin,
-  Globe,
   Loader2,
-  Check,
+  CheckCircle2,
+  Info,
+  Globe,
+  Settings2,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import axios from "axios";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5050";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { api, getAuthHeaders } from "@/lib/api";
 
 export default function SettingsPage() {
-  const apiKey =
-    typeof window !== "undefined" ? localStorage.getItem("tp_api_key") : null;
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
-
   const [formData, setFormData] = useState({
-    name: "",
-    btcXpub: "",
+    businessName: "",
+    businessEmail: "",
+    xPub: "",
     ethAddress: "",
+    confirmationPolicy: 1,
     webhookUrl: "",
-    confirmationPolicy: {
-      BTC: 2,
-      LTC: 6,
-      ETH: 12,
-    },
   });
 
   const fetchSettings = useCallback(async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/v1/merchants/me`, {
-        headers: { "x-api-key": apiKey },
+      const res = await api.get("/v1/merchants/me", {
+        headers: getAuthHeaders(),
       });
+      const m = res.data;
       setFormData({
-        name: res.data.name || "",
-        btcXpub: res.data.btcXpub || "",
-        ethAddress: res.data.ethAddress || "",
-        webhookUrl: res.data.webhookUrl || "",
-        confirmationPolicy: res.data.confirmationPolicy || {
-          BTC: 2,
-          LTC: 6,
-          ETH: 12,
-        },
+        businessName: m.name || "",
+        businessEmail: m.email || "",
+        xPub: m.wallet_config?.bitcoin?.xpub || "",
+        ethAddress: m.wallet_config?.ethereum?.address || "",
+        confirmationPolicy: m.rules?.confirmation_policy || 1,
+        webhookUrl: m.webhook_url || "",
       });
     } catch (err) {
       console.error("Failed to fetch settings", err);
     } finally {
       setLoading(false);
     }
-  }, [apiKey]);
+  }, []);
 
   useEffect(() => {
-    if (apiKey) {
-      fetchSettings();
-    } else {
-      setLoading(false);
-    }
-  }, [apiKey, fetchSettings]);
+    const apiKey =
+      typeof window !== "undefined" ? localStorage.getItem("tp_api_key") : null;
+    if (apiKey) fetchSettings();
+    else setLoading(false);
+  }, [fetchSettings]);
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = async () => {
     setSaving(true);
     setSuccess(false);
-
     try {
-      await axios.patch(`${API_BASE_URL}/v1/merchants/me`, formData, {
-        headers: { "x-api-key": apiKey },
-      });
+      await api.patch(
+        "/v1/merchants/me",
+        {
+          name: formData.businessName,
+          email: formData.businessEmail,
+          wallet_config: {
+            bitcoin: { xpub: formData.xPub },
+            ethereum: { address: formData.ethAddress },
+          },
+          rules: { confirmation_policy: formData.confirmationPolicy },
+          webhook_url: formData.webhookUrl,
+        },
+        { headers: getAuthHeaders() },
+      );
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
       console.error("Failed to save settings", err);
-      alert("Error saving settings. Please check your data.");
     } finally {
       setSaving(false);
     }
   };
 
+  const apiKey =
+    typeof window !== "undefined" ? localStorage.getItem("tp_api_key") : null;
+
   if (!apiKey) {
     return (
-      <div className="h-[60vh] flex items-center justify-center">
-        <p className="text-white/40 italic uppercase tracking-widest font-black">
-          Session Authentication Required
-        </p>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="h-[60vh] flex items-center justify-center">
-        <Loader2 className="text-neon-blue animate-spin" size={32} />
+      <div className="flex items-center justify-center h-[50vh]">
+        <Card className="w-full max-w-sm">
+          <CardHeader>
+            <CardTitle>Session Required</CardTitle>
+            <CardDescription>Authenticate to access settings.</CardDescription>
+          </CardHeader>
+          <CardFooter>
+            <Button className="w-full" onClick={() => window.location.reload()}>
+              Authenticate
+            </Button>
+          </CardFooter>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Header */}
-      <div className="flex justify-between items-end">
-        <div>
-          <h1 className="text-3xl font-black tracking-tighter uppercase mb-2">
-            Merchant Settings
-          </h1>
-          <p className="text-white/40 text-sm font-medium">
-            Configure your core infrastructure and payment policies.
-          </p>
-        </div>
-
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className={cn(
-            "px-8 py-3 rounded-xl font-black uppercase tracking-widest text-xs flex items-center gap-2 transition-all",
-            success
-              ? "bg-green-500 text-black"
-              : "bg-neon-blue text-black hover:bg-neon-blue/80 shadow-[0_0_20px_rgba(0,242,255,0.2)]",
-          )}
-        >
-          {saving ? (
-            <Loader2 size={16} className="animate-spin" />
-          ) : success ? (
-            <Check size={16} />
-          ) : (
-            <Save size={16} />
-          )}
-          {saving ? "Syncing..." : success ? "Saved!" : "Save Changes"}
-        </button>
-      </div>
-
-      <form onSubmit={handleSave} className="space-y-12">
-        {/* Profile Section */}
-        <section className="space-y-6">
-          <div className="flex items-center gap-3">
-            <User className="text-neon-blue" size={20} />
-            <h3 className="text-lg font-black uppercase tracking-tight">
-              Public Profile
-            </h3>
+    <div className="max-w-4xl space-y-6">
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+            <Settings2 className="size-5" />
           </div>
-          <div className="glass-card p-8 border-white/5 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">
-                  Merchant Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  placeholder="e.g. Tyecode Labs"
-                  className="w-full glass bg-black/50 border-white/10 rounded-xl px-5 py-4 text-sm font-bold focus:neon-border outline-none transition-all"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">
-                  Support Email (Optional)
-                </label>
-                <input
-                  type="email"
-                  placeholder="support@example.com"
-                  className="w-full glass bg-black/50 border-white/10 rounded-xl px-5 py-4 text-sm font-bold focus:neon-border outline-none transition-all opacity-40 cursor-not-allowed"
-                />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Wallet Strategy Section */}
-        <section className="space-y-6">
-          <div className="flex items-center gap-3">
-            <Wallet className="text-neon-purple" size={20} />
-            <h3 className="text-lg font-black uppercase tracking-tight">
-              Wallet Strategy
-            </h3>
-          </div>
-          <div className="glass-card p-8 border-white/5 space-y-8">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1 flex items-center gap-2">
-                  Bitcoin xPub (Extended Public Key)
-                  <Info size={12} className="opacity-40 cursor-help" />
-                </label>
-                <span className="text-[8px] font-black px-2 py-0.5 bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 rounded uppercase">
-                  BTC Native SegWit
-                </span>
-              </div>
-              <textarea
-                value={formData.btcXpub}
-                onChange={(e) =>
-                  setFormData({ ...formData, btcXpub: e.target.value })
-                }
-                placeholder="xpub..."
-                rows={2}
-                className="w-full glass bg-black/50 border-white/10 rounded-xl px-5 py-4 text-xs font-mono font-bold focus:neon-border outline-none transition-all"
-              />
-              <p className="text-[10px] text-white/20 font-medium italic">
-                We use this to derive a unique address for every customer. We
-                never see your private keys.
-              </p>
-            </div>
-
-            <div className="space-y-4 pt-4 border-t border-white/5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">
-                Ethereum Destination Address
-              </label>
-              <input
-                type="text"
-                value={formData.ethAddress}
-                onChange={(e) =>
-                  setFormData({ ...formData, ethAddress: e.target.value })
-                }
-                placeholder="0x..."
-                className="w-full glass bg-black/50 border-white/10 rounded-xl px-5 py-4 text-sm font-mono font-bold focus:neon-border outline-none transition-all"
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* Confirmation Rules Section */}
-        <section className="space-y-6">
-          <div className="flex items-center gap-3">
-            <ShieldCheck className="text-green-500" size={20} />
-            <h3 className="text-lg font-black uppercase tracking-tight">
-              Confirmation Rules
-            </h3>
-          </div>
-          <div className="glass-card p-8 border-white/5">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {Object.entries(formData.confirmationPolicy).map(
-                ([coin, value]) => (
-                  <div key={coin} className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
-                        {coin === "BTC" ? (
-                          <Bitcoin size={18} className="text-yellow-500" />
-                        ) : (
-                          <Globe size={18} className="text-neon-blue" />
-                        )}
-                      </div>
-                      <span className="text-xs font-black">{coin} Network</span>
-                    </div>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        min="0"
-                        value={value}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            confirmationPolicy: {
-                              ...formData.confirmationPolicy,
-                              [coin]: parseInt(e.target.value) || 0,
-                            },
-                          })
-                        }
-                        className="w-full glass bg-black/50 border-white/10 rounded-xl px-5 py-4 text-sm font-black focus:neon-border outline-none transition-all pr-16"
-                      />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[8px] font-black uppercase text-white/20">
-                        Blocks
-                      </span>
-                    </div>
-                  </div>
-                ),
-              )}
-            </div>
-            <div className="mt-8 p-4 bg-white/5 rounded-xl border border-white/5 flex items-start gap-3">
-              <Info size={16} className="text-white/40 shrink-0 mt-0.5" />
-              <p className="text-[10px] text-white/40 font-bold leading-relaxed uppercase tracking-tight">
-                Higher block confirmations increase security against
-                double-spends but result in longer wait times for your
-                customers. Setting to 0 allows &quot;Instant&quot; mempool-based
-                confirmation (Highest danger).
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Webhooks Section */}
-        <section className="space-y-6">
-          <div className="flex items-center gap-3">
-            <Webhook className="text-neon-pink" size={20} />
-            <h3 className="text-lg font-black uppercase tracking-tight">
-              Webhooks
-            </h3>
-          </div>
-          <div className="glass-card p-8 border-white/5 space-y-4">
-            <label className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">
-              Universal Webhook URL
-            </label>
-            <input
-              type="url"
-              value={formData.webhookUrl}
-              onChange={(e) =>
-                setFormData({ ...formData, webhookUrl: e.target.value })
-              }
-              placeholder="https://api.yourstore.com/webhooks/tyepay"
-              className="w-full glass bg-black/50 border-white/10 rounded-xl px-5 py-4 text-sm font-bold focus:neon-border outline-none transition-all"
-            />
-            <p className="text-[10px] text-white/20 font-medium italic">
-              We will send a POST request to this URL for every payout and
-              confirmation event.
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">
+              Organization Settings
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Manage your business profile and infrastructure rules.
             </p>
           </div>
-        </section>
-      </form>
+        </div>
+        <Button
+          onClick={handleSave}
+          disabled={saving}
+          className="font-bold uppercase text-[10px] tracking-widest gap-2"
+        >
+          {saving ? (
+            <Loader2 className="size-3 animate-spin" />
+          ) : (
+            <Save className="size-3" />
+          )}
+          {success ? "Changes Saved" : "Save Changes"}
+        </Button>
+      </div>
+
+      <Tabs defaultValue="general" className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-4 bg-muted/50 p-1 rounded-xl mb-6">
+          <TabsTrigger
+            value="general"
+            className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
+          >
+            General
+          </TabsTrigger>
+          <TabsTrigger
+            value="wallets"
+            className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
+          >
+            Wallets
+          </TabsTrigger>
+          <TabsTrigger
+            value="rules"
+            className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
+          >
+            Rules
+          </TabsTrigger>
+          <TabsTrigger
+            value="webhooks"
+            className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
+          >
+            Webhooks
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="general" className="space-y-4">
+          <Card className="border-none shadow-none bg-background/50 border">
+            <CardHeader>
+              <CardTitle className="text-lg font-bold">
+                Business Profile
+              </CardTitle>
+              <CardDescription>
+                Public identity for invoices and customer interactions.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-2">
+                <Label
+                  htmlFor="name"
+                  className="text-xs font-bold uppercase tracking-tight text-muted-foreground"
+                >
+                  Business Name
+                </Label>
+                <Input
+                  id="name"
+                  placeholder="Acme Corp"
+                  value={formData.businessName}
+                  onChange={(e) =>
+                    setFormData({ ...formData, businessName: e.target.value })
+                  }
+                  className="bg-muted/30 border-none transition-all hover:bg-muted/50"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label
+                  htmlFor="email"
+                  className="text-xs font-bold uppercase tracking-tight text-muted-foreground"
+                >
+                  Contact Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="billing@acme.com"
+                  value={formData.businessEmail}
+                  onChange={(e) =>
+                    setFormData({ ...formData, businessEmail: e.target.value })
+                  }
+                  className="bg-muted/30 border-none transition-all hover:bg-muted/50"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="wallets" className="space-y-4">
+          <Card className="border-none shadow-none bg-background/50 border">
+            <CardHeader>
+              <CardTitle className="text-lg font-bold">
+                Settlement Endpoints
+              </CardTitle>
+              <CardDescription>
+                Where your funds will be delivered upon payment confirmation.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-2">
+                <Label
+                  htmlFor="xpub"
+                  className="text-xs font-bold uppercase tracking-tight text-muted-foreground"
+                >
+                  Bitcoin xPub
+                </Label>
+                <Input
+                  id="xpub"
+                  placeholder="vpub... or xpub..."
+                  value={formData.xPub}
+                  onChange={(e) =>
+                    setFormData({ ...formData, xPub: e.target.value })
+                  }
+                  className="font-mono text-xs bg-muted/30 border-none"
+                />
+                <p className="text-[10px] text-muted-foreground flex gap-1.5 items-center">
+                  <Info className="size-3" />
+                  Used for generating unique deposit addresses per customer.
+                </p>
+              </div>
+              <div className="grid gap-2 pt-2">
+                <Label
+                  htmlFor="eth"
+                  className="text-xs font-bold uppercase tracking-tight text-muted-foreground"
+                >
+                  Ethereum Address
+                </Label>
+                <Input
+                  id="eth"
+                  placeholder="0x..."
+                  value={formData.ethAddress}
+                  onChange={(e) =>
+                    setFormData({ ...formData, ethAddress: e.target.value })
+                  }
+                  className="font-mono text-xs bg-muted/30 border-none"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="rules" className="space-y-4">
+          <Card className="border-none shadow-none bg-background/50 border">
+            <CardHeader>
+              <CardTitle className="text-lg font-bold">
+                Payment Validation
+              </CardTitle>
+              <CardDescription>
+                Configure the security parameters for incoming transactions.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-2">
+                <Label
+                  htmlFor="conf"
+                  className="text-xs font-bold uppercase tracking-tight text-muted-foreground"
+                >
+                  Confirmation Threshold
+                </Label>
+                <Input
+                  id="conf"
+                  type="number"
+                  min={0}
+                  max={6}
+                  value={formData.confirmationPolicy}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      confirmationPolicy: parseInt(e.target.value),
+                    })
+                  }
+                  className="w-24 bg-muted/30 border-none font-bold"
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Number of blockchain confirmations required to mark an invoice
+                  as &quot;Paid&quot;.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="webhooks" className="space-y-4">
+          <Card className="border-none shadow-none bg-background/50 border">
+            <CardHeader>
+              <CardTitle className="text-lg font-bold">
+                Event Notifications
+              </CardTitle>
+              <CardDescription>
+                Configure real-time listeners for payment lifecycle events.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-2">
+                <Label
+                  htmlFor="webhook"
+                  className="text-xs font-bold uppercase tracking-tight text-muted-foreground"
+                >
+                  Webhook URL
+                </Label>
+                <Input
+                  id="webhook"
+                  placeholder="https://api.yoursite.com/webhooks/tyepay"
+                  value={formData.webhookUrl}
+                  onChange={(e) =>
+                    setFormData({ ...formData, webhookUrl: e.target.value })
+                  }
+                  className="bg-muted/30 border-none"
+                />
+              </div>
+              <Alert className="bg-primary/5 border-primary/10">
+                <Globe className="size-4 text-primary" />
+                <AlertTitle className="text-xs font-bold uppercase tracking-wider">
+                  Public Endpoint
+                </AlertTitle>
+                <AlertDescription className="text-xs font-medium text-muted-foreground">
+                  Your server must respond with a{" "}
+                  <code className="text-foreground">200 OK</code> to acknowledge
+                  receipt.
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {success && (
+        <div className="fixed bottom-8 right-8 animate-in fade-in slide-in-from-bottom-4">
+          <Alert className="bg-emerald-500 text-white border-none shadow-xl flex items-center gap-3 pr-8">
+            <CheckCircle2 className="size-5" />
+            <div className="flex flex-col">
+              <span className="font-bold text-sm">System Updated</span>
+              <span className="text-[10px] opacity-90 font-medium">
+                Settings synchronized with cloud infrastructure.
+              </span>
+            </div>
+          </Alert>
+        </div>
+      )}
     </div>
   );
 }

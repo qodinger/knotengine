@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
-
-import { Sidebar } from "@/components/Sidebar";
-import { CyberpunkBackground } from "@/components/CyberpunkBackground";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { SiteHeader } from "@/components/site-header";
+import React from "react";
 
 export const metadata: Metadata = {
   title: "TyePay | Merchant Console",
@@ -15,11 +17,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className="antialiased bg-background text-foreground flex min-h-screen overflow-hidden">
-        <CyberpunkBackground />
-        <Sidebar />
-        <main className="flex-1 overflow-y-auto relative p-8">{children}</main>
+    <html lang="en" className="dark">
+      <body className="antialiased min-h-screen bg-background text-foreground">
+        <TooltipProvider>
+          <div className="[--header-height:calc(--spacing(14))]">
+            <SidebarProvider>
+              <AppSidebar />
+              <div className="flex flex-1 flex-col overflow-hidden">
+                <SiteHeader />
+                <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
+                  {children}
+                </main>
+              </div>
+            </SidebarProvider>
+          </div>
+        </TooltipProvider>
       </body>
     </html>
   );

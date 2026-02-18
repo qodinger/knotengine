@@ -67,14 +67,27 @@ By leveraging **HD Wallet Derivation (BIP44)**, the system generates unique, one
 - [x] **Reliable Dispatcher:** Webhook engine featuring exponential backoff and idempotency keys.
 - [x] **Merchant Console:** Lightweight dashboard for management and analytics (Port 5052).
   - [x] **Invoices List:** Connect to the API to show real, searchable merchant invoices.
-  - [x] **API Keys Management:** Build the UI to generate and revoke merchant secrets.
+  - [x] **API Keys Management:** Build the UI to generate and revoke merchant secrets (`tye_sk_...`).
+  - [ ] **Webhook Secrets:** Show/Rotate signing secrets (`tye_wh_...`) for verify incoming notifications.
   - [x] **Wallet Strategy:** UI for merchants to set up their `btcXpub` and choose confirmation rules.
 
-### Phase 4: Scaling & Compliance 🌑
+### Phase 4: Scaling & Compliance (Current) 🚧
 
+**Focus:** Validation of the "Stateless" Developer-First Model.
+
+- [ ] **Testnet Beta:** Launch public testnet for developer feedback with free faucet coins.
 - [ ] **Legal Framework:** Register with Lao E-Trust under Tyecode IT Services.
 - [ ] **Monetization:** Implement the 0.5% "Tyecode Tax" via auto-routing logic (On-chain settlement).
 - [x] **Ecosystem:** Launch documentation portal and official `@tyepay/sdk` NPM package.
+
+### Phase 5: Growth & Enterprise Security (Future) 🔮
+
+**Focus:** Transitioning from "Developer Tool" to "SaaS Platform".
+
+- [ ] **Identity Layer:** abstract the current API Key model into a full RBAC system.
+- [ ] **Team Management:** Invite multiple users (Support, Finance, Admin) to a single Merchant account.
+- [ ] **Traditional Auth:** Email/Password (or Magic Link) login for non-technical users.
+- [ ] **Audit Logs:** Track who did what and when within the dashboard.
 
 ---
 
@@ -99,10 +112,11 @@ Stores merchant settings and public derivation keys.
 ```javascript
 const MerchantSchema = new Schema({
   name: { type: String, required: true },
-  apiKeyHash: { type: String, required: true, unique: true },
+  apiKeyHash: { type: String, required: true, unique: true }, // Hashed version of tye_sk_...
   btcXpub: { type: String },
   ethAddress: { type: String },
   webhookUrl: { type: String },
+  webhookSecret: { type: String }, // tye_wh_... for HMAC signing
   createdAt: { type: Date, default: Date.now },
 });
 ```

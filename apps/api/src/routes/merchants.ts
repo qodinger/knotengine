@@ -32,7 +32,7 @@ export async function merchantRoutes(app: FastifyInstance) {
       const { name, btcXpub, ethAddress, webhookUrl } = request.body;
 
       // 1. Generate a secure API Key
-      const apiKey = `tye_${crypto.randomBytes(24).toString("hex")}`;
+      const apiKey = `tye_sk_${crypto.randomBytes(24).toString("hex")}`;
       const apiKeyHash = crypto
         .createHash("sha256")
         .update(apiKey)
@@ -68,30 +68,54 @@ export async function merchantRoutes(app: FastifyInstance) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const authHook = async (request: any, reply: any) => {
     const apiKey = request.headers["x-api-key"] as string;
-    if (!apiKey) return reply.code(401).send({ error: "Missing API Key" });
+
+    if (!apiKey) {
+      server.log.warn("AuthHook: Missing API Key header");
+      return reply.code(401).send({ error: "Missing API Key" });
+    }
+
+    // DEBUG LOG
+    // console.log("Received Key:", apiKey);
 
     const apiKeyHash = crypto.createHash("sha256").update(apiKey).digest("hex");
+
+    // DEBUG LOG
+    // console.log("Hashed Key:", apiKeyHash);
+
     const merchant = await Merchant.findOne({ apiKeyHash, isActive: true });
 
-    if (!merchant) return reply.code(401).send({ error: "Invalid API Key" });
+    if (!merchant) {
+      server.log.warn(
+        `AuthHook: Merchant not found for hash ${apiKeyHash.substring(0, 10)}...`,
+      );
+      return reply.code(401).send({ error: "Invalid API Key" });
+    }
+
+    // Attach to request
     request.merchant = merchant;
   };
 
   // ──────────────────────────────────────────────
   // GET /v1/merchants/me — Get Profile
   // ──────────────────────────────────────────────
-  server.get("/v1/merchants/me", { preHandler: authHook }, async (request) => {
-    const merchant = (request as any).merchant;
-    return {
-      id: merchant._id,
-      name: merchant.name,
-      btcXpub: merchant.btcXpub,
-      ethAddress: merchant.ethAddress,
-      webhookUrl: merchant.webhookUrl,
-      confirmationPolicy: merchant.confirmationPolicy,
-      createdAt: merchant.createdAt,
-    };
-  });
+  server.get(
+    "/v1/merchants/me",
+    { preHandler: authHook },
+    async (request, reply) => {
+      const merchant = (request as any).merchant;
+      if (!merchant) return reply.code(500).send({ error: "Auth failed" });
+
+      return {
+        id: merchant._id,
+        name: merchant.name,
+        btcXpub: merchant.btcXpub,
+        ethAddress: merchant.ethAddress,
+        webhookUrl: merchant.webhookUrl,
+        confirmationPolicy: merchant.confirmationPolicy,
+        createdAt: merchant.createdAt,
+      };
+    },
+  );
 
   // ──────────────────────────────────────────────
   // PATCH /v1/merchants/me — Update Profile
@@ -147,7 +171,7 @@ export async function merchantRoutes(app: FastifyInstance) {
       const merchant = (request as any).merchant;
 
       // Generate new key
-      const newApiKey = `tye_${crypto.randomBytes(24).toString("hex")}`;
+      const newApiKey = `tye_sk_${crypto.randomBytes(24).toString("hex")}`;
       const newApiKeyHash = crypto
         .createHash("sha256")
         .update(newApiKey)

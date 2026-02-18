@@ -208,16 +208,23 @@ export async function invoiceRoutes(app: FastifyInstance) {
   // ──────────────────────────────────────────────
   // GET /v1/invoices — List Invoices (Merchant-Scoped)
   // ──────────────────────────────────────────────
-  server.get<{
-    Querystring: { status?: string; page?: string; limit?: string };
-  }>("/v1/invoices", async (request, reply) => {
+  server.get("/v1/invoices", async (request, reply) => {
+    // Force-cast to access the attached merchant from preHandler
     const merchant = (request as any).merchant;
 
     if (!merchant) {
       return reply.code(401).send({ error: "Authentication required" });
     }
 
-    const { status, page = "1", limit = "20" } = request.query;
+    const {
+      status,
+      page = "1",
+      limit = "20",
+    } = request.query as {
+      status?: string;
+      page?: string;
+      limit?: string;
+    };
 
     const filter: Record<string, unknown> = { merchantId: merchant._id };
     if (status) {
