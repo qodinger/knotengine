@@ -1,86 +1,133 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Activity,
   ArrowRight,
   Clock,
   CheckCircle2,
   AlertCircle,
-  Webhook,
-  Database,
-  ShieldCheck,
+  XCircle,
   Zap,
   Filter,
   Download,
   Search,
+  Database,
+  Receipt,
 } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { api } from "@/lib/api";
+import { format } from "date-fns";
 
-const MOCK_EVENTS = [
-  {
-    id: "evt_1",
-    type: "webhook.sent",
-    status: "success",
-    description: "Payment confirmation sent to merchant endpoint",
-    source: "System Core",
-    timestamp: "2024-02-18T10:45:00Z",
-    resourceId: "inv_9k2m...x91",
-  },
-  {
-    id: "evt_2",
-    type: "settlement.initiated",
-    status: "pending",
-    description: "Cold storage sweep initiated to Treasury Wallet",
-    source: "Liquidity Engine",
-    timestamp: "2024-02-18T10:30:12Z",
-    resourceId: "wlt_main_01",
-  },
-  {
-    id: "evt_3",
-    type: "security.audit",
-    status: "success",
-    description: "New API Key provisioned with scoped permissions",
-    source: "Auth Module",
-    timestamp: "2024-02-18T09:15:45Z",
-    resourceId: "key_live_...4f2",
-  },
-  {
-    id: "evt_4",
-    type: "system.alert",
-    status: "warning",
-    description: "Spike in network fees detected on Ethereum Mainnet",
-    source: "Chain Watcher",
-    timestamp: "2024-02-18T08:00:00Z",
-    resourceId: "net_eth_01",
-  },
-  {
-    id: "evt_5",
-    type: "invoice.created",
-    status: "success",
-    description: "Dynamic payment request generated for checkout session",
-    source: "API Interface",
-    timestamp: "2024-02-18T07:45:30Z",
-    resourceId: "inv_z01p...a7b",
-  },
-];
+interface Invoice {
+  invoice_id: string;
+  amount_usd: number;
+  crypto_amount: number;
+  crypto_currency: string;
+  status: "pending" | "confirmed" | "expired" | "partially_paid";
+  confirmations: number;
+  required_confirmations: number;
+  tx_hash: string | null;
+  created_at: string;
+  paid_at: string | null;
+}
 
 export default function LifecyclePage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchInvoices = useCallback(async () => {
+    try {
+      const res = await api.get("/v1/invoices", {
+        params: { limit: 50 },
+      });
+      setInvoices(res.data.data || []);
+    } catch (err) {
+      console.error("Failed to fetch lifecycle data", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchInvoices();
+  }, [fetchInvoices]);
+
+  // Derive metrics from real data
+  const confirmedCount = invoices.filter(
+    (inv) => inv.status === "confirmed",
+  ).length;
+  const pendingCount = invoices.filter(
+    (inv) => inv.status === "pending",
+  ).length;
+  const expiredCount = invoices.filter(
+    (inv) => inv.status === "expired",
+  ).length;
+  const successRate =
+    invoices.length > 0
+      ? ((confirmedCount / invoices.length) * 100).toFixed(1)
+      : "0.0";
+
+  // Convert invoices into lifecycle events
+  const events = invoices
+    .map((inv) => {
+      const eventType =
+        inv.status === "confirmed"
+          ? "invoice.confirmed"
+          : inv.status === "expired"
+            ? "invoice.expired"
+            : inv.status === "partially_paid"
+              ? "invoice.partial"
+              : "invoice.created";
+
+      const description =
+        inv.status === "confirmed"
+          ? `Invoice settled for $${inv.amount_usd.toFixed(2)} (${inv.crypto_amount} ${inv.crypto_currency})`
+          : inv.status === "expired"
+            ? `Invoice expired — $${inv.amount_usd.toFixed(2)} ${inv.crypto_currency} not received`
+            : inv.status === "partially_paid"
+              ? `Partial payment received for $${inv.amount_usd.toFixed(2)} invoice`
+              : `Invoice created for $${inv.amount_usd.toFixed(2)} in ${inv.crypto_currency}`;
+
+      return {
+        id: inv.invoice_id,
+        type: eventType,
+        status:
+          inv.status === "confirmed"
+            ? "success"
+            : inv.status === "expired"
+              ? "error"
+              : inv.status === "partially_paid"
+                ? "warning"
+                : "pending",
+        description,
+        source: inv.crypto_currency,
+        timestamp: inv.paid_at || inv.created_at,
+        resourceId: inv.invoice_id,
+        txHash: inv.tx_hash,
+      };
+    })
+    .filter(
+      (event) =>
+        event.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        event.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        event.description.toLowerCase().includes(searchTerm.toLowerCase()),
+    );
 
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            System Lifecycle
+            Invoice Lifecycle
           </h1>
           <p className="text-muted-foreground text-sm font-medium">
-            Real-time operational audit log and event streaming.
+            Chronological view of all invoice state changes.
           </p>
         </div>
         <div className="flex gap-2">
@@ -88,16 +135,18 @@ export default function LifecyclePage() {
             variant="outline"
             size="sm"
             className="font-bold uppercase text-[10px] tracking-widest gap-2"
+            disabled
           >
             <Download className="size-3" />
-            Export Audit
+            Export (Coming Soon)
           </Button>
           <Button
             size="sm"
             className="font-bold uppercase text-[10px] tracking-widest gap-2 bg-primary/10 text-primary hover:bg-primary/20 border-primary/20"
+            onClick={fetchInvoices}
           >
             <Activity className="size-3" />
-            Live Stream
+            Refresh
           </Button>
         </div>
       </div>
@@ -105,28 +154,28 @@ export default function LifecyclePage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
           {
-            label: "Throughput",
-            value: "142 req/s",
+            label: "Total Events",
+            value: invoices.length.toString(),
             icon: Zap,
             color: "text-blue-500",
           },
           {
-            label: "Event Health",
-            value: "99.98%",
-            icon: ShieldCheck,
+            label: "Confirmed",
+            value: confirmedCount.toString(),
+            icon: CheckCircle2,
             color: "text-emerald-500",
           },
           {
-            label: "DB Latency",
-            value: "12ms",
-            icon: Database,
+            label: "Pending",
+            value: pendingCount.toString(),
+            icon: Clock,
             color: "text-amber-500",
           },
           {
-            label: "Active Hooks",
-            value: "1,204",
-            icon: Webhook,
-            color: "text-purple-500",
+            label: "Success Rate",
+            value: `${successRate}%`,
+            icon: Activity,
+            color: "text-primary",
           },
         ].map((metric) => (
           <Card
@@ -148,7 +197,11 @@ export default function LifecyclePage() {
                     {metric.label}
                   </p>
                   <p className="text-xl font-bold tracking-tight">
-                    {metric.value}
+                    {loading ? (
+                      <span className="text-muted-foreground/30">—</span>
+                    ) : (
+                      metric.value
+                    )}
                   </p>
                 </div>
               </div>
@@ -166,7 +219,7 @@ export default function LifecyclePage() {
                 size={14}
               />
               <Input
-                placeholder="Filter by event type, ID, or source..."
+                placeholder="Filter by invoice ID, type, or description..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9 bg-background/50 border-none transition-all hover:bg-background/80"
@@ -176,6 +229,7 @@ export default function LifecyclePage() {
               variant="secondary"
               size="sm"
               className="gap-2 font-bold uppercase text-[10px] tracking-widest"
+              disabled
             >
               <Filter className="size-3" />
               Advanced Filters
@@ -183,76 +237,96 @@ export default function LifecyclePage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="divide-y divide-border/30">
-            {MOCK_EVENTS.map((event) => (
-              <div
-                key={event.id}
-                className="p-4 hover:bg-muted/10 transition-colors flex items-start gap-4 group"
-              >
+          {events.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <Receipt className="size-10 text-muted-foreground/20 mb-3" />
+              <p className="text-sm font-medium text-muted-foreground/60">
+                {loading
+                  ? "Loading lifecycle events..."
+                  : searchTerm
+                    ? "No events match your filter"
+                    : "No lifecycle events yet"}
+              </p>
+              <p className="text-xs text-muted-foreground/40 mt-1">
+                {!searchTerm &&
+                  !loading &&
+                  "Create and process invoices to see their lifecycle here."}
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-border/30">
+              {events.map((event) => (
                 <div
-                  className={cn(
-                    "mt-1 size-8 rounded-full flex items-center justify-center shrink-0 border border-border/50",
-                    event.status === "success"
-                      ? "bg-emerald-500/10 text-emerald-500"
-                      : event.status === "warning"
-                        ? "bg-amber-500/10 text-amber-500"
-                        : "bg-primary/10 text-primary",
-                  )}
+                  key={event.id + event.timestamp}
+                  className="p-4 hover:bg-muted/10 transition-colors flex items-start gap-4 group"
                 >
-                  {event.status === "success" ? (
-                    <CheckCircle2 className="size-4" />
-                  ) : event.status === "warning" ? (
-                    <AlertCircle className="size-4" />
-                  ) : (
-                    <Clock className="size-4" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant="outline"
-                        className="text-[9px] font-bold uppercase tracking-wider py-0 px-2 h-4 border-muted/50 text-muted-foreground bg-muted/10"
-                      >
-                        {event.type}
-                      </Badge>
-                      <span className="text-xs font-bold font-mono text-primary/80 group-hover:text-primary transition-colors cursor-pointer">
-                        {event.id}
-                      </span>
-                    </div>
-                    <span className="text-[10px] font-medium text-muted-foreground">
-                      {new Date(event.timestamp).toLocaleTimeString()}
-                    </span>
-                  </div>
-                  <p className="text-sm font-medium text-foreground/90 mb-1 truncate">
-                    {event.description}
-                  </p>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium">
-                      <Database className="size-3" />
-                      {event.source}
-                    </div>
-                    {event.resourceId && (
-                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium cursor-pointer hover:text-primary transition-colors">
-                        <ArrowRight className="size-3 text-primary/40" />
-                        Ref: {event.resourceId}
-                      </div>
+                  <div
+                    className={cn(
+                      "mt-1 size-8 rounded-full flex items-center justify-center shrink-0 border border-border/50",
+                      event.status === "success"
+                        ? "bg-emerald-500/10 text-emerald-500"
+                        : event.status === "error"
+                          ? "bg-rose-500/10 text-rose-500"
+                          : event.status === "warning"
+                            ? "bg-amber-500/10 text-amber-500"
+                            : "bg-primary/10 text-primary",
+                    )}
+                  >
+                    {event.status === "success" ? (
+                      <CheckCircle2 className="size-4" />
+                    ) : event.status === "error" ? (
+                      <XCircle className="size-4" />
+                    ) : event.status === "warning" ? (
+                      <AlertCircle className="size-4" />
+                    ) : (
+                      <Clock className="size-4" />
                     )}
                   </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant="outline"
+                          className="text-[9px] font-bold uppercase tracking-wider py-0 px-2 h-4 border-muted/50 text-muted-foreground bg-muted/10"
+                        >
+                          {event.type}
+                        </Badge>
+                        <span className="text-xs font-bold font-mono text-primary/80 group-hover:text-primary transition-colors cursor-pointer">
+                          {event.resourceId}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-medium text-muted-foreground">
+                        {format(new Date(event.timestamp), "MMM d, HH:mm:ss")}
+                      </span>
+                    </div>
+                    <p className="text-sm font-medium text-foreground/90 mb-1 truncate">
+                      {event.description}
+                    </p>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium">
+                        <Database className="size-3" />
+                        {event.source}
+                      </div>
+                      {event.txHash && (
+                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium cursor-pointer hover:text-primary transition-colors">
+                          <ArrowRight className="size-3 text-primary/40" />
+                          TX: {event.txHash.slice(0, 10)}...
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
-        <CardHeader className="border-t bg-muted/5 py-4 text-center">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary"
-          >
-            Load More History
-          </Button>
-        </CardHeader>
+        {events.length > 0 && (
+          <CardHeader className="border-t bg-muted/5 py-4 text-center">
+            <p className="text-[10px] text-muted-foreground font-medium">
+              Showing {events.length} of {invoices.length} events
+            </p>
+          </CardHeader>
+        )}
       </Card>
     </div>
   );

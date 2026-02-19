@@ -1,7 +1,7 @@
 import axios, { AxiosInstance } from "axios";
 import * as crypto from "crypto";
 
-export interface TyePayConfig {
+export interface KnotEngineConfig {
   apiKey: string;
   baseUrl?: string;
   webhookSecret?: string;
@@ -25,13 +25,13 @@ export interface InvoiceResponse {
   created_at: string;
 }
 
-export class TyePay {
+export class KnotEngine {
   private client: AxiosInstance;
   private webhookSecret?: string;
 
-  constructor(config: TyePayConfig) {
+  constructor(config: KnotEngineConfig) {
     this.client = axios.create({
-      baseURL: config.baseUrl || "https://api.tyepay.com",
+      baseURL: config.baseUrl || "https://api.knotengine.com",
       headers: {
         "x-api-key": config.apiKey,
         "Content-Type": "application/json",

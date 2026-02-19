@@ -3,12 +3,17 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   TrendingUp,
-  Users,
   Activity,
   ArrowUpRight,
   CheckCircle2,
   ChevronRight,
   ArrowRight,
+  Clock,
+  XCircle,
+  AlertCircle,
+  Receipt,
+  DollarSign,
+  Calendar,
 } from "lucide-react";
 import {
   XAxis,
@@ -29,29 +34,44 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import Link from "next/link";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { api, getAuthHeaders } from "@/lib/api";
+import { api } from "@/lib/api";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 interface DashboardStats {
   totalVolume: number;
+  activeInvoices: number;
   successRate: string;
   chartData: Array<{ name: string; volume: number }>;
+  feesAccrued: { usd: number };
+  currentFeeRate: number;
+}
+
+interface Invoice {
+  invoice_id: string;
+  amount_usd: number;
+  crypto_amount: number;
+  crypto_currency: string;
+  status: "pending" | "confirmed" | "expired" | "partially_paid";
+  created_at: string;
 }
 
 export default function DashboardOverview() {
-  const [, setLoading] = useState(true);
   const [data, setData] = useState<DashboardStats | null>(null);
+  const [recentInvoices, setRecentInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const fetchStats = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     try {
-      const res = await api.get("/v1/merchants/me/stats", {
-        headers: getAuthHeaders(),
-      });
-      setData(res.data);
+      const [statsRes, invoicesRes] = await Promise.all([
+        api.get("/v1/merchants/me/stats"),
+        api.get("/v1/invoices", { params: { limit: 5 } }),
+      ]);
+      setData(statsRes.data);
+      setRecentInvoices(invoicesRes.data.data || []);
     } catch (err) {
-      console.error("Failed to fetch stats", err);
+      console.error("Failed to fetch dashboard data", err);
     } finally {
       setLoading(false);
     }
@@ -61,14 +81,8 @@ export default function DashboardOverview() {
 
   useEffect(() => {
     setMounted(true);
-    const apiKey =
-      typeof window !== "undefined" ? localStorage.getItem("tp_api_key") : null;
-    if (apiKey) {
-      fetchStats();
-    } else {
-      setLoading(false);
-    }
-  }, [fetchStats]);
+    fetchData();
+  }, [fetchData]);
 
   if (!mounted) return null;
 
@@ -76,57 +90,36 @@ export default function DashboardOverview() {
     {
       label: "Total Volume",
       value: data
-        ? `$${(data.totalVolume as number).toLocaleString()}`
+        ? `$${data.totalVolume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
         : "$0.00",
-      description: "Trending up this month",
-      trend: "+12.5%",
+      description: "Total confirmed settlement volume",
       icon: TrendingUp,
+      color: "text-emerald-500",
     },
     {
-      label: "Active Accounts",
-      value: "45,678",
-      description: "Strong user retention",
-      trend: "+12.5%",
-      icon: Users,
-    },
-    {
-      label: "Growth Rate",
-      value: "4.5%",
-      description: "Steady performance increase",
-      trend: "+0.2%",
-      icon: Activity,
+      label: "Total Invoices",
+      value: data ? data.activeInvoices.toLocaleString() : "0",
+      description: "All invoices created",
+      icon: Receipt,
+      color: "text-blue-500",
     },
     {
       label: "Success Rate",
-      value: data ? (data.successRate as string) : "0.0%",
-      description: "Verification completed",
-      trend: "+0.5%",
+      value: data ? data.successRate : "0.0%",
+      description: "Confirmed vs total invoices",
       icon: CheckCircle2,
+      color: "text-emerald-500",
+    },
+    {
+      label: "Fees Accrued",
+      value: data
+        ? `$${data.feesAccrued.usd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        : "$0.00",
+      description: `Platform usage fees (${data ? (data.currentFeeRate * 100).toFixed(2) : "0.50"}%)`,
+      icon: DollarSign,
+      color: "text-amber-500",
     },
   ];
-
-  const apiKey =
-    typeof window !== "undefined" ? localStorage.getItem("tp_api_key") : null;
-
-  if (!apiKey) {
-    return (
-      <div className="flex items-center justify-center h-[50vh]">
-        <Card className="w-full max-w-sm">
-          <CardHeader>
-            <CardTitle>Session Locked</CardTitle>
-            <CardDescription>
-              Authenticate to access the console.
-            </CardDescription>
-          </CardHeader>
-          <CardFooter>
-            <Button className="w-full" onClick={() => window.location.reload()}>
-              Authenticate
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -140,20 +133,17 @@ export default function DashboardOverview() {
               <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-tight">
                 {stat.label}
               </CardTitle>
-              <stat.icon className="h-4 w-4 text-muted-foreground" />
+              <stat.icon
+                className={cn("h-4 w-4 text-muted-foreground", stat.color)}
+              />
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-2">
-                <div className="text-2xl font-bold tracking-tight">
-                  {stat.value}
-                </div>
-                <Badge
-                  variant="secondary"
-                  className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/10 border-emerald-500/20 text-[10px] font-bold"
-                >
-                  <ArrowUpRight className="mr-0.5 h-3 w-3" />
-                  {stat.trend}
-                </Badge>
+              <div className="text-2xl font-bold tracking-tight">
+                {loading ? (
+                  <span className="text-muted-foreground/30">—</span>
+                ) : (
+                  stat.value
+                )}
               </div>
               <p className="text-xs text-muted-foreground mt-2 font-medium">
                 {stat.description}
@@ -168,208 +158,182 @@ export default function DashboardOverview() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Total Volume</CardTitle>
+                <CardTitle>Volume Chart</CardTitle>
                 <CardDescription>
-                  Processed volume in the last 3 months.
+                  Confirmed settlement volume over time.
                 </CardDescription>
               </div>
               <Button variant="outline" size="sm">
-                Last 3 months
+                Weekly
                 <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
           </CardHeader>
           <CardContent className="h-[350px] pl-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data?.chartData || []}>
-                <defs>
-                  <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
-                    <stop
-                      offset="5%"
-                      stopColor="var(--primary)"
-                      stopOpacity={0.1}
-                    />
-                    <stop
-                      offset="95%"
-                      stopColor="var(--primary)"
-                      stopOpacity={0}
-                    />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
-                  stroke="hsl(var(--muted-foreground))"
-                  opacity={0.1}
-                />
-                <XAxis
-                  dataKey="name"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
-                  dy={10}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--background))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="volume"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#colorVolume)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            {data?.chartData && data.chartData.some((d) => d.volume > 0) ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={data.chartData}>
+                  <defs>
+                    <linearGradient
+                      id="colorVolume"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="5%"
+                        stopColor="var(--primary)"
+                        stopOpacity={0.1}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor="var(--primary)"
+                        stopOpacity={0}
+                      />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="hsl(var(--muted-foreground))"
+                    opacity={0.1}
+                  />
+                  <XAxis
+                    dataKey="name"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{
+                      fill: "hsl(var(--muted-foreground))",
+                      fontSize: 12,
+                    }}
+                    dy={10}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{
+                      fill: "hsl(var(--muted-foreground))",
+                      fontSize: 12,
+                    }}
+                    tickFormatter={(value) => `$${value}`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--background))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="volume"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorVolume)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground/50 text-sm font-medium">
+                No volume data yet. Create and settle invoices to see chart
+                data.
+              </div>
+            )}
           </CardContent>
         </Card>
 
         <Card className="lg:col-span-3 border-none shadow-none bg-background/50 border">
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
+            <CardTitle>Recent Invoices</CardTitle>
             <CardDescription>
-              Latest events from your infrastructure.
+              Latest invoices from your account.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-8">
-              <ActivityItem
-                name="Olivia Martin"
-                email="olivia.martin@email.com"
-                amount="+$1,999.00"
-                initials="OM"
-              />
-              <ActivityItem
-                name="Jackson Lee"
-                email="jackson.lee@email.com"
-                amount="+$39.00"
-                initials="JL"
-              />
-              <ActivityItem
-                name="Isabella Nguyen"
-                email="isabella.nguyen@email.com"
-                amount="+$299.00"
-                initials="IN"
-              />
-              <ActivityItem
-                name="William Kim"
-                email="will@email.com"
-                amount="+$99.00"
-                initials="WK"
-              />
-              <ActivityItem
-                name="Sofia Davis"
-                email="sofia.davis@email.com"
-                amount="+$39.00"
-                initials="SD"
-              />
-            </div>
+            {recentInvoices.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <Receipt className="size-10 text-muted-foreground/20 mb-3" />
+                <p className="text-sm font-medium text-muted-foreground/60">
+                  No invoices yet
+                </p>
+                <p className="text-xs text-muted-foreground/40 mt-1">
+                  Create your first invoice to start tracking activity.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                {recentInvoices.map((inv) => (
+                  <div key={inv.invoice_id} className="flex items-center gap-3">
+                    <div
+                      className={cn(
+                        "size-8 rounded-full flex items-center justify-center shrink-0",
+                        inv.status === "confirmed"
+                          ? "bg-emerald-500/10 text-emerald-500"
+                          : inv.status === "expired"
+                            ? "bg-rose-500/10 text-rose-500"
+                            : inv.status === "partially_paid"
+                              ? "bg-orange-500/10 text-orange-500"
+                              : "bg-amber-500/10 text-amber-500",
+                      )}
+                    >
+                      {inv.status === "confirmed" ? (
+                        <CheckCircle2 className="size-4" />
+                      ) : inv.status === "expired" ? (
+                        <XCircle className="size-4" />
+                      ) : inv.status === "partially_paid" ? (
+                        <AlertCircle className="size-4" />
+                      ) : (
+                        <Clock className="size-4" />
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                      <p className="text-xs font-mono font-medium leading-none truncate">
+                        {inv.invoice_id}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant="secondary"
+                          className="text-[9px] py-0 px-1.5 h-4 font-bold tracking-wider"
+                        >
+                          {inv.crypto_currency}
+                        </Badge>
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                          <Calendar className="size-2.5" />
+                          {format(new Date(inv.created_at), "MMM d, HH:mm")}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="font-bold text-sm shrink-0">
+                      <span
+                        className={cn(
+                          inv.status === "confirmed"
+                            ? "text-emerald-500"
+                            : "text-foreground",
+                        )}
+                      >
+                        {inv.status === "confirmed" ? "+" : ""}$
+                        {inv.amount_usd.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
           <CardFooter>
             <Button variant="ghost" className="w-full justify-between" asChild>
-              <Link href="/dashboard/lifecycle">
-                View all activity
+              <Link href="/dashboard/invoices">
+                View all invoices
                 <ArrowRight className="size-4" />
               </Link>
             </Button>
           </CardFooter>
         </Card>
       </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="lg:col-span-4 border-none shadow-none bg-background/50 border">
-          <CardHeader>
-            <CardTitle>System Health</CardTitle>
-            <CardDescription>
-              Network status and performance metrics.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Blockchain Sync</span>
-                <span className="font-medium">100%</span>
-              </div>
-              <Progress value={100} className="h-1 bg-emerald-500/10" />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">API Latency</span>
-                <span className="font-medium text-emerald-500">
-                  Optimal (42ms)
-                </span>
-              </div>
-              <Progress value={92} className="h-1 bg-emerald-500/10" />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Node Stability</span>
-                <span className="font-medium">99.9%</span>
-              </div>
-              <Progress value={99.9} className="h-1 bg-emerald-500/10" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="lg:col-span-3 border-none shadow-none bg-background/50 border">
-          <CardHeader>
-            <CardTitle>Environment</CardTitle>
-            <CardDescription>Active processing parameters.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4">
-              <div className="flex items-center justify-between rounded-lg border p-3">
-                <div className="flex items-center gap-3 font-medium text-sm">
-                  <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                  Production
-                </div>
-                <Badge variant="outline">Live</Badge>
-              </div>
-              <div className="flex items-center justify-between rounded-lg border p-3">
-                <div className="flex items-center gap-3 font-medium text-sm">
-                  <div className="h-2 w-2 rounded-full bg-amber-500" />
-                  Testnet
-                </div>
-                <Badge variant="secondary">Maintenance</Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-}
-
-function ActivityItem({
-  name,
-  email,
-  amount,
-  initials,
-}: {
-  name: string;
-  email: string;
-  amount: string;
-  initials: string;
-}) {
-  return (
-    <div className="flex items-center gap-4">
-      <Avatar className="h-9 w-9">
-        <AvatarFallback>{initials}</AvatarFallback>
-      </Avatar>
-      <div className="flex flex-col gap-0.5">
-        <p className="text-sm font-medium leading-none">{name}</p>
-        <p className="text-xs text-muted-foreground">{email}</p>
-      </div>
-      <div className="ml-auto font-medium text-sm">{amount}</div>
     </div>
   );
 }

@@ -2,11 +2,11 @@ version: "3.8"
 services:
   mongodb:
     image: mongo:7-jammy
-    container_name: tyepay_mongo
+    container_name: knotengine_mongo
     environment:
       MONGO_INITDB_ROOT_USERNAME: tyecode
-      MONGO_INITDB_ROOT_PASSWORD: tyepay_local_password
-      MONGO_INITDB_DATABASE: tyepay
+      MONGO_INITDB_ROOT_PASSWORD: knotengine_local_password
+      MONGO_INITDB_DATABASE: knotengine
     ports:
       - "27017:27017"
     volumes:
@@ -14,7 +14,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: tyepay_redis
+    container_name: knotengine_redis
     ports:
       - "6379:6379"
     volumes:

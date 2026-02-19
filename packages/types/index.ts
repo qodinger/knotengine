@@ -1,5 +1,5 @@
 // ============================================================
-// @tyepay/types — Shared type definitions for the Knot Engine
+// @knotengine/types — Shared type definitions for KnotEngine
 // ============================================================
 
 export type Currency = "BTC" | "USDT_POLYGON" | "USDT_ERC20" | "LTC" | "ETH";

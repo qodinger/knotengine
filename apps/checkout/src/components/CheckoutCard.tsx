@@ -2,8 +2,15 @@
 
 import React, { useState, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Copy, Check, Clock, ShieldCheck, AlertCircle } from "lucide-react";
-import { motion } from "framer-motion";
+import {
+  Copy,
+  Check,
+  Clock,
+  ShieldCheck,
+  AlertCircle,
+  Wallet,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface CheckoutCardProps {
   invoice: {
@@ -15,12 +22,16 @@ interface CheckoutCardProps {
     status: string;
     expires_at: string;
     fee_usd: number;
+    metadata?: {
+      isTestnet?: boolean;
+    };
   };
 }
 
 export function CheckoutCard({ invoice }: CheckoutCardProps) {
   const [copied, setCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState("");
+  const [amountCopied, setAmountCopied] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -48,6 +59,12 @@ export function CheckoutCard({ invoice }: CheckoutCardProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const copyAmount = () => {
+    navigator.clipboard.writeText(invoice.crypto_amount.toString());
+    setAmountCopied(true);
+    setTimeout(() => setAmountCopied(false), 2000);
+  };
+
   const generatePaymentUri = () => {
     const currency = invoice.crypto_currency;
     const address = invoice.pay_address;
@@ -56,118 +73,128 @@ export function CheckoutCard({ invoice }: CheckoutCardProps) {
     if (currency === "BTC") return `bitcoin:${address}?amount=${amount}`;
     if (currency === "LTC") return `litecoin:${address}?amount=${amount}`;
 
-    // For ERC-20/Tokens, raw address is often the safest for broad compatibility
-    // unless EIP-681 is strictly required by the specific wallet.
     return address;
   };
 
   return (
-    <div className="relative w-full max-w-md mx-auto p-1 bg-linear-to-br from-neon-purple/20 via-neon-blue/20 to-neon-pink/20 rounded-3xl">
-      <div className="glass rounded-[22px] p-8 flex flex-col items-center">
+    <div className="w-full bg-card border border-border rounded-xl overflow-hidden shadow-2xl relative">
+      {/* Testnet Banner */}
+      {invoice.metadata?.isTestnet && (
+        <div className="bg-yellow-500/10 border-b border-yellow-500/20 py-1.5 px-4 flex items-center justify-center gap-2">
+          <AlertCircle size={12} className="text-yellow-500" />
+          <span className="text-[10px] font-bold uppercase tracking-widest text-yellow-500">
+            Testnet Mode
+          </span>
+        </div>
+      )}
+
+      <div className="p-6">
         {/* Header */}
-        <div className="w-full flex justify-between items-center mb-10">
+        <div className="w-full flex justify-between items-center mb-8">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-neon-blue rounded-full animate-pulse" />
-            <span className="text-sm font-medium tracking-widest uppercase opacity-60">
-              Status: {invoice.status.replace("_", " ")}
+            <div
+              className={cn(
+                "w-2 h-2 rounded-full animate-pulse",
+                invoice.status === "pending"
+                  ? "bg-amber-500"
+                  : invoice.status === "confirmed"
+                    ? "bg-emerald-500"
+                    : invoice.status === "expired"
+                      ? "bg-destructive"
+                      : "bg-muted-foreground",
+              )}
+            />
+            <span className="text-xs font-bold tracking-wider uppercase text-muted-foreground">
+              {invoice.status.replace("_", " ")}
             </span>
           </div>
-          <div className="flex items-center gap-2 text-neon-pink">
-            <Clock size={16} />
-            <span className="text-sm font-mono font-bold tracking-tighter">
+          <div className="flex items-center gap-1.5 text-muted-foreground bg-secondary px-2 py-1 rounded-md border border-border">
+            <Clock size={12} />
+            <span className="text-xs font-mono font-bold tracking-tight">
               {timeLeft}
             </span>
           </div>
         </div>
 
         {/* Amount Section */}
-        <div
-          className="text-center mb-8 group cursor-pointer"
-          onClick={() => {
-            navigator.clipboard.writeText(invoice.crypto_amount.toString());
-            // Optional: Add a toast or visual feedback here if you want to extend the 'copied' state logic
-            const original = document.getElementById("amount-text");
-            if (original) {
-              original.innerText = "COPIED!";
-              setTimeout(() => {
-                original.innerText = invoice.crypto_amount.toString();
-              }, 1000);
-            }
-          }}
-        >
-          <h2 className="text-5xl font-black mb-2 tracking-tighter hover:scale-105 transition-transform flex items-center justify-center gap-2">
-            <span id="amount-text">{invoice.crypto_amount}</span>
-            <span className="text-2xl font-medium opacity-50 group-hover:text-neon-blue transition-colors">
-              {invoice.crypto_currency}
-            </span>
-            <Copy
-              size={20}
-              className="opacity-0 group-hover:opacity-100 transition-opacity text-neon-blue"
-            />
-          </h2>
-          <p className="text-lg opacity-40 font-medium">
-            ≈ ${invoice.amount_usd.toFixed(2)} USD
+        <div className="flex flex-col items-center mb-8">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">
+            Total Amount
           </p>
-        </div>
+          <div
+            className="group flex flex-col items-center cursor-pointer select-none"
+            onClick={copyAmount}
+          >
+            <div className="flex items-center gap-2 relative">
+              <h2
+                className={cn(
+                  "text-3xl font-bold tracking-tight transition-colors",
+                  amountCopied ? "text-emerald-500" : "text-foreground",
+                )}
+              >
+                {invoice.crypto_amount}
+              </h2>
+              <span className="text-lg font-medium text-muted-foreground">
+                {invoice.crypto_currency}
+              </span>
 
-        {/* QR Code */}
-        <div className="relative p-4 bg-white rounded-2xl mb-8 group overflow-hidden border-4 border-transparent hover:neon-border transition-all duration-500">
-          <QRCodeSVG
-            value={generatePaymentUri()}
-            size={220}
-            level="H"
-            bgColor="#ffffff"
-            fgColor="#000000"
-          />
-          {/* Scanning Animation Overlay */}
-          <motion.div
-            className="absolute top-0 left-0 w-full h-1 bg-neon-blue/40 shadow-[0_0_10px_#00f2ff]"
-            animate={{ top: ["0%", "100%", "0%"] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-          />
-        </div>
-
-        {/* Address Input */}
-        <div className="w-full mb-8">
-          <label className="block text-[10px] uppercase tracking-[0.2em] font-bold opacity-40 mb-2 ml-1">
-            Payment Address
-          </label>
-          <div className="relative flex items-center">
-            <input
-              readOnly
-              value={invoice.pay_address}
-              className="w-full glass border-white/5 bg-white/5 rounded-xl py-4 pl-5 pr-12 text-xs font-mono truncate focus:outline-none"
-            />
-            <button
-              onClick={copyToClipboard}
-              className="absolute right-2 p-2 hover:text-neon-blue transition-colors"
-            >
-              {copied ? (
-                <Check size={18} className="text-green-400" />
-              ) : (
-                <Copy size={18} />
+              {amountCopied && (
+                <span className="absolute -right-8 top-1/2 -translate-y-1/2">
+                  <Check size={16} className="text-emerald-500" />
+                </span>
               )}
-            </button>
+            </div>
+            <p className="text-sm font-medium text-muted-foreground mt-1">
+              ≈ ${invoice.amount_usd.toFixed(2)} USD
+            </p>
+            <span className="text-[10px] text-muted-foreground mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              Click to copy amount
+            </span>
           </div>
         </div>
 
-        {/* Footer Info */}
-        <div className="w-full space-y-4 pt-4 border-t border-white/5">
-          <div className="flex items-center justify-between text-xs opacity-60">
-            <div className="flex items-center gap-1.5">
-              <ShieldCheck size={14} />
-              <span>Non-Custodial Payment</span>
-            </div>
-            <span>Fee included: ${invoice.fee_usd.toFixed(2)}</span>
+        <div className="flex flex-col gap-6">
+          {/* QR Code */}
+          <div className="bg-white p-4 rounded-xl mx-auto shadow-sm">
+            <QRCodeSVG value={generatePaymentUri()} size={180} level="H" />
           </div>
 
-          <div className="flex items-start gap-2 text-[10px] opacity-40 leading-relaxed italic">
-            <AlertCircle size={10} className="mt-0.5 shrink-0" />
-            <p>
-              Please send exact amount to avoid payment recognition issues.
-              Expired invoices will result in lost funds.
-            </p>
+          {/* Address Input */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground flex items-center gap-1.5">
+                <Wallet size={10} />
+                Payment Address
+              </label>
+            </div>
+
+            <div className="relative group">
+              <div className="w-full bg-secondary border border-border rounded-lg py-3 pl-4 pr-12 font-mono text-xs text-secondary-foreground truncate transition-colors group-hover:border-primary/20">
+                {invoice.pay_address}
+              </div>
+              <button
+                onClick={copyToClipboard}
+                className="absolute right-1 top-1 bottom-1 p-2 hover:bg-background rounded-md transition-colors text-muted-foreground hover:text-foreground"
+              >
+                {copied ? (
+                  <Check size={14} className="text-emerald-500" />
+                ) : (
+                  <Copy size={14} />
+                )}
+              </button>
+            </div>
           </div>
+        </div>
+      </div>
+
+      {/* Footer Info */}
+      <div className="bg-secondary/30 border-t border-border p-4 space-y-3">
+        <div className="flex items-center justify-between text-[10px] font-medium text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <ShieldCheck size={12} />
+            <span>Non-Custodial</span>
+          </div>
+          <span>Includes Network Fee</span>
         </div>
       </div>
     </div>

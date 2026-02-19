@@ -1,5 +1,5 @@
-import { Invoice, IInvoice, Merchant } from "@tyepay/database";
-import { Derivator } from "@tyepay/crypto";
+import { Invoice, IInvoice, Merchant } from "@knotengine/database";
+import { Derivator } from "@knotengine/crypto";
 import * as crypto from "crypto";
 
 /**
@@ -80,10 +80,10 @@ export class WebhookDispatcher {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-TyePay-Signature": signature,
-          "X-TyePay-Event": event,
-          "X-TyePay-Invoice": invoice.invoiceId,
-          "User-Agent": "TyePay-Webhook-Dispatcher/1.0",
+          "X-KnotEngine-Signature": signature,
+          "X-KnotEngine-Event": event,
+          "X-KnotEngine-Invoice": invoice.invoiceId,
+          "User-Agent": "KnotEngine-Webhook-Dispatcher/1.0",
         },
         body: payloadString,
         signal: AbortSignal.timeout(15000), // 15 second timeout

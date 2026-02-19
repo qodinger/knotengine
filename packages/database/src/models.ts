@@ -7,9 +7,14 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IMerchant extends Document {
   name: string;
-  apiKeyHash: string;
+  apiKeyHash?: string;
+  /** OAuth identity string e.g. 'google:1234567890' */
+  oauthId?: string;
+  email?: string;
   btcXpub?: string;
+  btcXpubTestnet?: string;
   ethAddress?: string;
+  ethAddressTestnet?: string;
   webhookUrl?: string;
   webhookSecret?: string;
   /** Current derivation index for unique address generation */
@@ -20,6 +25,14 @@ export interface IMerchant extends Document {
     LTC: number;
     ETH: number;
   };
+  feesAccrued: {
+    usd: number;
+    BTC: number;
+    LTC: number;
+    ETH: number;
+    USDT_ERC20: number;
+    USDT_POLYGON: number;
+  };
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -27,10 +40,14 @@ export interface IMerchant extends Document {
 
 const MerchantSchema: Schema = new Schema(
   {
-    name: { type: String, required: true },
-    apiKeyHash: { type: String, required: true, unique: true },
+    name: { type: String, default: "" },
+    apiKeyHash: { type: String, sparse: true, unique: true },
+    oauthId: { type: String, sparse: true },
+    email: { type: String, sparse: true },
     btcXpub: { type: String },
+    btcXpubTestnet: { type: String },
     ethAddress: { type: String },
+    ethAddressTestnet: { type: String },
     webhookUrl: { type: String },
     webhookSecret: { type: String },
     derivationIndex: { type: Number, default: 0 },
@@ -41,6 +58,14 @@ const MerchantSchema: Schema = new Schema(
         ETH: { type: Number, default: 12 },
       },
       default: { BTC: 2, LTC: 6, ETH: 12 },
+    },
+    feesAccrued: {
+      usd: { type: Number, default: 0 },
+      BTC: { type: Number, default: 0 },
+      LTC: { type: Number, default: 0 },
+      ETH: { type: Number, default: 0 },
+      USDT_ERC20: { type: Number, default: 0 },
+      USDT_POLYGON: { type: Number, default: 0 },
     },
     isActive: { type: Boolean, default: true },
   },
@@ -72,7 +97,7 @@ export interface IInvoice extends Document {
   cryptoAmount: number;
   cryptoCurrency: string;
   payAddress: string;
-  /** Tyecode Tax (Platform Fee) */
+  /** KnotEngine Fee (Platform Fee) */
   feeUsd: number;
   feeCrypto: number;
   derivationIndex: number;

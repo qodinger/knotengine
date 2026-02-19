@@ -10,8 +10,8 @@ import { webhookRoutes } from "./routes/webhooks";
 import { PriceOracle } from "./infra/price-feed";
 import { ConfirmationEngine } from "./core/confirmation-engine";
 import { WebhookDispatcher } from "./infra/webhook-dispatcher";
-import { Currency } from "@tyepay/types";
-import { connectToDatabase } from "@tyepay/database";
+import { Currency } from "@knotengine/types";
+import { connectToDatabase } from "@knotengine/database";
 import { SocketService } from "./infra/socket-service";
 
 import dotenv from "dotenv";
@@ -139,7 +139,7 @@ function startBackgroundJobs() {
 const start = async () => {
   try {
     const mongoUri =
-      process.env.DATABASE_URL || "mongodb://127.0.0.1:27017/tyepay";
+      process.env.DATABASE_URL || "mongodb://127.0.0.1:27017/knotengine";
 
     await connectToDatabase(mongoUri);
 
@@ -148,7 +148,7 @@ const start = async () => {
     const port = parseInt(process.env.PORT || "3000", 10);
     await server.listen({ port, host: "0.0.0.0" });
     console.log(
-      `🚀 Knot Engine v${packageJson.version} running on http://localhost:${port}`,
+      `🚀 KnotEngine v${packageJson.version} running on http://localhost:${port}`,
     );
 
     console.log("⚡ Socket.io ready for real-time updates");

@@ -1,25 +1,29 @@
 import axios from "axios";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5050";
+// Point to the Next.js API Proxy which handles authentication securely
+const API_BASE_URL = "/api";
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
-// Helper to get headers with API key
-export const getAuthHeaders = () => {
-  if (typeof window === "undefined") return {};
-  const apiKey = localStorage.getItem("tp_api_key");
-  return apiKey ? { "x-api-key": apiKey } : {};
-};
-
-// Interceptor to handle authentication errors
+// Interceptor: handle 401s on protected pages by redirecting to login
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 && typeof window !== "undefined") {
-      localStorage.removeItem("tp_api_key");
-      window.location.reload();
+      const isAuthPage =
+        window.location.pathname === "/login" ||
+        window.location.pathname === "/register";
+
+      // If unauthorized, redirect to login unless already there.
+      // This happens if the NextAuth session expires.
+      if (!isAuthPage) {
+        window.location.href = "/login";
+      }
     }
     return Promise.reject(error);
   },

@@ -52,7 +52,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { api, getAuthHeaders } from "@/lib/api";
+import { api } from "@/lib/api";
 
 type Invoice = {
   invoice_id: string;
@@ -66,6 +66,10 @@ type Invoice = {
   expires_at: string;
   paid_at: string | null;
   created_at: string;
+  metadata?: {
+    isTestnet?: boolean;
+    network?: string;
+  };
 };
 
 export default function InvoicesPage() {
@@ -81,7 +85,6 @@ export default function InvoicesPage() {
       if (statusFilter !== "all") params.status = statusFilter;
 
       const res = await api.get("/v1/invoices", {
-        headers: getAuthHeaders(),
         params,
       });
       setInvoices(res.data.data);
@@ -93,13 +96,7 @@ export default function InvoicesPage() {
   }, [statusFilter]);
 
   useEffect(() => {
-    const apiKey =
-      typeof window !== "undefined" ? localStorage.getItem("tp_api_key") : null;
-    if (apiKey) {
-      fetchInvoices();
-    } else {
-      setLoading(false);
-    }
+    fetchInvoices();
   }, [statusFilter, fetchInvoices]);
 
   const filteredInvoices = invoices.filter(
@@ -107,29 +104,6 @@ export default function InvoicesPage() {
       inv.invoice_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       inv.crypto_currency.toLowerCase().includes(searchTerm.toLowerCase()),
   );
-
-  const apiKey =
-    typeof window !== "undefined" ? localStorage.getItem("tp_api_key") : null;
-
-  if (!apiKey) {
-    return (
-      <div className="flex items-center justify-center h-[50vh]">
-        <Card className="w-full max-w-sm">
-          <CardHeader className="text-center">
-            <CardTitle>Session locked</CardTitle>
-            <CardDescription>
-              Authenticate to access system records.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button className="w-full" onClick={() => window.location.reload()}>
-              Authenticate
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -247,8 +221,20 @@ export default function InvoicesPage() {
                     key={inv.invoice_id}
                     className="border-b last:border-0 hover:bg-muted/10 transition-colors"
                   >
-                    <TableCell className="font-mono text-[10px] font-bold tracking-tight text-primary">
-                      {inv.invoice_id}
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        <span className="font-mono text-[10px] font-bold tracking-tight text-primary">
+                          {inv.invoice_id}
+                        </span>
+                        {inv.metadata?.isTestnet && (
+                          <Badge
+                            variant="outline"
+                            className="w-fit text-[9px] h-4 py-0 px-1 border-yellow-500/20 text-yellow-500 bg-yellow-500/5"
+                          >
+                            TESTNET
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <StatusBadge status={inv.status} />
@@ -298,7 +284,7 @@ export default function InvoicesPage() {
                             className="text-xs font-medium"
                             onClick={() =>
                               window.open(
-                                `http://localhost:5051/checkout/${inv.invoice_id}`,
+                                `${process.env.NEXT_PUBLIC_CHECKOUT_URL}/checkout/${inv.invoice_id}`,
                                 "_blank",
                               )
                             }
@@ -337,7 +323,10 @@ export default function InvoicesPage() {
 }
 
 function StatusBadge({ status }: { status: Invoice["status"] }) {
-  const configs = {
+  const configs: Record<
+    string,
+    { label: string; icon: any; className: string }
+  > = {
     pending: {
       label: "Pending",
       icon: Clock,
@@ -360,7 +349,11 @@ function StatusBadge({ status }: { status: Invoice["status"] }) {
     },
   };
 
-  const config = configs[status];
+  const config = configs[status] || {
+    label: status,
+    icon: AlertCircle,
+    className: "text-gray-500 bg-gray-500/10 border-gray-500/20",
+  };
   const Icon = config.icon;
 
   return (

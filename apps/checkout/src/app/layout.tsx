@@ -13,9 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TyePay | Secure Crypto Checkout",
-  description:
-    "Non-custodial, ultra-secure crypto payment gateway powered by Tyecode.",
+  title: "KnotEngine | Secure Crypto Checkout",
+  description: "Non-custodial, ultra-secure crypto payment gateway.",
 };
 
 export default function RootLayout({
@@ -24,7 +23,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

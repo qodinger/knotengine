@@ -1,6 +1,11 @@
 {
-  "name": "@tyepay/types",
-  "version": "0.1.0",
+  "name": "@knotengine/types",
+  "author": "tyecode",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tyecode/knotengine.git"
+  },
+  "version": "0.2.0",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",

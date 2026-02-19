@@ -167,7 +167,7 @@ export async function webhookRoutes(app: FastifyInstance) {
 
     // 1. If invoiceId is provided, look up the payAddress
     if (body.invoiceId && !targetAddress) {
-      const { Invoice } = await import("@tyepay/database");
+      const { Invoice } = await import("@knotengine/database");
       const invoice = await Invoice.findOne({ invoiceId: body.invoiceId });
       if (!invoice) {
         return reply.code(404).send({ error: "Invoice not found" });
@@ -189,6 +189,7 @@ export async function webhookRoutes(app: FastifyInstance) {
       amount: body.amount || "0",
       asset: body.asset || "BTC",
       source: "manual",
+      invoiceId: body.invoiceId,
       rawPayload: body as unknown as Record<string, unknown>,
     });
 

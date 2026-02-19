@@ -27,11 +27,11 @@ export default function Home() {
         className="text-center"
       >
         <h1 className="text-6xl font-black italic tracking-tighter uppercase mb-6 drop-shadow-[0_0_15px_rgba(157,0,255,0.4)]">
-          <span className="text-neon-purple">Tye</span>
-          <span className="opacity-80 text-white">Pay</span>
+          <span className="text-neon-purple">Knot</span>
+          <span className="opacity-80 text-white">Engine</span>
         </h1>
         <p className="opacity-40 text-sm font-bold tracking-[0.2em] uppercase mb-12">
-          Agentic Payment Infrastructure
+          Non-Custodial Payment Infrastructure
         </p>
 
         <form onSubmit={handleGo} className="relative w-full max-w-sm group">

@@ -1,6 +1,11 @@
 {
   "name": "api",
-  "version": "0.1.0",
+  "author": "tyecode",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tyecode/knotengine.git"
+  },
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "tsx watch src/main.ts",
@@ -11,20 +16,23 @@
     "@fastify/cors": "^9.0.0",
     "@fastify/swagger": "^8.14.0",
     "@fastify/swagger-ui": "^3.0.0",
-    "@tyepay/crypto": "workspace:*",
-    "@tyepay/database": "workspace:*",
-    "@tyepay/types": "workspace:*",
+    "@knotengine/crypto": "workspace:*",
+    "@knotengine/database": "workspace:*",
+    "@knotengine/types": "workspace:*",
+    "bip32": "^4.0.0",
+    "bip39": "^3.1.0",
+    "bitcoinjs-lib": "^6.1.7",
     "dotenv": "^16.4.1",
+    "ethers": "^6.10.0",
     "fastify": "^4.26.0",
     "fastify-type-provider-zod": "^1.1.9",
     "socket.io": "^4.8.3",
+    "tiny-secp256k1": "^2.2.4",
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@types/bip39": "^3.0.4",
     "@types/node": "^20.11.16",
-    "bip32": "^4.0.0",
-    "bitcoinjs-lib": "^6.1.0",
-    "tiny-secp256k1": "^2.2.3",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3"
   }

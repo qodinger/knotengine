@@ -1,4 +1,4 @@
-import { Currency } from "@tyepay/types";
+import { Currency } from "@knotengine/types";
 
 interface PriceData {
   [currency: string]: {

@@ -1,4 +1,4 @@
-# 🚀 TyePay (Code Name: Knot)
+# 🚀 KnotEngine
 
 Minimalist, Non-Custodial Crypto Payment Infrastructure for Humans.
 
@@ -44,7 +44,7 @@ pnpm dev
 
 Or run services individually:
 
-- **Knot Engine (API)**: `pnpm dev:api` (Port 5050)
+- **KnotEngine (API)**: `pnpm dev:api` (Port 5050)
 - **Checkout UI**: `pnpm dev:checkout` (Port 5051)
 - **Merchant Dashboard**: `pnpm dev:dashboard` (Port 5052)
 
@@ -52,7 +52,7 @@ Or run services individually:
 
 | Service         | Port | Description                  |
 | :-------------- | :--- | :--------------------------- |
-| **Knot Engine** | 5050 | Core API & Socket.io Server  |
+| **KnotEngine**  | 5050 | Core API & Socket.io Server  |
 | **Checkout UI** | 5051 | Customer-facing payment page |
 | **Dashboard**   | 5052 | Merchant Console & Stats     |
 
@@ -62,7 +62,7 @@ Or run services individually:
 
 ## 🛒 Merchant Workflow
 
-TyePay is designed to be integrated into any application in under 5 minutes.
+KnotEngine is designed to be integrated into any application in under 5 minutes.
 
 ### 1. Register as a Merchant
 
@@ -95,8 +95,8 @@ Redirect your user to the `checkout_url` provided. This page handles the QR code
 
 ### 4. Receive Funds & Notifications
 
-- **Funds**: Go directly to the wallet associated with your `xpub`. TyePay is non-custodial.
-- **Notifications**: Once confirmed on-chain, TyePay sends an HMAC-signed webhook to your `webhookUrl` (configurable in merchant settings).
+- **Funds**: Go directly to the wallet associated with your `xpub`. KnotEngine is non-custodial.
+- **Notifications**: Once confirmed on-chain, KnotEngine sends an HMAC-signed webhook to your `webhookUrl` (configurable in merchant settings).
 
 ---
 

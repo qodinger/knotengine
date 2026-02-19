@@ -3,11 +3,11 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { CheckoutCard } from "@/components/CheckoutCard";
-import { CyberpunkBackground } from "@/components/CyberpunkBackground";
-import { Loader2, ShieldCheck, HelpCircle } from "lucide-react";
+import { Loader2, ShieldCheck, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { io } from "socket.io-client";
 import packageJson from "../../../../package.json";
+import { cn } from "@/lib/utils";
 
 export default function CheckoutPage() {
   const { invoiceId } = useParams();
@@ -72,12 +72,11 @@ export default function CheckoutPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
-        <CyberpunkBackground />
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
         >
-          <Loader2 size={40} className="text-neon-blue" />
+          <Loader2 size={32} className="text-primary" />
         </motion.div>
       </div>
     );
@@ -86,18 +85,17 @@ export default function CheckoutPage() {
   if (error) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background text-foreground text-center">
-        <CyberpunkBackground />
-        <div className="p-8 glass rounded-3xl border-neon-pink/50 max-w-sm">
-          <HelpCircle size={48} className="text-neon-pink mx-auto mb-4" />
-          <h1 className="text-2xl font-black mb-2 tracking-tighter uppercase">
+        <div className="p-8 bg-card rounded-xl border border-border max-w-sm shadow-2xl">
+          <AlertCircle size={48} className="text-destructive mx-auto mb-6" />
+          <h1 className="text-xl font-bold mb-2 tracking-tight">
             Connection Error
           </h1>
-          <p className="opacity-60 text-sm mb-6">
+          <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
             {error}. Please verify the Invoice ID or contact the merchant.
           </p>
           <button
             onClick={() => window.location.reload()}
-            className="px-6 py-2 glass rounded-xl border-white/20 hover:border-white/40 transition-all font-bold text-xs uppercase"
+            className="w-full px-4 py-2.5 bg-foreground text-background rounded-lg font-medium text-sm hover:opacity-90 transition-opacity"
           >
             Retry Connection
           </button>
@@ -108,66 +106,61 @@ export default function CheckoutPage() {
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-6 bg-background text-foreground">
-      <CyberpunkBackground />
+      <div className="w-full max-w-md relative z-10">
+        <AnimatePresence mode="wait">
+          {invoice.status === "confirmed" ? (
+            <motion.div
+              key="success"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="w-full bg-card border border-border rounded-xl p-8 text-center shadow-2xl"
+            >
+              <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                <ShieldCheck size={32} className="text-emerald-500" />
+              </div>
+              <h2 className="text-2xl font-bold mb-2 tracking-tight">
+                Payment Confirmed
+              </h2>
+              <p className="text-muted-foreground text-sm mb-8 leading-relaxed">
+                Transaction has been verified on-chain. You may now close this
+                window or return to the store.
+              </p>
 
-      {/* Brand Header */}
-      <motion.div
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        className="mb-12 flex items-center gap-2 group cursor-default"
-      >
-        <div className="text-2xl font-black tracking-tighter uppercase italic flex items-center gap-1">
-          <span className="text-neon-purple group-hover:text-neon-blue transition-colors duration-500">
-            Tye
-          </span>
-          <span className="opacity-80">Pay</span>
-        </div>
-        <div className="px-2 py-0.5 border border-white/10 rounded-md text-[8px] font-black tracking-widest uppercase opacity-40">
-          v{packageJson.version}
-        </div>
-      </motion.div>
+              <div className="flex flex-col gap-1 mb-8">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Transaction Hash
+                </span>
+                <div className="bg-secondary/50 border border-border rounded-lg px-3 py-2">
+                  <code className="text-[10px] font-mono text-foreground break-all">
+                    {invoice.tx_hash || "Processing..."}
+                  </code>
+                </div>
+              </div>
 
-      <AnimatePresence mode="wait">
-        {invoice.status === "confirmed" ? (
-          <motion.div
-            key="success"
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="w-full max-w-md p-8 glass rounded-3xl border-green-500/50 text-center"
-          >
-            <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-              <ShieldCheck size={40} className="text-green-500" />
-            </div>
-            <h2 className="text-3xl font-black mb-2 tracking-tighter uppercase">
-              Payment Confirmed
-            </h2>
-            <p className="opacity-60 text-sm mb-8">
-              Transaction has been verified on-chain. You may now close this
-              window or return to the store.
-            </p>
-            <div className="text-[10px] font-mono opacity-30 truncate px-4 py-2 glass rounded-lg mb-8">
-              TX: {invoice.tx_hash}
-            </div>
-            <button className="w-full py-4 bg-green-500 text-black font-black uppercase tracking-widest rounded-xl hover:bg-green-400 transition-all">
-              Return to Store
-            </button>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="card"
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-          >
-            <CheckoutCard invoice={invoice} />
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <button className="w-full py-3 bg-emerald-500 text-black font-bold rounded-lg hover:bg-emerald-400 transition-colors text-sm">
+                Return to Store
+              </button>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="card"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+            >
+              <CheckoutCard invoice={invoice} />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-      {/* Footer Branding */}
-      <footer className="mt-12 text-[10px] font-bold tracking-[0.3em] uppercase opacity-20 hover:opacity-100 transition-opacity duration-700 cursor-default">
-        Powered by{" "}
-        <span className="text-neon-blue">Tyecode Infrastructure</span>
-      </footer>
+        {/* Footer Branding */}
+        <footer className="mt-8 flex flex-col items-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground uppercase tracking-widest">
+            <ShieldCheck size={12} />
+            <span>Secured by</span>
+            <span className="text-foreground font-bold">KnotEngine</span>
+          </div>
+        </footer>
+      </div>
     </main>
   );
 }

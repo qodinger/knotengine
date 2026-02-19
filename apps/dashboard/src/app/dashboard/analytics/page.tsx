@@ -1,14 +1,14 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
 import {
   TrendingUp,
-  Users,
   CreditCard,
   Activity,
   Target,
-  BarChart3,
   Calendar,
   Download,
+  Receipt,
 } from "lucide-react";
 import {
   XAxis,
@@ -31,27 +31,140 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { api } from "@/lib/api";
 
-const MOCK_CHART_DATA = [
-  { name: "Mon", volume: 4000, conversion: 2400 },
-  { name: "Tue", volume: 3000, conversion: 1398 },
-  { name: "Wed", volume: 2000, conversion: 9800 },
-  { name: "Thu", volume: 2780, conversion: 3908 },
-  { name: "Fri", volume: 1890, conversion: 4800 },
-  { name: "Sat", volume: 2390, conversion: 3800 },
-  { name: "Sun", volume: 3490, conversion: 4300 },
-];
+interface Invoice {
+  invoice_id: string;
+  amount_usd: number;
+  crypto_currency: string;
+  status: string;
+  created_at: string;
+}
 
-const GEO_DATA = [
-  { name: "North America", value: 45 },
-  { name: "Europe", value: 30 },
-  { name: "Asia", value: 15 },
-  { name: "Others", value: 10 },
-];
+interface StatsData {
+  totalVolume: number;
+  activeInvoices: number;
+  successRate: string;
+  feesAccrued: { usd: number };
+  currentFeeRate: number;
+}
 
 const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#a855f7"];
 
 export default function AnalyticsPage() {
+  const [stats, setStats] = useState<StatsData | null>(null);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = useCallback(async () => {
+    try {
+      const [statsRes, invoicesRes] = await Promise.all([
+        api.get("/v1/merchants/me/stats"),
+        api.get("/v1/invoices", { params: { limit: 100 } }),
+      ]);
+      setStats(statsRes.data);
+      setInvoices(invoicesRes.data.data || []);
+    } catch (err) {
+      console.error("Failed to fetch analytics data", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Derive analytics from real invoice data
+  const confirmedInvoices = invoices.filter(
+    (inv) => inv.status === "confirmed",
+  );
+  const pendingInvoices = invoices.filter((inv) => inv.status === "pending");
+  const expiredInvoices = invoices.filter((inv) => inv.status === "expired");
+
+  const avgTicketSize =
+    confirmedInvoices.length > 0
+      ? confirmedInvoices.reduce((sum, inv) => sum + inv.amount_usd, 0) /
+        confirmedInvoices.length
+      : 0;
+
+  const conversionRate =
+    invoices.length > 0
+      ? ((confirmedInvoices.length / invoices.length) * 100).toFixed(1)
+      : "0.0";
+
+  const expiredRate =
+    invoices.length > 0
+      ? ((expiredInvoices.length / invoices.length) * 100).toFixed(2)
+      : "0.00";
+
+  // Group invoices by day for chart
+  const dailyVolume = invoices.reduce(
+    (acc: Record<string, { volume: number; count: number }>, inv) => {
+      const date = new Date(inv.created_at).toLocaleDateString("en-US", {
+        weekday: "short",
+      });
+      if (!acc[date]) acc[date] = { volume: 0, count: 0 };
+      if (inv.status === "confirmed") {
+        acc[date].volume += inv.amount_usd;
+      }
+      acc[date].count += 1;
+      return acc;
+    },
+    {},
+  );
+
+  const chartData = Object.entries(dailyVolume).map(([name, data]) => ({
+    name,
+    volume: parseFloat(data.volume.toFixed(2)),
+    count: data.count,
+  }));
+
+  // Group by currency
+  const currencyBreakdown = invoices.reduce(
+    (acc: Record<string, number>, inv) => {
+      const currency = inv.crypto_currency;
+      if (!acc[currency]) acc[currency] = 0;
+      acc[currency] += inv.amount_usd;
+      return acc;
+    },
+    {},
+  );
+
+  const currencyData = Object.entries(currencyBreakdown)
+    .map(([name, value]) => ({
+      name,
+      value: parseFloat(value.toFixed(2)),
+    }))
+    .sort((a, b) => b.value - a.value);
+
+  const metricCards = [
+    {
+      label: "Avg. Ticket Size",
+      value: `$${avgTicketSize.toFixed(2)}`,
+      description: `from ${confirmedInvoices.length} confirmed invoices`,
+      icon: CreditCard,
+    },
+    {
+      label: "Conversion Rate",
+      value: `${conversionRate}%`,
+      description: `${confirmedInvoices.length} of ${invoices.length} invoices`,
+      icon: Target,
+    },
+    {
+      label: "Expiry Rate",
+      value: `${expiredRate}%`,
+      description: `${expiredInvoices.length} expired invoices`,
+      icon: Activity,
+    },
+    {
+      label: "Pending",
+      value: pendingInvoices.length.toString(),
+      description: "invoices awaiting payment",
+      icon: Receipt,
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -60,7 +173,7 @@ export default function AnalyticsPage() {
             Performance Analytics
           </h1>
           <p className="text-muted-foreground text-sm font-medium">
-            Deep insights into payment conversion and merchant growth.
+            Insights derived from your real invoice data.
           </p>
         </div>
         <div className="flex gap-2">
@@ -70,40 +183,21 @@ export default function AnalyticsPage() {
             className="font-bold uppercase text-[10px] tracking-widest gap-2"
           >
             <Calendar className="size-3" />
-            Custom Range
+            Refresh
           </Button>
           <Button
             size="sm"
             className="font-bold uppercase text-[10px] tracking-widest gap-2"
+            disabled
           >
             <Download className="size-3" />
-            Download PDF
+            Export (Coming Soon)
           </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {[
-          {
-            label: "Avg. Ticket Size",
-            value: "$420.50",
-            trend: "+2.5%",
-            icon: CreditCard,
-          },
-          {
-            label: "Conversion Rate",
-            value: "88.2%",
-            trend: "+5.1%",
-            icon: Target,
-          },
-          { label: "Churn Rate", value: "0.24%", trend: "-0.5%", icon: Users },
-          {
-            label: "Velocity",
-            value: "1.2k/hr",
-            trend: "+12.2%",
-            icon: Activity,
-          },
-        ].map((stat) => (
+        {metricCards.map((stat) => (
           <Card
             key={stat.label}
             className="bg-background/20 border-border/50 shadow-none"
@@ -116,21 +210,14 @@ export default function AnalyticsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold tracking-tight mb-1">
-                {stat.value}
+                {loading ? (
+                  <span className="text-muted-foreground/30">—</span>
+                ) : (
+                  stat.value
+                )}
               </div>
-              <div className="flex items-center gap-1.5 text-[10px] font-bold">
-                <span
-                  className={
-                    stat.trend.startsWith("+")
-                      ? "text-emerald-500"
-                      : "text-rose-500"
-                  }
-                >
-                  {stat.trend}
-                </span>
-                <span className="text-muted-foreground/40 uppercase tracking-widest font-medium">
-                  vs prev 30d
-                </span>
+              <div className="text-[10px] text-muted-foreground/40 uppercase tracking-widest font-medium">
+                {stat.description}
               </div>
             </CardContent>
           </Card>
@@ -142,133 +229,144 @@ export default function AnalyticsPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-lg">Conversion Funnel</CardTitle>
+                <CardTitle className="text-lg">Settlement Volume</CardTitle>
                 <CardDescription>
-                  Visualizing checkout engagement vs successful settlement.
+                  Confirmed invoice volume by day.
                 </CardDescription>
               </div>
               <Badge
                 variant="outline"
                 className="font-bold uppercase text-[9px] tracking-widest"
               >
-                Live Flow
+                {invoices.length} Invoices
               </Badge>
             </div>
           </CardHeader>
           <CardContent className="h-[350px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={MOCK_CHART_DATA}>
-                <defs>
-                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                    <stop
-                      offset="5%"
-                      stopColor="var(--primary)"
-                      stopOpacity={0.1}
-                    />
-                    <stop
-                      offset="95%"
-                      stopColor="var(--primary)"
-                      stopOpacity={0}
-                    />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
-                  stroke="var(--border)"
-                  opacity={0.3}
-                />
-                <XAxis
-                  dataKey="name"
-                  stroke="var(--muted-foreground)"
-                  fontSize={10}
-                  tickLine={false}
-                  axisLine={false}
-                  dy={10}
-                />
-                <YAxis
-                  stroke="var(--muted-foreground)"
-                  fontSize={10}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(value) => `$${value}`}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "var(--background)",
-                    borderColor: "var(--border)",
-                    fontSize: "12px",
-                    borderRadius: "8px",
-                  }}
-                  itemStyle={{ fontSize: "12px", fontWeight: "bold" }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="volume"
-                  stroke="var(--primary)"
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#colorValue)"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="conversion"
-                  stroke="#10b981"
-                  strokeWidth={2}
-                  fillOpacity={0}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            {chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                      <stop
+                        offset="5%"
+                        stopColor="var(--primary)"
+                        stopOpacity={0.1}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor="var(--primary)"
+                        stopOpacity={0}
+                      />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="var(--border)"
+                    opacity={0.3}
+                  />
+                  <XAxis
+                    dataKey="name"
+                    stroke="var(--muted-foreground)"
+                    fontSize={10}
+                    tickLine={false}
+                    axisLine={false}
+                    dy={10}
+                  />
+                  <YAxis
+                    stroke="var(--muted-foreground)"
+                    fontSize={10}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => `$${value}`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "var(--background)",
+                      borderColor: "var(--border)",
+                      fontSize: "12px",
+                      borderRadius: "8px",
+                    }}
+                    itemStyle={{ fontSize: "12px", fontWeight: "bold" }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="volume"
+                    stroke="var(--primary)"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorValue)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground/50 text-sm font-medium">
+                No confirmed invoices yet. Settle invoices to see volume data.
+              </div>
+            )}
           </CardContent>
         </Card>
 
         <Card className="lg:col-span-3 border-none shadow-none bg-background/50 border">
           <CardHeader>
-            <CardTitle className="text-lg">Geographic Density</CardTitle>
-            <CardDescription>Top regions by settlement volume.</CardDescription>
+            <CardTitle className="text-lg">Currency Breakdown</CardTitle>
+            <CardDescription>
+              Volume distribution by cryptocurrency.
+            </CardDescription>
           </CardHeader>
           <CardContent className="h-[350px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={GEO_DATA}
-                layout="vertical"
-                margin={{ left: -20, right: 20 }}
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  horizontal={false}
-                  stroke="var(--border)"
-                  opacity={0.3}
-                />
-                <XAxis type="number" hide />
-                <YAxis
-                  type="category"
-                  dataKey="name"
-                  stroke="var(--muted-foreground)"
-                  fontSize={10}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <Tooltip
-                  cursor={{ fill: "var(--muted)", opacity: 0.1 }}
-                  contentStyle={{
-                    backgroundColor: "var(--background)",
-                    borderColor: "var(--border)",
-                    fontSize: "12px",
-                    borderRadius: "8px",
-                  }}
-                />
-                <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24}>
-                  {GEO_DATA.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                      opacity={0.8}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            {currencyData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={currencyData}
+                  layout="vertical"
+                  margin={{ left: -20, right: 20 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    horizontal={false}
+                    stroke="var(--border)"
+                    opacity={0.3}
+                  />
+                  <XAxis type="number" hide />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    stroke="var(--muted-foreground)"
+                    fontSize={10}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <Tooltip
+                    cursor={{ fill: "var(--muted)", opacity: 0.1 }}
+                    contentStyle={{
+                      backgroundColor: "var(--background)",
+                      borderColor: "var(--border)",
+                      fontSize: "12px",
+                      borderRadius: "8px",
+                    }}
+                    formatter={(value) => [
+                      `$${Number(value ?? 0).toFixed(2)}`,
+                      "Volume",
+                    ]}
+                  />
+                  <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24}>
+                    {currencyData.map((_entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                        opacity={0.8}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground/50 text-sm font-medium">
+                No invoice data to analyze yet.
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -278,43 +376,64 @@ export default function AnalyticsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="size-4 text-emerald-500" />
-              Growth Trajectory
+              Volume Summary
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Based on the last 90 days of ledger entries, your merchant
-              ecosystem is expanding at a rate of
-              <span className="font-bold mx-1 text-emerald-500">
-                12.5% Month-over-Month
-              </span>
-              . The primary driver is recurring cross-border settlements in{" "}
-              <Badge
-                variant="secondary"
-                className="bg-primary/10 text-primary py-0 h-4 font-bold"
-              >
-                USDT-Polygon
-              </Badge>
-              .
+              {stats ? (
+                <>
+                  Your total confirmed settlement volume is{" "}
+                  <span className="font-bold text-emerald-500">
+                    $
+                    {stats.totalVolume.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                    })}
+                  </span>{" "}
+                  across{" "}
+                  <span className="font-bold text-foreground">
+                    {confirmedInvoices.length}
+                  </span>{" "}
+                  confirmed invoices with a conversion rate of{" "}
+                  <Badge
+                    variant="secondary"
+                    className="bg-primary/10 text-primary py-0 h-4 font-bold"
+                  >
+                    {conversionRate}%
+                  </Badge>
+                  .
+                </>
+              ) : (
+                "Loading analytics summary..."
+              )}
             </p>
           </CardContent>
         </Card>
         <Card className="border-none shadow-none bg-background/50 border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="size-4 text-primary" />
-              Optimization Insight
+              <Activity className="size-4 text-primary" />
+              Fee Summary
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Switching your treasury sweep frequency from 24h to 6h during peak
-              APAC trading windows could reduce slippage by
-              <span className="font-bold mx-1 text-primary underline decoration-primary/30">
-                0.45%
-              </span>
-              . Review your liquidity pool settings in the{" "}
-              <span className="font-bold text-foreground">Wallets</span> tab.
+              {stats ? (
+                <>
+                  Platform fees accrued to date:{" "}
+                  <span className="font-bold text-primary">
+                    ${stats.feesAccrued.usd.toFixed(2)}
+                  </span>{" "}
+                  at the standard rate of{" "}
+                  <span className="font-bold text-foreground">
+                    {(stats.currentFeeRate * 100).toFixed(2)}%
+                  </span>{" "}
+                  per confirmed settlement. Fees are deducted automatically from
+                  each invoice upon confirmation.
+                </>
+              ) : (
+                "Loading fee data..."
+              )}
             </p>
           </CardContent>
         </Card>

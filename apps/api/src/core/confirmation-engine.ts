@@ -1,5 +1,10 @@
-import { Invoice, IInvoice, Merchant, WebhookEvent } from "@tyepay/database";
-import { DEFAULT_CONFIRMATIONS } from "@tyepay/types";
+import {
+  Invoice,
+  IInvoice,
+  Merchant,
+  WebhookEvent,
+} from "@knotengine/database";
+import { DEFAULT_CONFIRMATIONS } from "@knotengine/types";
 import { SocketService } from "../infra/socket-service";
 import { WebhookDispatcher } from "../infra/webhook-dispatcher";
 import { TatumProvider } from "../infra/tatum-provider";
@@ -28,17 +33,56 @@ export class ConfirmationEngine {
     amount: string;
     asset: string;
     source: string;
+    invoiceId?: string;
     rawPayload: Record<string, unknown>;
   }): Promise<{
     matched: boolean;
     invoiceId?: string;
     newStatus?: string;
   }> {
-    // 1. Find the matching invoice by pay address
-    const invoice = await Invoice.findOne({
-      payAddress: event.toAddress,
-      status: { $in: ["pending", "mempool_detected", "confirming"] },
-    });
+    // 1. Find the matching invoice
+    // Priority: invoiceId (Simulation) > payAddress Exact > payAddress Case-Insensitive (EVM)
+    let invoice: IInvoice | null = null;
+    const statusFilter = {
+      $in: ["pending", "mempool_detected", "confirming"],
+    };
+
+    if (event.invoiceId) {
+      invoice = await Invoice.findOne({
+        invoiceId: event.invoiceId,
+        status: statusFilter,
+      });
+    }
+
+    if (!invoice) {
+      // Try strict match
+      invoice = await Invoice.findOne({
+        payAddress: event.toAddress,
+        status: statusFilter,
+      });
+    }
+
+    if (!invoice) {
+      // Try case-insensitive match (Important for EVM checksum addresses)
+      // We use a regex for this.
+      const candidate = await Invoice.findOne({
+        payAddress: { $regex: new RegExp(`^${event.toAddress}$`, "i") },
+        status: statusFilter,
+      });
+
+      // Validation: If we matched loosely, ensure it's safe (EVM) or verify strictness (BTC)
+      if (candidate) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const isEVM = ["ETH", "USDT_ERC20", "USDT_POLYGON", "USDC"].includes(
+          (candidate as any).cryptoCurrency,
+        );
+        // If it's EVM, case doesn't matter (0xAbC == 0xabc).
+        // If it's BTC/LTC, case MATTERS (Base58), so we must reject if not exact.
+        if (isEVM || candidate.payAddress === event.toAddress) {
+          invoice = candidate;
+        }
+      }
+    }
 
     if (!invoice) {
       // Log the event anyway for audit
@@ -100,6 +144,17 @@ export class ConfirmationEngine {
       // 7. Cleanup Tatum monitoring
       if (invoice.tatumSubscriptionId) {
         TatumProvider.deleteSubscription(invoice.tatumSubscriptionId);
+      }
+
+      // 8. Accrue Fees (KnotEngine Fee)
+      if (!invoice.paidAt) {
+        // Double check paidAt to prevent double counting if multiple events fire
+        await Merchant.findByIdAndUpdate(invoice.merchantId, {
+          $inc: {
+            "feesAccrued.usd": invoice.feeUsd,
+            [`feesAccrued.${invoice.cryptoCurrency}`]: invoice.feeCrypto,
+          },
+        });
       }
     }
 

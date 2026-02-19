@@ -5,9 +5,10 @@ import {
   Save,
   Loader2,
   CheckCircle2,
-  Info,
-  Globe,
-  Settings2,
+  Copy,
+  Trash2,
+  AlertTriangle,
+  Wand2,
 } from "lucide-react";
 import {
   Card,
@@ -22,34 +23,48 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { api, getAuthHeaders } from "@/lib/api";
-
+import { api } from "@/lib/api";
+// Testnet Generation State
 export default function SettingsPage() {
-  const [, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  // Data State
+  const [projectId, setProjectId] = useState("");
   const [formData, setFormData] = useState({
     businessName: "",
     businessEmail: "",
     xPub: "",
+    xPubTestnet: "",
     ethAddress: "",
+    ethAddressTestnet: "",
     confirmationPolicy: 1,
     webhookUrl: "",
+    webhookSecret: "",
   });
+
+  const [showSecret, setShowSecret] = useState(false);
+  const [rotatingSecret, setRotatingSecret] = useState(false);
+
+  // Testnet Generation State
+  const [generatingTestnet, setGeneratingTestnet] = useState(false);
 
   const fetchSettings = useCallback(async () => {
     try {
-      const res = await api.get("/v1/merchants/me", {
-        headers: getAuthHeaders(),
-      });
+      const res = await api.get("/v1/merchants/me");
       const m = res.data;
+      setProjectId(m.id || m._id || "unknown");
       setFormData({
         businessName: m.name || "",
         businessEmail: m.email || "",
-        xPub: m.wallet_config?.bitcoin?.xpub || "",
-        ethAddress: m.wallet_config?.ethereum?.address || "",
-        confirmationPolicy: m.rules?.confirmation_policy || 1,
-        webhookUrl: m.webhook_url || "",
+        xPub: m.btcXpub || "",
+        xPubTestnet: m.btcXpubTestnet || "",
+        ethAddress: m.ethAddress || "",
+        ethAddressTestnet: m.ethAddressTestnet || "",
+        confirmationPolicy: m.confirmationPolicy?.BTC || 1, // Assuming BTC policy roughly equates to general policy for now, or just use default
+        webhookUrl: m.webhookUrl || "",
+        webhookSecret: m.webhookSecret || "",
       });
     } catch (err) {
       console.error("Failed to fetch settings", err);
@@ -59,30 +74,28 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
-    const apiKey =
-      typeof window !== "undefined" ? localStorage.getItem("tp_api_key") : null;
-    if (apiKey) fetchSettings();
-    else setLoading(false);
+    fetchSettings();
   }, [fetchSettings]);
 
   const handleSave = async () => {
     setSaving(true);
     setSuccess(false);
     try {
-      await api.patch(
-        "/v1/merchants/me",
-        {
-          name: formData.businessName,
-          email: formData.businessEmail,
-          wallet_config: {
-            bitcoin: { xpub: formData.xPub },
-            ethereum: { address: formData.ethAddress },
-          },
-          rules: { confirmation_policy: formData.confirmationPolicy },
-          webhook_url: formData.webhookUrl,
+      await api.patch("/v1/merchants/me", {
+        name: formData.businessName,
+        email: formData.businessEmail,
+        btcXpub: formData.xPub,
+        btcXpubTestnet: formData.xPubTestnet,
+        ethAddress: formData.ethAddress,
+        ethAddressTestnet: formData.ethAddressTestnet,
+        // confirmationPolicy is complex object in backend, strictly typing it here
+        confirmationPolicy: {
+          BTC: formData.confirmationPolicy,
+          LTC: 6,
+          ETH: 12,
         },
-        { headers: getAuthHeaders() },
-      );
+        webhookUrl: formData.webhookUrl,
+      });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
@@ -92,59 +105,72 @@ export default function SettingsPage() {
     }
   };
 
-  const apiKey =
-    typeof window !== "undefined" ? localStorage.getItem("tp_api_key") : null;
+  const handleRotateSecret = async () => {
+    setRotatingSecret(true);
+    try {
+      const res = await api.post("/v1/merchants/me/keys/webhook", {});
+      setFormData((prev) => ({
+        ...prev,
+        webhookSecret: res.data.webhookSecret,
+      }));
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err) {
+      console.error("Failed to rotate webhook secret", err);
+    } finally {
+      setRotatingSecret(false);
+    }
+  };
 
-  if (!apiKey) {
-    return (
-      <div className="flex items-center justify-center h-[50vh]">
-        <Card className="w-full max-w-sm">
-          <CardHeader>
-            <CardTitle>Session Required</CardTitle>
-            <CardDescription>Authenticate to access settings.</CardDescription>
-          </CardHeader>
-          <CardFooter>
-            <Button className="w-full" onClick={() => window.location.reload()}>
-              Authenticate
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
+  const handleGenerateTestnet = async () => {
+    setGeneratingTestnet(true);
+    try {
+      const res = await api.post(
+        "/v1/merchants/me/wallet/generate-testnet",
+        {},
+      );
+      // setTestnetMnemonic(res.data.mnemonic); // No longer showing mnemonic
+      setFormData((prev) => ({
+        ...prev,
+        xPubTestnet: res.data.btcXpubTestnet,
+        ethAddressTestnet: res.data.ethAddressTestnet,
+      }));
+      // setOpenDialog(true);
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err) {
+      console.error("Failed to generate testnet wallet", err);
+    } finally {
+      setGeneratingTestnet(false);
+    }
+  };
 
   return (
     <div className="max-w-4xl space-y-6">
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-3">
-          <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-            <Settings2 className="size-5" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              Organization Settings
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Manage your business profile and infrastructure rules.
-            </p>
-          </div>
+      {/* Header with Save Action */}
+      <div className="flex items-center justify-between pb-4 border-b border-border/40">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Store Settings</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage your store configuration and preferences.
+          </p>
         </div>
         <Button
           onClick={handleSave}
-          disabled={saving}
-          className="font-bold uppercase text-[10px] tracking-widest gap-2"
+          disabled={saving || loading}
+          className="font-bold uppercase text-[10px] tracking-widest gap-2 shadow-lg hover:shadow-primary/20 transition-all"
         >
           {saving ? (
             <Loader2 className="size-3 animate-spin" />
           ) : (
             <Save className="size-3" />
           )}
-          {success ? "Changes Saved" : "Save Changes"}
+          {success ? "Saved" : "Save Changes"}
         </Button>
       </div>
 
       <Tabs defaultValue="general" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-4 bg-muted/50 p-1 rounded-xl mb-6">
+        <TabsList className="grid w-full max-w-md grid-cols-2 bg-muted/50 p-1 rounded-xl mb-6">
           <TabsTrigger
             value="general"
             className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
@@ -152,221 +178,276 @@ export default function SettingsPage() {
             General
           </TabsTrigger>
           <TabsTrigger
-            value="wallets"
+            value="developers"
             className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
           >
-            Wallets
-          </TabsTrigger>
-          <TabsTrigger
-            value="rules"
-            className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
-          >
-            Rules
-          </TabsTrigger>
-          <TabsTrigger
-            value="webhooks"
-            className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
-          >
-            Webhooks
+            Developers
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="general" className="space-y-4">
-          <Card className="border-none shadow-none bg-background/50 border">
+        <TabsContent
+          value="general"
+          className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500"
+        >
+          {/* Store Details Card */}
+          <Card className="bg-linear-to-br from-card to-card/50 border-border/50 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-lg font-bold">
-                Business Profile
-              </CardTitle>
+              <CardTitle>Store Details</CardTitle>
               <CardDescription>
-                Public identity for invoices and customer interactions.
+                Your store&apos;s public identity and unique identifiers.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-2">
-                <Label
-                  htmlFor="name"
-                  className="text-xs font-bold uppercase tracking-tight text-muted-foreground"
-                >
-                  Business Name
-                </Label>
+                <Label htmlFor="projectName">Store Name</Label>
                 <Input
-                  id="name"
-                  placeholder="Acme Corp"
+                  id="projectName"
                   value={formData.businessName}
                   onChange={(e) =>
                     setFormData({ ...formData, businessName: e.target.value })
                   }
-                  className="bg-muted/30 border-none transition-all hover:bg-muted/50"
+                  placeholder="My Awesome Store"
+                  className="bg-background/50"
                 />
               </div>
-              <div className="grid gap-2">
-                <Label
-                  htmlFor="email"
-                  className="text-xs font-bold uppercase tracking-tight text-muted-foreground"
-                >
-                  Contact Email
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="billing@acme.com"
-                  value={formData.businessEmail}
-                  onChange={(e) =>
-                    setFormData({ ...formData, businessEmail: e.target.value })
-                  }
-                  className="bg-muted/30 border-none transition-all hover:bg-muted/50"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        <TabsContent value="wallets" className="space-y-4">
-          <Card className="border-none shadow-none bg-background/50 border">
-            <CardHeader>
-              <CardTitle className="text-lg font-bold">
-                Settlement Endpoints
-              </CardTitle>
-              <CardDescription>
-                Where your funds will be delivered upon payment confirmation.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
               <div className="grid gap-2">
-                <Label
-                  htmlFor="xpub"
-                  className="text-xs font-bold uppercase tracking-tight text-muted-foreground"
-                >
-                  Bitcoin xPub
-                </Label>
-                <Input
-                  id="xpub"
-                  placeholder="vpub... or xpub..."
-                  value={formData.xPub}
-                  onChange={(e) =>
-                    setFormData({ ...formData, xPub: e.target.value })
-                  }
-                  className="font-mono text-xs bg-muted/30 border-none"
-                />
-                <p className="text-[10px] text-muted-foreground flex gap-1.5 items-center">
-                  <Info className="size-3" />
-                  Used for generating unique deposit addresses per customer.
-                </p>
-              </div>
-              <div className="grid gap-2 pt-2">
-                <Label
-                  htmlFor="eth"
-                  className="text-xs font-bold uppercase tracking-tight text-muted-foreground"
-                >
-                  Ethereum Address
-                </Label>
-                <Input
-                  id="eth"
-                  placeholder="0x..."
-                  value={formData.ethAddress}
-                  onChange={(e) =>
-                    setFormData({ ...formData, ethAddress: e.target.value })
-                  }
-                  className="font-mono text-xs bg-muted/30 border-none"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="rules" className="space-y-4">
-          <Card className="border-none shadow-none bg-background/50 border">
-            <CardHeader>
-              <CardTitle className="text-lg font-bold">
-                Payment Validation
-              </CardTitle>
-              <CardDescription>
-                Configure the security parameters for incoming transactions.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-2">
-                <Label
-                  htmlFor="conf"
-                  className="text-xs font-bold uppercase tracking-tight text-muted-foreground"
-                >
-                  Confirmation Threshold
-                </Label>
-                <Input
-                  id="conf"
-                  type="number"
-                  min={0}
-                  max={6}
-                  value={formData.confirmationPolicy}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      confirmationPolicy: parseInt(e.target.value),
-                    })
-                  }
-                  className="w-24 bg-muted/30 border-none font-bold"
-                />
+                <Label htmlFor="projectId">Store ID</Label>
+                <div className="relative">
+                  <Input
+                    id="projectId"
+                    value={projectId}
+                    readOnly
+                    className="bg-muted/50 font-mono text-muted-foreground pr-10"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1 h-7 w-7"
+                    onClick={() => {
+                      navigator.clipboard.writeText(projectId);
+                      setSuccess(true);
+                      setTimeout(() => setSuccess(false), 2000);
+                    }}
+                  >
+                    <Copy className="size-3" />
+                  </Button>
+                </div>
                 <p className="text-[10px] text-muted-foreground">
-                  Number of blockchain confirmations required to mark an invoice
-                  as &quot;Paid&quot;.
+                  Unique identifier used in API requests and support.
                 </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Danger Zone */}
+          <Card className="border-destructive/30 bg-destructive/5 shadow-none overflow-hidden">
+            <CardHeader>
+              <CardTitle className="text-destructive flex items-center gap-2">
+                <AlertTriangle className="size-5" />
+                Danger Zone
+              </CardTitle>
+              <CardDescription className="text-destructive/80">
+                Irreversible actions for this store.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between p-4 border border-destructive/20 rounded-lg bg-background/50">
+                <div>
+                  <div className="font-bold text-sm">Delete Store</div>
+                  <div className="text-xs text-muted-foreground">
+                    Permanently delete this store and all its data.
+                  </div>
+                </div>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                >
+                  <Trash2 className="size-3 mr-2" />
+                  Delete Store
+                </Button>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="webhooks" className="space-y-4">
-          <Card className="border-none shadow-none bg-background/50 border">
+        <TabsContent
+          value="developers"
+          className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500"
+        >
+          {/* Wallet Config */}
+          <Card className="bg-linear-to-br from-card to-card/50 border-border/50 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-lg font-bold">
-                Event Notifications
-              </CardTitle>
+              <CardTitle>Wallet Configuration</CardTitle>
               <CardDescription>
-                Configure real-time listeners for payment lifecycle events.
+                Set up your settlement wallets for mainnet and testnet.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Mainnet Section */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b border-border/40">
+                  <h3 className="text-sm font-semibold text-foreground">
+                    Mainnet
+                  </h3>
+                  <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">
+                    Live
+                  </span>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="xpub">Bitcoin xPub</Label>
+                  <Input
+                    id="xpub"
+                    value={formData.xPub}
+                    onChange={(e) =>
+                      setFormData({ ...formData, xPub: e.target.value })
+                    }
+                    placeholder="xpub..."
+                    className="font-mono text-xs bg-background/50"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="eth">Ethereum Address</Label>
+                  <Input
+                    id="eth"
+                    value={formData.ethAddress}
+                    onChange={(e) =>
+                      setFormData({ ...formData, ethAddress: e.target.value })
+                    }
+                    placeholder="0x..."
+                    className="font-mono text-xs bg-background/50"
+                  />
+                </div>
+              </div>
+
+              {/* Testnet Section */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-border/40">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-foreground">
+                      Testnet
+                    </h3>
+                    <span className="text-[10px] bg-yellow-500/10 text-yellow-500 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">
+                      Test
+                    </span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs gap-2"
+                    onClick={handleGenerateTestnet}
+                    disabled={generatingTestnet}
+                  >
+                    {generatingTestnet ? (
+                      <Loader2 className="size-3 animate-spin" />
+                    ) : (
+                      <Wand2 className="size-3" />
+                    )}
+                    Generate Wallet
+                  </Button>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="xpubTest">Testnet Bitcoin xPub</Label>
+                  <Input
+                    id="xpubTest"
+                    value={formData.xPubTestnet}
+                    onChange={(e) =>
+                      setFormData({ ...formData, xPubTestnet: e.target.value })
+                    }
+                    // Testnet xPubs often start with vpub or tpub, but user can enter anything
+                    placeholder="vpub... or tpub..."
+                    className="font-mono text-xs bg-background/50"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="ethTest">Sepolia Ethereum Address</Label>
+                  <Input
+                    id="ethTest"
+                    value={formData.ethAddressTestnet}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        ethAddressTestnet: e.target.value,
+                      })
+                    }
+                    placeholder="0x..."
+                    className="font-mono text-xs bg-background/50"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Webhooks */}
+          <Card className="bg-linear-to-br from-card to-card/50 border-border/50 shadow-sm">
+            <CardHeader>
+              <CardTitle>Webhooks</CardTitle>
+              <CardDescription>
+                Configure real-time event notifications.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-2">
-                <Label
-                  htmlFor="webhook"
-                  className="text-xs font-bold uppercase tracking-tight text-muted-foreground"
-                >
-                  Webhook URL
-                </Label>
+                <Label htmlFor="webhookUrl">Endpoint URL</Label>
                 <Input
-                  id="webhook"
-                  placeholder="https://api.yoursite.com/webhooks/tyepay"
+                  id="webhookUrl"
                   value={formData.webhookUrl}
                   onChange={(e) =>
                     setFormData({ ...formData, webhookUrl: e.target.value })
                   }
-                  className="bg-muted/30 border-none"
+                  placeholder="https://api.myapp.com/webhooks"
+                  className="bg-background/50"
                 />
               </div>
-              <Alert className="bg-primary/5 border-primary/10">
-                <Globe className="size-4 text-primary" />
-                <AlertTitle className="text-xs font-bold uppercase tracking-wider">
-                  Public Endpoint
-                </AlertTitle>
-                <AlertDescription className="text-xs font-medium text-muted-foreground">
-                  Your server must respond with a{" "}
-                  <code className="text-foreground">200 OK</code> to acknowledge
-                  receipt.
-                </AlertDescription>
-              </Alert>
+
+              <div className="grid gap-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="secret">Signing Secret</Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRotateSecret}
+                    disabled={rotatingSecret}
+                    className="h-6 text-[10px] text-destructive"
+                  >
+                    {rotatingSecret ? "Rotating..." : "Rotate Secret"}
+                  </Button>
+                </div>
+                <div className="relative">
+                  <Input
+                    id="secret"
+                    type={showSecret ? "text" : "password"}
+                    value={formData.webhookSecret}
+                    readOnly
+                    className="bg-background/50 font-mono pr-16"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full"
+                    onClick={() => setShowSecret(!showSecret)}
+                  >
+                    {showSecret ? "Hide" : "Show"}
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
 
+      {/* Success Toast (Global) */}
       {success && (
-        <div className="fixed bottom-8 right-8 animate-in fade-in slide-in-from-bottom-4">
+        <div className="fixed bottom-8 right-8 animate-in fade-in slide-in-from-bottom-4 z-50">
           <Alert className="bg-emerald-500 text-white border-none shadow-xl flex items-center gap-3 pr-8">
             <CheckCircle2 className="size-5" />
             <div className="flex flex-col">
-              <span className="font-bold text-sm">System Updated</span>
+              <span className="font-bold text-sm">Changes Saved</span>
               <span className="text-[10px] opacity-90 font-medium">
-                Settings synchronized with cloud infrastructure.
+                Your store settings have been updated.
               </span>
             </div>
           </Alert>

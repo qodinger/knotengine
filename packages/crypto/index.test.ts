@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { Derivator } from "./index";
 
-describe("Derivator (The Knot Engine Core)", () => {
+describe("Derivator (KnotEngine Core)", () => {
   // A known public test vector (Mnemonic: "abandon abandon ...")
   // xPub for Path m/84'/0'/0' (Native Segwit)
 
@@ -34,7 +34,7 @@ describe("Derivator (The Knot Engine Core)", () => {
   });
 
   it("should sign and verify webhooks correctly", () => {
-    const secret = "tyepay_secret_2026";
+    const secret = "knotengine_secret_2026";
     const payload = JSON.stringify({ id: "inv_123", status: "confirmed" });
 
     const signature = Derivator.signWebhookPayload(payload, secret);

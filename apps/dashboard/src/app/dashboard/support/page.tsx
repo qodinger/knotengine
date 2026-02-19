@@ -58,7 +58,7 @@ export default function SupportPage() {
     <div className="flex flex-col gap-8 max-w-6xl mx-auto">
       <div className="text-center space-y-2 py-8">
         <h1 className="text-3xl font-bold tracking-tighter text-foreground sm:text-4xl">
-          TyePay Merchant Center
+          KnotEngine Merchant Center
         </h1>
         <p className="text-muted-foreground font-medium text-lg">
           How can we help scale your non-custodial infrastructure today?

@@ -1,6 +1,7 @@
 "use client";
 
 import { Search, Bell } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
@@ -13,8 +14,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useSession, signOut } from "next-auth/react";
 
 export function SiteHeader() {
+  const { data: session } = useSession();
+  const user = session?.user;
+
   return (
     <header className="sticky top-0 z-50 flex h-(--header-height) w-full items-center border-b border-border/50 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
       <div className="flex w-full items-center gap-2 px-2.5 h-full">
@@ -48,9 +53,12 @@ export function SiteHeader() {
                 className="relative h-8 w-8 rounded-full ml-2"
               >
                 <Avatar className="h-8 w-8 border border-border/50">
-                  <AvatarImage src="" alt="User" />
+                  <AvatarImage
+                    src={user?.image || ""}
+                    alt={user?.name || "User"}
+                  />
                   <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
-                    TP
+                    {user?.name?.[0]?.toUpperCase() || "U"}
                   </AvatarFallback>
                 </Avatar>
               </Button>
@@ -59,19 +67,28 @@ export function SiteHeader() {
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">
-                    TyePay Admin
+                    {user?.name || "Anonymous Merchant"}
                   </p>
                   <p className="text-xs leading-none text-muted-foreground">
-                    admin@tyepay.com
+                    {user?.email || "No email provided"}
                   </p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Profile</DropdownMenuItem>
-              <DropdownMenuItem>Billing</DropdownMenuItem>
-              <DropdownMenuItem>Settings</DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/settings">Profile</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/analytics">Analytics</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/settings">Settings</Link>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive font-medium">
+              <DropdownMenuItem
+                className="text-destructive font-medium cursor-pointer"
+                onClick={() => signOut({ callbackUrl: "/login" })}
+              >
                 Log out
               </DropdownMenuItem>
             </DropdownMenuContent>

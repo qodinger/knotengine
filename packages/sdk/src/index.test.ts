@@ -1,22 +1,22 @@
 import { describe, it, expect, vi } from "vitest";
-import { TyePay } from "./index";
+import { KnotEngine } from "./index";
 import * as crypto from "crypto";
 
 vi.mock("axios");
 
-describe("TyePay SDK", () => {
+describe("KnotEngine SDK", () => {
   const config = {
-    apiKey: "tye_test_123",
+    apiKey: "knot_test_123",
     webhookSecret: "whsec_test_123",
   };
 
   it("should initialize with correct config", () => {
-    const sdk = new TyePay(config);
+    const sdk = new KnotEngine(config);
     expect(sdk).toBeDefined();
   });
 
   it("should verify a valid webhook signature", () => {
-    const sdk = new TyePay(config);
+    const sdk = new KnotEngine(config);
     const payload = JSON.stringify({ event: "invoice.confirmed" });
 
     // Calculate expected signature manually to verify SDK logic
@@ -29,14 +29,14 @@ describe("TyePay SDK", () => {
   });
 
   it("should reject an invalid webhook signature", () => {
-    const sdk = new TyePay(config);
+    const sdk = new KnotEngine(config);
     const payload = JSON.stringify({ event: "invoice.confirmed" });
     const isValid = sdk.verifyWebhook(payload, "invalid_signature");
     expect(isValid).toBe(false);
   });
 
   it("should throw error if webhookSecret is missing during verification", () => {
-    const sdk = new TyePay({ apiKey: "test" });
+    const sdk = new KnotEngine({ apiKey: "test" });
     expect(() => sdk.verifyWebhook("{}", "sig")).toThrow(
       "Webhook secret not configured in SDK.",
     );

@@ -1,11 +1,11 @@
 import { FastifyInstance } from "fastify";
 import { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
-import { Invoice, Merchant } from "@tyepay/database";
-import { Derivator } from "@tyepay/crypto";
+import { Invoice, Merchant } from "@knotengine/database";
+import { Derivator } from "@knotengine/crypto";
 import { PriceOracle } from "../infra/price-feed";
 import { ConfirmationEngine } from "../core/confirmation-engine";
-import { Currency } from "@tyepay/types";
+import { Currency } from "@knotengine/types";
 import { TatumProvider } from "../infra/tatum-provider";
 import * as crypto from "crypto";
 
@@ -24,6 +24,9 @@ export async function invoiceRoutes(app: FastifyInstance) {
   // ──────────────────────────────────────────────
   // Middleware: API Key Authentication
   // ──────────────────────────────────────────────
+  // ──────────────────────────────────────────────
+  // Middleware: Auth (API Key OR Internal Proxy)
+  // ──────────────────────────────────────────────
   server.addHook("preHandler", async (request, reply) => {
     // Skip auth for public invoice status check
     if (
@@ -33,22 +36,39 @@ export async function invoiceRoutes(app: FastifyInstance) {
       return;
     }
 
+    // 1. Try API Key Auth (External)
     const apiKey = request.headers["x-api-key"] as string;
-
-    if (!apiKey) {
-      return reply.code(401).send({ error: "Missing X-API-Key header" });
-    }
-
-    const apiKeyHash = crypto.createHash("sha256").update(apiKey).digest("hex");
-
-    const merchant = await Merchant.findOne({ apiKeyHash, isActive: true });
-
-    if (!merchant) {
+    if (apiKey) {
+      const apiKeyHash = crypto
+        .createHash("sha256")
+        .update(apiKey)
+        .digest("hex");
+      const merchant = await Merchant.findOne({ apiKeyHash, isActive: true });
+      if (merchant) {
+        (request as any).merchant = merchant;
+        return;
+      }
       return reply.code(401).send({ error: "Invalid API key" });
     }
 
-    // Attach merchant to request for downstream use
-    (request as any).merchant = merchant;
+    // 2. Try Internal Proxy Auth (Dashboard)
+    const oauthId = request.headers["x-oauth-id"] as string;
+    const internalSecret = request.headers["x-internal-secret"] as string;
+    const merchantId = request.headers["x-merchant-id"] as string;
+
+    if (oauthId && internalSecret === process.env.INTERNAL_SECRET) {
+      const query: any = { oauthId, isActive: true };
+      if (merchantId) query._id = merchantId;
+
+      const merchant = await Merchant.findOne(query);
+      if (merchant) {
+        (request as any).merchant = merchant;
+        return;
+      }
+      return reply.code(401).send({ error: "Merchant not found" });
+    }
+
+    return reply.code(401).send({ error: "Unauthorized" });
   });
 
   // ──────────────────────────────────────────────
@@ -79,27 +99,40 @@ export async function invoiceRoutes(app: FastifyInstance) {
       const nextIndex = merchant.derivationIndex + 1;
       let payAddress: string;
 
-      if (currency === "BTC" || currency === "LTC") {
-        if (!merchant.btcXpub) {
-          return reply
-            .code(400)
-            .send({ error: "Merchant has no BTC xPub configured" });
+      const network =
+        (process.env.BITCOIN_NETWORK as "bitcoin" | "testnet" | "regtest") ||
+        "bitcoin";
+      const isTestnet = network === "testnet" || network === "regtest";
+
+      try {
+        if (currency === "BTC" || currency === "LTC") {
+          const xpub = isTestnet ? merchant.btcXpubTestnet : merchant.btcXpub;
+
+          if (!xpub) {
+            return reply.code(400).send({
+              error: `Merchant has no BTC xPub configured for ${network}`,
+            });
+          }
+          payAddress = Derivator.deriveBitcoinAddress(xpub, nextIndex, network);
+        } else {
+          const ethAddr = isTestnet
+            ? merchant.ethAddressTestnet
+            : merchant.ethAddress;
+
+          if (!ethAddr) {
+            return reply.code(400).send({
+              error: `Merchant has no ETH address configured for ${network}`,
+            });
+          }
+          // For EVM tokens, we use the merchant's main address
+          // In production, HD derivation with xPub would be better
+          payAddress = ethAddr;
         }
-        payAddress = Derivator.deriveBitcoinAddress(
-          merchant.btcXpub,
-          nextIndex,
-          (process.env.BITCOIN_NETWORK as "bitcoin" | "testnet" | "regtest") ||
-            "bitcoin",
-        );
-      } else {
-        if (!merchant.ethAddress) {
-          return reply
-            .code(400)
-            .send({ error: "Merchant has no ETH address configured" });
-        }
-        // For EVM tokens, we use the merchant's main address
-        // In production, HD derivation with xPub would be better
-        payAddress = merchant.ethAddress;
+      } catch (err: any) {
+        server.log.error(`Address derivation error: ${err.message}`);
+        return reply.code(500).send({
+          error: `Failed to generate payment address: ${err.message}`,
+        });
       }
 
       // 3. Get required confirmations
@@ -114,7 +147,9 @@ export async function invoiceRoutes(app: FastifyInstance) {
 
       // 5. Create the invoice
       const expiresAt = new Date(Date.now() + ttl_minutes * 60 * 1000);
-      const platfromFeeRate = 0.005; // 0.5% Tyecode Tax
+      const platfromFeeRate = parseFloat(
+        process.env.PLATFORM_FEE_RATE || "0.005",
+      ); // Default 0.5%
       const feeUsd = parseFloat((amount_usd * platfromFeeRate).toFixed(2));
       const feeCrypto = parseFloat((cryptoAmount * platfromFeeRate).toFixed(8));
 
@@ -130,7 +165,11 @@ export async function invoiceRoutes(app: FastifyInstance) {
         derivationIndex: nextIndex,
         requiredConfirmations,
         expiresAt,
-        metadata,
+        metadata: {
+          ...metadata,
+          network,
+          isTestnet,
+        },
       });
 
       // 6. Increment the merchant's derivation index
@@ -165,9 +204,11 @@ export async function invoiceRoutes(app: FastifyInstance) {
         status: invoice.status,
         fee_usd: invoice.feeUsd,
         fee_crypto: invoice.feeCrypto,
+        fee_rate: platfromFeeRate,
         required_confirmations: invoice.requiredConfirmations,
         expires_at: invoice.expiresAt.toISOString(),
         created_at: invoice.createdAt.toISOString(),
+        metadata: invoice.metadata,
       });
     },
   );
@@ -201,6 +242,7 @@ export async function invoiceRoutes(app: FastifyInstance) {
         expires_at: invoice.expiresAt.toISOString(),
         paid_at: invoice.paidAt?.toISOString() || null,
         created_at: invoice.createdAt.toISOString(),
+        metadata: invoice.metadata,
       };
     },
   );
@@ -247,6 +289,7 @@ export async function invoiceRoutes(app: FastifyInstance) {
         amount_usd: inv.amountUsd,
         crypto_amount: inv.cryptoAmount,
         crypto_currency: inv.cryptoCurrency,
+        pay_address: inv.payAddress,
         status: inv.status,
         confirmations: inv.confirmations,
         required_confirmations: inv.requiredConfirmations,
@@ -254,6 +297,7 @@ export async function invoiceRoutes(app: FastifyInstance) {
         expires_at: inv.expiresAt.toISOString(),
         paid_at: inv.paidAt?.toISOString() || null,
         created_at: inv.createdAt.toISOString(),
+        metadata: inv.metadata,
       })),
       pagination: {
         total,

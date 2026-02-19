@@ -1,17 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Wallet,
-  Plus,
-  ArrowUpRight,
   Copy,
   ExternalLink,
-  ChevronRight,
+  Check,
   ShieldCheck,
   RefreshCw,
   Coins,
-  ArrowRightLeft,
+  Plus,
+  AlertCircle,
 } from "lucide-react";
 import {
   Card,
@@ -23,44 +22,79 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { api } from "@/lib/api";
+import Link from "next/link";
 
-const MOCK_WALLETS = [
-  {
-    id: "wlt_1",
-    label: "Main Treasury",
-    currency: "USDT",
-    network: "Polygon",
-    address: "0x742d...44e",
-    balance: 12540.5,
-    utilization: 65,
-    status: "active",
-  },
-  {
-    id: "wlt_2",
-    label: "Settlement Pool A",
-    currency: "USDC",
-    network: "Ethereum",
-    address: "0x123a...98b",
-    balance: 8900.2,
-    utilization: 40,
-    status: "active",
-  },
-  {
-    id: "wlt_3",
-    label: "Hot Wallet (Ops)",
-    currency: "POL",
-    network: "Polygon",
-    address: "0xdef4...21c",
-    balance: 450.0,
-    utilization: 12,
-    status: "warning",
-  },
-];
+interface MerchantProfile {
+  id: string;
+  name: string;
+  btcXpub: string | null;
+  ethAddress: string | null;
+  feesAccrued: { usd: number } | null;
+}
+
+interface StatsData {
+  currentFeeRate: number;
+}
 
 export default function WalletsPage() {
-  const [loading] = useState(false);
+  const [merchant, setMerchant] = useState<MerchantProfile | null>(null);
+  const [stats, setStats] = useState<StatsData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const fetchMerchant = useCallback(async () => {
+    try {
+      const [merchantRes, statsRes] = await Promise.all([
+        api.get("/v1/merchants/me"),
+        api.get("/v1/merchants/me/stats"),
+      ]);
+      setMerchant(merchantRes.data);
+      setStats(statsRes.data);
+    } catch (err) {
+      console.error("Failed to fetch merchant profile", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMerchant();
+  }, [fetchMerchant]);
+
+  const copyAddress = (value: string, field: string) => {
+    navigator.clipboard.writeText(value);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const truncate = (addr: string) => {
+    if (addr.length <= 14) return addr;
+    return `${addr.slice(0, 8)}...${addr.slice(-6)}`;
+  };
+
+  const configuredWallets = [];
+  if (merchant?.btcXpub) {
+    configuredWallets.push({
+      id: "btc",
+      label: "Bitcoin HD Wallet",
+      currency: "BTC",
+      network: "Bitcoin",
+      address: merchant.btcXpub,
+      type: "xPub (HD Derivation)",
+    });
+  }
+  if (merchant?.ethAddress) {
+    configuredWallets.push({
+      id: "eth",
+      label: "EVM Settlement Address",
+      currency: "ETH / ERC-20",
+      network: "Ethereum / Polygon",
+      address: merchant.ethAddress,
+      type: "Static Address",
+    });
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -70,7 +104,7 @@ export default function WalletsPage() {
             Wallet Infrastructure
           </h1>
           <p className="text-muted-foreground text-sm font-medium">
-            Manage settlement addresses and automated liquidity dispersal.
+            Your configured settlement addresses for receiving payments.
           </p>
         </div>
         <div className="flex gap-2">
@@ -78,37 +112,45 @@ export default function WalletsPage() {
             variant="outline"
             size="sm"
             className="font-bold uppercase text-[10px] tracking-widest gap-2"
+            onClick={fetchMerchant}
           >
             <RefreshCw className={cn("size-3", loading && "animate-spin")} />
-            Sync Chain
+            Refresh
           </Button>
           <Button
             size="sm"
             className="font-bold uppercase text-[10px] tracking-widest gap-2 shadow-lg shadow-primary/20"
+            asChild
           >
-            <Plus className="size-3" />
-            Connect Wallet
+            <Link href="/dashboard/settings">
+              <Plus className="size-3" />
+              Configure Wallets
+            </Link>
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="bg-primary/5 border-primary/10 shadow-none overflow-hidden relative group">
           <div className="absolute top-0 right-0 p-8 text-primary/5 -mr-4 -mt-4 transition-transform group-hover:scale-110">
             <ShieldCheck className="size-24" />
           </div>
           <CardHeader className="pb-2">
             <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary/60">
-              Total Liquidity
+              Configured Wallets
             </CardDescription>
             <CardTitle className="text-3xl font-bold tracking-tighter">
-              $21,890.70
+              {loading ? (
+                <span className="text-muted-foreground/30">—</span>
+              ) : (
+                configuredWallets.length
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2 text-primary font-bold text-[10px] uppercase tracking-wider">
-              <ArrowUpRight className="size-3" />
-              +4.2% vs last week
+              <ShieldCheck className="size-3" />
+              Non-custodial — you control all keys
             </div>
           </CardContent>
         </Card>
@@ -116,33 +158,22 @@ export default function WalletsPage() {
         <Card className="bg-background/20 border-border/50 shadow-none">
           <CardHeader className="pb-2">
             <CardDescription className="text-[10px] font-bold uppercase tracking-widest">
-              Available to Sweep
+              Fees Accrued
             </CardDescription>
             <CardTitle className="text-3xl font-bold tracking-tighter">
-              $15,620.00
+              {loading ? (
+                <span className="text-muted-foreground/30">—</span>
+              ) : (
+                `$${(merchant?.feesAccrued?.usd || 0).toFixed(2)}`
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2 text-muted-foreground font-bold text-[10px] uppercase tracking-wider">
-              <RefreshCw className="size-3" />
-              Next sync: 12 minutes
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-background/20 border-border/50 shadow-none">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-[10px] font-bold uppercase tracking-widest">
-              Active Yield
-            </CardDescription>
-            <CardTitle className="text-3xl font-bold tracking-tighter text-emerald-500">
-              $242.15
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2 text-emerald-500 font-bold text-[10px] uppercase tracking-wider">
-              <ArrowUpRight className="size-3" />
-              8.2% APY (Avg)
+              <Coins className="size-3" />
+              Platform fee:{" "}
+              {stats ? `${(stats.currentFeeRate * 100).toFixed(2)}%` : "—"} per
+              settlement
             </div>
           </CardContent>
         </Card>
@@ -151,112 +182,147 @@ export default function WalletsPage() {
       <div className="flex flex-col gap-4">
         <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground/50 flex items-center gap-2">
           <Wallet className="size-3" />
-          Provisioned Wallet Pool
+          Settlement Addresses
         </h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {MOCK_WALLETS.map((wallet) => (
-            <Card
-              key={wallet.id}
-              className="border-none bg-background/50 border hover:bg-background/80 transition-all group"
-            >
-              <CardHeader className="pb-4">
-                <div className="flex justify-between items-start">
-                  <div className="flex gap-4 items-center">
-                    <div
-                      className={cn(
-                        "size-12 rounded-xl flex items-center justify-center shadow-inner",
-                        wallet.status === "warning"
-                          ? "bg-amber-500/10 text-amber-500"
-                          : "bg-primary/10 text-primary",
-                      )}
-                    >
-                      <Coins className="size-6" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg font-bold tracking-tight">
-                        {wallet.label}
-                      </CardTitle>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <Badge
-                          variant="outline"
-                          className="text-[9px] font-bold uppercase tracking-wider py-0 h-4 border-muted/50"
-                        >
-                          {wallet.network}
-                        </Badge>
-                        <span className="text-[10px] font-mono text-muted-foreground">
-                          {wallet.address}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-4 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <Copy className="size-2.5" />
-                        </Button>
+
+        {configuredWallets.length === 0 ? (
+          <Card className="border-dashed border-2 border-border/40 bg-background/30">
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="size-14 rounded-2xl bg-muted/20 flex items-center justify-center mb-4">
+                <AlertCircle className="size-7 text-muted-foreground/30" />
+              </div>
+              <h3 className="text-sm font-bold text-muted-foreground/70 mb-1">
+                No wallets configured
+              </h3>
+              <p className="text-xs text-muted-foreground/50 max-w-sm mb-4">
+                Add your BTC xPub or ETH address in Settings to start receiving
+                non-custodial payments.
+              </p>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/dashboard/settings">Go to Settings</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {configuredWallets.map((wallet) => (
+              <Card
+                key={wallet.id}
+                className="border-none bg-background/50 border hover:bg-background/80 transition-all group"
+              >
+                <CardHeader className="pb-4">
+                  <div className="flex justify-between items-start">
+                    <div className="flex gap-4 items-center">
+                      <div className="size-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shadow-inner">
+                        <Coins className="size-6" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg font-bold tracking-tight">
+                          {wallet.label}
+                        </CardTitle>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <Badge
+                            variant="outline"
+                            className="text-[9px] font-bold uppercase tracking-wider py-0 h-4 border-muted/50"
+                          >
+                            {wallet.network}
+                          </Badge>
+                          <Badge
+                            variant="secondary"
+                            className="text-[9px] font-bold uppercase tracking-wider py-0 h-4"
+                          >
+                            {wallet.type}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <Button variant="ghost" size="icon" className="size-8">
-                    <ExternalLink className="size-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between items-end">
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5">
+                      Address / Key
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <code className="text-xs font-mono bg-muted/30 rounded px-2 py-1.5 flex-1 truncate">
+                        {truncate(wallet.address)}
+                      </code>
+                      <Button
+                        variant="secondary"
+                        size="icon"
+                        className="size-8 shrink-0"
+                        onClick={() => copyAddress(wallet.address, wallet.id)}
+                      >
+                        {copiedField === wallet.id ? (
+                          <Check className="size-3 text-emerald-500" />
+                        ) : (
+                          <Copy className="size-3" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">
-                      Current Balance
+                      Currency Support
                     </p>
-                    <p className="text-2xl font-bold tracking-tighter">
-                      {wallet.balance.toLocaleString()} {wallet.currency}
-                    </p>
+                    <p className="text-sm font-bold">{wallet.currency}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">
-                      Utilization
-                    </p>
-                    <p className="font-bold text-sm">{wallet.utilization}%</p>
-                  </div>
+                </CardContent>
+                <CardFooter className="pt-0 flex gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="flex-1 font-bold uppercase text-[9px] tracking-widest gap-2"
+                    asChild
+                  >
+                    <Link href="/dashboard/settings">
+                      <RefreshCw className="size-3" />
+                      Update in Settings
+                    </Link>
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
+
+            <Button
+              variant="outline"
+              className="h-full min-h-[220px] border-dashed border-2 hover:bg-primary/5 hover:border-primary/20 transition-all flex flex-col gap-4 text-muted-foreground hover:text-primary group"
+              asChild
+            >
+              <Link href="/dashboard/settings">
+                <div className="size-12 rounded-full bg-muted group-hover:bg-primary/10 flex items-center justify-center transition-colors">
+                  <Plus className="size-6" />
                 </div>
-                <Progress value={wallet.utilization} className="h-1.5" />
-              </CardContent>
-              <CardFooter className="pt-0 flex gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="flex-1 font-bold uppercase text-[9px] tracking-widest gap-2"
-                >
-                  <RefreshCw className="size-3" />
-                  Refresh
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="flex-1 font-bold uppercase text-[9px] tracking-widest gap-2"
-                >
-                  <ArrowRightLeft className="size-3" />
-                  Sweep
-                </Button>
-                <Button variant="secondary" size="sm" className="size-8 p-0">
-                  <ChevronRight className="size-4" />
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-          <Button
-            variant="outline"
-            className="h-full min-h-[220px] border-dashed border-2 hover:bg-primary/5 hover:border-primary/20 transition-all flex flex-col gap-4 text-muted-foreground hover:text-primary group"
-          >
-            <div className="size-12 rounded-full bg-muted group-hover:bg-primary/10 flex items-center justify-center transition-colors">
-              <Plus className="size-6" />
-            </div>
-            <div className="text-center">
-              <p className="font-bold text-sm">Provision New Wallet</p>
-              <p className="text-xs">Scale your settlement infrastructure</p>
-            </div>
-          </Button>
-        </div>
+                <div className="text-center">
+                  <p className="font-bold text-sm">Add New Address</p>
+                  <p className="text-xs">
+                    Configure additional wallet addresses in Settings
+                  </p>
+                </div>
+              </Link>
+            </Button>
+          </div>
+        )}
       </div>
+
+      <Card className="border-none shadow-none bg-background/50 border">
+        <CardContent className="py-6">
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="size-5 text-emerald-500 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-bold text-foreground mb-1">
+                Non-Custodial Architecture
+              </p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                KnotEngine never holds your funds. All payments are sent
+                directly to your configured wallet addresses. For BTC, we use HD
+                derivation (xPub) to generate unique addresses per invoice. For
+                EVM tokens, your static Ethereum address is used.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

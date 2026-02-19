@@ -6,7 +6,10 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-echo -e "${GREEN}🚀 TyePay (Knot Engine v0.2.0) Startup Script${NC}"
+# Get current version from package.json
+VERSION=$(node -e "console.log(require('./package.json').version)")
+
+echo -e "${GREEN}🚀 KnotEngine (v${VERSION}) Startup Script${NC}"
 
 # 1. Check Docker
 if ! docker info > /dev/null 2>&1; then
@@ -24,7 +27,7 @@ sleep 5
 
 # 3. Verify MongoDB is reachable
 echo -e "${YELLOW}🔍 Checking MongoDB connection...${NC}"
-if docker exec tyepay_mongo mongosh --quiet --eval "db.runCommand({ ping: 1 })" > /dev/null 2>&1; then
+if docker exec knotengine_mongo mongosh --quiet --eval "db.runCommand({ ping: 1 })" > /dev/null 2>&1; then
   echo -e "${GREEN}✅ MongoDB is ready${NC}"
 else
   echo -e "${RED}❌ MongoDB is not reachable. Check docker logs.${NC}"
@@ -32,5 +35,5 @@ else
 fi
 
 # 4. Start API
-echo -e "${GREEN}✨ Starting Knot Engine API...${NC}"
+echo -e "${GREEN}✨ Starting KnotEngine API...${NC}"
 pnpm turbo run dev --filter api

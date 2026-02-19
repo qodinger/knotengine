@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
+import { useSession } from "next-auth/react";
 import {
   Eye,
   EyeOff,
@@ -11,6 +12,7 @@ import {
   Code,
   ShieldCheck,
   Zap,
+  KeyRound,
 } from "lucide-react";
 import {
   Card,
@@ -32,36 +34,22 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { api, getAuthHeaders } from "@/lib/api";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5050";
+const INTERNAL_SECRET = process.env.NEXT_PUBLIC_INTERNAL_SECRET || "";
 
 export default function ApiKeysPage() {
+  const { data: session, update: updateSession } = useSession();
   const [showKey, setShowKey] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [rotating, setRotating] = useState(false);
-  const [currentKey, setCurrentKey] = useState("");
-  const [, setLoading] = useState(true);
+  const [newlyGeneratedKey, setNewlyGeneratedKey] = useState<string | null>(
+    null,
+  );
 
-  const fetchKey = useCallback(async () => {
-    try {
-      const res = await api.get("/v1/merchants/me/keys", {
-        headers: getAuthHeaders(),
-      });
-      setCurrentKey(res.data.key);
-    } catch (err) {
-      console.error("Failed to fetch key", err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    const apiKey =
-      typeof window !== "undefined" ? localStorage.getItem("tp_api_key") : null;
-    if (apiKey) fetchKey();
-    else setLoading(false);
-  }, [fetchKey]);
+  const currentKey = newlyGeneratedKey || session?.user?.apiKey || "";
+  const hasKey = !!currentKey;
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(currentKey);
@@ -69,51 +57,54 @@ export default function ApiKeysPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const generateKey = async () => {
+    setGenerating(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/v1/merchants/me/keys/generate`, {
+        method: "POST",
+        headers: {
+          "x-oauth-id": session?.user?.oauthId || "",
+          "x-internal-secret": INTERNAL_SECRET,
+        },
+      });
+
+      if (!res.ok) throw new Error("Failed to generate key");
+      const data = await res.json();
+      setNewlyGeneratedKey(data.apiKey);
+      // Update the session so the key persists
+      await updateSession({ apiKey: data.apiKey });
+    } catch (err) {
+      console.error("Failed to generate key:", err);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const rotateKey = async () => {
     setRotating(true);
     try {
-      const res = await api.post(
-        "/v1/merchants/me/keys/rotate",
-        {},
-        { headers: getAuthHeaders() },
-      );
-      const newKey = res.data.key;
-      localStorage.setItem("tp_api_key", newKey);
-      setCurrentKey(newKey);
-      window.location.reload(); // Refresh to update all hooks
+      const res = await fetch(`${API_BASE_URL}/v1/merchants/me/keys`, {
+        method: "POST",
+        headers: {
+          "x-api-key": currentKey,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!res.ok) throw new Error("Failed to rotate key");
+      const data = await res.json();
+      setNewlyGeneratedKey(data.apiKey);
+      await updateSession({ apiKey: data.apiKey });
     } catch (err) {
-      console.error("Failed to rotate key", err);
+      console.error("Failed to rotate key:", err);
     } finally {
       setRotating(false);
     }
   };
 
-  const apiKey =
-    typeof window !== "undefined" ? localStorage.getItem("tp_api_key") : null;
-
-  if (!apiKey) {
-    return (
-      <div className="flex items-center justify-center h-[50vh]">
-        <Card className="w-full max-w-sm">
-          <CardHeader>
-            <CardTitle>Authentication Required</CardTitle>
-            <CardDescription>
-              Authenticate to manage API infrastructure.
-            </CardDescription>
-          </CardHeader>
-          <CardFooter>
-            <Button className="w-full" onClick={() => window.location.reload()}>
-              Authenticate
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-4xl space-y-8">
-      <Card className="border-none shadow-none bg-background/50 border overflow-hidden">
+      <Card className="border-none shadow-none bg-background/50 border overflow-hidden relative">
         <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
         <CardHeader>
           <div className="flex items-center gap-2 text-primary mb-2">
@@ -130,50 +121,82 @@ export default function ApiKeysPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 mt-2">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold uppercase tracking-tight text-muted-foreground">
-                Secret Access Key
-              </label>
-              <span className="text-[10px] text-muted-foreground font-mono">
-                Last rotated: Never
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <div className="relative flex-1 group">
-                <Input
-                  type={showKey ? "text" : "password"}
-                  value={currentKey}
-                  readOnly
-                  className="font-mono text-xs pr-20 bg-muted/30 border-none transition-all group-hover:bg-muted/50"
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                  onClick={() => setShowKey(!showKey)}
-                >
-                  {showKey ? (
-                    <EyeOff className="size-4" />
-                  ) : (
-                    <Eye className="size-4" />
-                  )}
-                </Button>
+          {!hasKey ? (
+            /* No key yet — prompt to generate */
+            <div className="flex flex-col items-center gap-4 py-8 text-center">
+              <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <KeyRound className="size-7 text-primary" />
+              </div>
+              <div>
+                <p className="font-semibold text-sm">No API Key Yet</p>
+                <p className="text-xs text-muted-foreground mt-1 max-w-xs">
+                  Generate your secret API key to start integrating KnotEngine
+                  into your backend.
+                </p>
               </div>
               <Button
-                variant="secondary"
-                onClick={copyToClipboard}
-                className="gap-2 font-bold uppercase text-[10px] tracking-wider"
+                id="generate-api-key"
+                onClick={generateKey}
+                disabled={generating}
+                className="gap-2"
               >
-                {copied ? (
-                  <Check className="size-3 text-emerald-500" />
+                {generating ? (
+                  <RefreshCw className="size-4 animate-spin" />
                 ) : (
-                  <Copy className="size-3" />
+                  <KeyRound className="size-4" />
                 )}
-                {copied ? "Copied" : "Copy"}
+                Generate API Key
               </Button>
             </div>
-          </div>
+          ) : (
+            /* Key exists — show it */
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold uppercase tracking-tight text-muted-foreground">
+                  Secret Access Key
+                </label>
+                {newlyGeneratedKey && (
+                  <span className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider">
+                    ✓ Newly generated — copy now
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <div className="relative flex-1 group">
+                  <Input
+                    type={showKey ? "text" : "password"}
+                    value={currentKey}
+                    readOnly
+                    className="font-mono text-xs pr-20 bg-muted/30 border-none transition-all group-hover:bg-muted/50"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                    onClick={() => setShowKey(!showKey)}
+                  >
+                    {showKey ? (
+                      <EyeOff className="size-4" />
+                    ) : (
+                      <Eye className="size-4" />
+                    )}
+                  </Button>
+                </div>
+                <Button
+                  variant="secondary"
+                  onClick={copyToClipboard}
+                  className="gap-2 font-bold uppercase text-[10px] tracking-wider"
+                >
+                  {copied ? (
+                    <Check className="size-3 text-emerald-500" />
+                  ) : (
+                    <Copy className="size-3" />
+                  )}
+                  {copied ? "Copied" : "Copy"}
+                </Button>
+              </div>
+            </div>
+          )}
 
           <Alert
             variant="destructive"
@@ -189,54 +212,57 @@ export default function ApiKeysPage() {
             </AlertDescription>
           </Alert>
         </CardContent>
-        <CardFooter className="bg-muted/30 border-t py-4">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="ml-auto gap-2 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border-rose-500/20"
-              >
-                <RefreshCw className="size-3" />
-                Rotate Credentials
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-rose-500">
-                  <RefreshCw className="size-5" />
-                  Confirm Key Rotation
-                </DialogTitle>
-                <DialogDescription className="py-2">
-                  Rotating your API key will{" "}
-                  <span className="text-foreground font-bold underline decoration-rose-500/50">
-                    immediately invalidate
-                  </span>{" "}
-                  the current one. All active integrations will stop working
-                  until updated.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter className="mt-4">
-                <Button variant="secondary" onClick={() => {}}>
-                  Cancel
-                </Button>
+
+        {hasKey && (
+          <CardFooter className="bg-muted/30 border-t py-4">
+            <Dialog>
+              <DialogTrigger asChild>
                 <Button
-                  variant="destructive"
-                  onClick={rotateKey}
-                  disabled={rotating}
-                  className="gap-2"
+                  variant="outline"
+                  size="sm"
+                  className="ml-auto gap-2 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border-rose-500/20"
                 >
-                  {rotating ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="size-4" />
-                  )}
-                  Invalidate & Rotate
+                  <RefreshCw className="size-3" />
+                  Rotate Credentials
                 </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </CardFooter>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 text-rose-500">
+                    <RefreshCw className="size-5" />
+                    Confirm Key Rotation
+                  </DialogTitle>
+                  <DialogDescription className="py-2">
+                    Rotating your API key will{" "}
+                    <span className="text-foreground font-bold underline decoration-rose-500/50">
+                      immediately invalidate
+                    </span>{" "}
+                    the current one. All active integrations will stop working
+                    until updated.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="mt-4">
+                  <Button variant="secondary" onClick={() => {}}>
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={rotateKey}
+                    disabled={rotating}
+                    className="gap-2"
+                  >
+                    {rotating ? (
+                      <RefreshCw className="size-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="size-4" />
+                    )}
+                    Invalidate & Rotate
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </CardFooter>
+        )}
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -292,8 +318,4 @@ export default function ApiKeysPage() {
       </div>
     </div>
   );
-}
-
-function Loader2({ className }: { className?: string }) {
-  return <RefreshCw className={`${className} animate-spin`} />;
 }
