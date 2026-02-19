@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react";
 import {
   Wallet,
   Copy,
-  ExternalLink,
   Check,
   ShieldCheck,
   RefreshCw,

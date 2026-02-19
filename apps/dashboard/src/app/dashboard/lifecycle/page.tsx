@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect, useCallback } from "react";
 import {
   Activity,
@@ -64,9 +63,6 @@ export default function LifecyclePage() {
   ).length;
   const pendingCount = invoices.filter(
     (inv) => inv.status === "pending",
-  ).length;
-  const expiredCount = invoices.filter(
-    (inv) => inv.status === "expired",
   ).length;
   const successRate =
     invoices.length > 0

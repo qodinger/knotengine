@@ -7,7 +7,6 @@ import {
   Settings,
   Key,
   Wallet,
-  Zap,
   LifeBuoy,
   Activity,
   Target,

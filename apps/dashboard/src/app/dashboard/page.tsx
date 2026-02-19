@@ -3,8 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   TrendingUp,
-  Activity,
-  ArrowUpRight,
   CheckCircle2,
   ChevronRight,
   ArrowRight,

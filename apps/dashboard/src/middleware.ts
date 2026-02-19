@@ -21,7 +21,7 @@ export default auth((req) => {
   // ──────────────────────────────────────────────
   // Onboarding Logic
   // ──────────────────────────────────────────────
-  // @ts-ignore
+  // @ts-expect-error - Next-auth types
   const merchants = req.auth.user?.merchants || [];
   const isOnboardingPage = pathname === "/dashboard/onboarding";
   const hasProjects = merchants.length > 0;

@@ -34,7 +34,7 @@ async function proxy(req: NextRequest) {
   const init: RequestInit = {
     method: req.method,
     headers,
-    // @ts-ignore - Required for passing body correctly in newer Node/Next versions
+    // @ts-expect-error - Required for passing body correctly in newer Node/Next versions
     duplex: "half",
   };
 

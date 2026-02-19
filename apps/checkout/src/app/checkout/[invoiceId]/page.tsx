@@ -6,9 +6,6 @@ import { CheckoutCard } from "@/components/CheckoutCard";
 import { Loader2, ShieldCheck, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { io } from "socket.io-client";
-import packageJson from "../../../../package.json";
-import { cn } from "@/lib/utils";
-
 export default function CheckoutPage() {
   const { invoiceId } = useParams();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

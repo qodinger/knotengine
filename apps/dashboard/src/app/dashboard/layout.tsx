@@ -5,7 +5,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import React from "react";
 
 import { auth } from "@/auth";
-import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
 export default async function DashboardLayout({
@@ -14,13 +13,15 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const session = await auth();
-  const merchants = (session?.user as any)?.merchants || [];
+  const merchants =
+    (session?.user as { merchants?: { id: string; name?: string }[] })
+      ?.merchants || [];
 
   // Get current pathname from headers (since we are in a SC layout)
   // Or, simpler strategy: Just check the merchants count.
   // We can't easily get pathname in SC layout without headers hacks.
 
-  const headersList = await headers();
+  await headers();
   // x-url is often not reliable locally without middleware injection.
   // Instead, let's use a client component wrapper or middleware? No, middleware is best.
   // But since I am here, let's assume if merchants.length === 0, render ONLY onboarding content?

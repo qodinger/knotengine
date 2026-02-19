@@ -20,7 +20,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,10 +34,12 @@ export function ProjectSwitcher() {
   const [isLoading, setIsLoading] = React.useState(false);
   const [newStoreName, setNewStoreName] = React.useState("");
 
-  // @ts-ignore
+  // @ts-expect-error - session user type issues
   const merchants = session?.user?.merchants || [];
   const activeMerchantId = session?.user?.merchantId;
-  const activeStore = merchants.find((m: any) => m.id === activeMerchantId) ||
+  const activeStore = merchants.find(
+    (m: { id: string }) => m.id === activeMerchantId,
+  ) ||
     merchants[0] || { name: "Select Store" };
 
   const handleCreateStore = async () => {
@@ -95,7 +96,7 @@ export function ProjectSwitcher() {
           <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-widest font-bold px-2 py-1.5">
             Stores
           </DropdownMenuLabel>
-          {merchants.map((store: any) => (
+          {merchants.map((store: { id: string; name?: string }) => (
             <DropdownMenuItem
               key={store.id}
               onClick={() => handleStoreSwitch(store.id)}

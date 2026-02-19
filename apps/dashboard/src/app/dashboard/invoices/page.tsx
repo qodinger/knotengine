@@ -46,9 +46,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle,
   CardFooter,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -325,7 +323,11 @@ export default function InvoicesPage() {
 function StatusBadge({ status }: { status: Invoice["status"] }) {
   const configs: Record<
     string,
-    { label: string; icon: any; className: string }
+    {
+      label: string;
+      icon: React.ComponentType<{ size?: number }>;
+      className: string;
+    }
   > = {
     pending: {
       label: "Pending",

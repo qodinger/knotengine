@@ -50,7 +50,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const oauthId = `${account.provider}:${account.providerAccountId}`;
         token.oauthId = oauthId;
 
-        let merchants = await fetchMerchants(oauthId);
+        const merchants = await fetchMerchants(oauthId);
 
         if (merchants.length === 0) {
           console.log(
@@ -58,7 +58,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           );
         }
 
-        token.merchants = merchants.map((m: any) => ({
+        token.merchants = merchants.map((m: { id: string; name?: string }) => ({
           id: m.id,
           name: m.name || "Untitled App",
         }));
@@ -69,7 +69,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (trigger === "update" && token.oauthId) {
         // Refresh list to pick up new creations
         const merchants = await fetchMerchants(token.oauthId as string);
-        token.merchants = merchants.map((m: any) => ({
+        token.merchants = merchants.map((m: { id: string; name?: string }) => ({
           id: m.id,
           name: m.name || "Untitled App",
         }));
@@ -77,7 +77,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // Switch active ID if requested and valid
         if (session?.merchantId) {
           const isValid = merchants.find(
-            (m: any) => m.id === session.merchantId,
+            (m: { id: string }) => m.id === session.merchantId,
           );
           if (isValid) token.merchantId = session.merchantId;
         }
@@ -90,7 +90,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async session({ session, token }) {
       session.user.merchantId = token.merchantId as string;
       session.user.oauthId = token.oauthId as string;
-      // @ts-ignore
+      // @ts-expect-error - NextAuth session user type doesn't include merchants by default
       session.user.merchants = token.merchants || [];
       return session;
     },
