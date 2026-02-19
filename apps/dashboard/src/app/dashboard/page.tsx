@@ -113,7 +113,7 @@ export default function DashboardOverview() {
       value: data
         ? `$${data.feesAccrued.usd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
         : "$0.00",
-      description: `Platform usage fees (${data ? (data.currentFeeRate * 100).toFixed(2) : "0.50"}%)`,
+      description: `Platform usage fees (${data ? `${(data.currentFeeRate * 100).toFixed(2)}%` : "—"})`,
       icon: DollarSign,
       color: "text-amber-500",
     },

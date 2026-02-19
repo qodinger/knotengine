@@ -54,7 +54,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (merchants.length === 0) {
           console.log(
-            `[Auth] No merchants found. User must create first project manually.`,
+            `[Auth] No merchants found. User must create first store manually.`,
           );
         }
 

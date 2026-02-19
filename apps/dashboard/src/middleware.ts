@@ -24,15 +24,15 @@ export default auth((req) => {
   // @ts-expect-error - Next-auth types
   const merchants = req.auth.user?.merchants || [];
   const isOnboardingPage = pathname === "/dashboard/onboarding";
-  const hasProjects = merchants.length > 0;
+  const hasStores = merchants.length > 0;
 
-  // 1. User has NO projects -> Force them to /dashboard/onboarding
-  if (!hasProjects && !isOnboardingPage && pathname.startsWith("/dashboard")) {
+  // 1. User has NO stores -> Force them to /dashboard/onboarding
+  if (!hasStores && !isOnboardingPage && pathname.startsWith("/dashboard")) {
     return NextResponse.redirect(new URL("/dashboard/onboarding", req.url));
   }
 
-  // 2. User HAS projects -> Prevent them from visiting /dashboard/onboarding (redirect to main dashboard)
-  if (hasProjects && isOnboardingPage) {
+  // 2. User HAS stores -> Prevent them from visiting /dashboard/onboarding (redirect to main dashboard)
+  if (hasStores && isOnboardingPage) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 

@@ -27,7 +27,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
-import { ProjectSwitcher } from "./project-switcher";
+import { StoreSwitcher } from "./store-switcher";
 import { usePathname } from "next/navigation";
 import packageJson from "../../package.json";
 
@@ -57,7 +57,7 @@ export function AppSidebar() {
       <SidebarHeader className="h-(--header-height) flex flex-col justify-center border-b border-border/50 px-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <ProjectSwitcher />
+            <StoreSwitcher />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>

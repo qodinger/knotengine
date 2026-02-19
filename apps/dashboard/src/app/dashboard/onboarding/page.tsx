@@ -57,9 +57,9 @@ export default function OnboardingPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="project">Store Name</Label>
+            <Label htmlFor="store">Store Name</Label>
             <Input
-              id="project"
+              id="store"
               placeholder="My Awesome Store"
               value={storeName}
               onChange={(e) => setStoreName(e.target.value)}

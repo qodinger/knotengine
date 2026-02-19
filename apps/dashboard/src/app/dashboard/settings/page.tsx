@@ -30,7 +30,7 @@ export default function SettingsPage() {
   const [success, setSuccess] = useState(false);
 
   // Data State
-  const [projectId, setProjectId] = useState("");
+  const [storeId, setStoreId] = useState("");
   const [formData, setFormData] = useState({
     businessName: "",
     businessEmail: "",
@@ -53,7 +53,7 @@ export default function SettingsPage() {
     try {
       const res = await api.get("/v1/merchants/me");
       const m = res.data;
-      setProjectId(m.id || m._id || "unknown");
+      setStoreId(m.id || m._id || "unknown");
       setFormData({
         businessName: m.name || "",
         businessEmail: m.email || "",
@@ -198,9 +198,9 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-2">
-                <Label htmlFor="projectName">Store Name</Label>
+                <Label htmlFor="storeName">Store Name</Label>
                 <Input
-                  id="projectName"
+                  id="storeName"
                   value={formData.businessName}
                   onChange={(e) =>
                     setFormData({ ...formData, businessName: e.target.value })
@@ -211,11 +211,11 @@ export default function SettingsPage() {
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="projectId">Store ID</Label>
+                <Label htmlFor="storeId">Store ID</Label>
                 <div className="relative">
                   <Input
-                    id="projectId"
-                    value={projectId}
+                    id="storeId"
+                    value={storeId}
                     readOnly
                     className="bg-muted/50 font-mono text-muted-foreground pr-10"
                   />
@@ -224,7 +224,7 @@ export default function SettingsPage() {
                     size="icon"
                     className="absolute right-1 top-1 h-7 w-7"
                     onClick={() => {
-                      navigator.clipboard.writeText(projectId);
+                      navigator.clipboard.writeText(storeId);
                       setSuccess(true);
                       setTimeout(() => setSuccess(false), 2000);
                     }}

@@ -27,7 +27,7 @@ import { Label } from "@/components/ui/label";
 import { createMerchant } from "@/actions/merchant";
 import { SidebarMenuButton } from "@/components/ui/sidebar";
 
-export function ProjectSwitcher() {
+export function StoreSwitcher() {
   const { data: session, update } = useSession();
   const router = useRouter();
   const [showNewStoreDialog, setShowNewStoreDialog] = React.useState(false);
