@@ -72,7 +72,9 @@ export class ConfirmationEngine {
 
       // Validation: If we matched loosely, ensure it's safe (EVM) or verify strictness (BTC)
       if (candidate) {
-        const isEVM = EVM_CURRENCIES.includes(candidate.cryptoCurrency);
+        const isEVM = (EVM_CURRENCIES as string[]).includes(
+          candidate.cryptoCurrency,
+        );
         // If it's EVM, case doesn't matter (0xAbC == 0xabc).
         // If it's BTC/LTC, case MATTERS (Base58), so we must reject if not exact.
         if (isEVM || candidate.payAddress === event.toAddress) {

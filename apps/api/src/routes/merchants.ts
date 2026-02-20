@@ -251,7 +251,7 @@ export async function merchantRoutes(app: FastifyInstance) {
       if (!merchant) return reply.code(500).send({ error: "Auth failed" });
 
       return {
-        id: merchant._id,
+        id: merchant._id.toString(),
         name: merchant.name,
         btcXpub: merchant.btcXpub,
         btcXpubTestnet: merchant.btcXpubTestnet,
@@ -321,7 +321,7 @@ export async function merchantRoutes(app: FastifyInstance) {
       server.log.info(`[Settings] Updated DB result name: '${updated?.name}'`);
 
       return {
-        id: updated._id,
+        id: updated._id.toString(),
         name: updated.name,
         btcXpub: updated.btcXpub,
         btcXpubTestnet: updated.btcXpubTestnet,
@@ -350,14 +350,14 @@ export async function merchantRoutes(app: FastifyInstance) {
       if (!merchant) return reply.code(500).send({ error: "Auth failed" });
 
       try {
-        await WebhookDispatcher.dispatchTest(merchant._id);
+        await WebhookDispatcher.dispatchTest(merchant._id.toString());
         return {
           success: true,
           message: "Test webhook dispatched successfully",
         };
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
-        server.log.error("❌ Failed to send webhook:", message);
+        server.log.error(`❌ Failed to send webhook: ${message}`);
         return reply.code(400).send({ error: message });
       }
     },
