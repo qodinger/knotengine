@@ -9,7 +9,6 @@ import {
   Coins,
   Settings,
   LifeBuoy,
-  Webhook,
 } from "lucide-react";
 
 import {
