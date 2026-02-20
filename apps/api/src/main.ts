@@ -96,10 +96,11 @@ server.get<{ Params: { currency: string } }>(
         price_usd: price,
         timestamp: new Date().toISOString(),
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
       return reply.code(400).send({
         error: "Price Fetch Failed",
-        details: err.message,
+        details: message,
       });
     }
   },

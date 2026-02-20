@@ -39,8 +39,9 @@ async function simulateTatumWebhook() {
         "To see a full match, you must first create an invoice (via the simulation script or API) that uses this specific address.",
       );
     }
-  } catch (error: any) {
-    console.error("❌ Failed to send webhook:", error.message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("❌ Failed to send webhook:", message);
   }
 }
 

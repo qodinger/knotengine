@@ -28,8 +28,9 @@ export class TxVerifier {
         return await this.verifyEvmTx(txHash, currency, expectedToAddress);
       }
       return { isValid: false, amountCrypto: 0 };
-    } catch (err: any) {
-      console.error(`TxVerifier Error (${currency}):`, err.message || err);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`TxVerifier Error (${currency}):`, message);
       return { isValid: false, amountCrypto: 0 };
     }
   }

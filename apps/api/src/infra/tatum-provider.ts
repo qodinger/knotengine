@@ -50,7 +50,7 @@ export class TatumProvider {
         }),
       });
 
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as { id: string };
 
       if (!response.ok) {
         console.error("❌ Tatum API Error:", data);
@@ -59,8 +59,9 @@ export class TatumProvider {
 
       console.log(`✅ Tatum subscription created for address: ${data.id}`);
       return data.id;
-    } catch (error: any) {
-      console.error("❌ Tatum Provider Error:", error.message);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("❌ Tatum Provider Error:", message);
       return null;
     }
   }
@@ -78,8 +79,9 @@ export class TatumProvider {
         headers: { "x-api-key": apiKey },
       });
       console.log(`🗑️ Tatum subscription deleted: ${subscriptionId}`);
-    } catch (error: any) {
-      console.error("❌ Tatum Delete Error:", error.message);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("❌ Tatum Delete Error:", message);
     }
   }
 

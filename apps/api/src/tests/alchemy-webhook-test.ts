@@ -38,7 +38,7 @@ const payload = {
 };
 
 // 🔏 Function to sign payload (HMAC-SHA256)
-function signPayload(body: any, key: string) {
+function signPayload(body: Record<string, unknown>, key: string) {
   const hmac = crypto.createHmac("sha256", key);
   hmac.update(JSON.stringify(body));
   return hmac.digest("hex");

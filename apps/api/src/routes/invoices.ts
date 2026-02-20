@@ -45,7 +45,7 @@ export async function invoiceRoutes(app: FastifyInstance) {
         .digest("hex");
       const merchant = await Merchant.findOne({ apiKeyHash, isActive: true });
       if (merchant) {
-        (request as any).merchant = merchant;
+        request.merchant = merchant;
         return;
       }
       return reply.code(401).send({ error: "Invalid API key" });
@@ -57,7 +57,7 @@ export async function invoiceRoutes(app: FastifyInstance) {
     const merchantId = request.headers["x-merchant-id"] as string;
 
     if (oauthId && internalSecret === process.env.INTERNAL_SECRET) {
-      const query: any = {
+      const query: Record<string, unknown> = {
         oauthId: { $regex: new RegExp(`^${oauthId}(:|$)`) },
         isActive: true,
       };
@@ -65,7 +65,7 @@ export async function invoiceRoutes(app: FastifyInstance) {
 
       const merchant = await Merchant.findOne(query);
       if (merchant) {
-        (request as any).merchant = merchant;
+        request.merchant = merchant;
         return;
       }
       return reply.code(401).send({ error: "Merchant not found" });
@@ -91,7 +91,8 @@ export async function invoiceRoutes(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const merchant = (request as any).merchant;
+      const merchant = request.merchant;
+      if (!merchant) return reply.code(401).send({ error: "Unauthorized" });
       const { amount_usd, currency, ttl_minutes, metadata } = request.body;
 
       // 1. Get real-time crypto price
@@ -131,10 +132,11 @@ export async function invoiceRoutes(app: FastifyInstance) {
           // In production, HD derivation with xPub would be better
           payAddress = ethAddr;
         }
-      } catch (err: any) {
-        server.log.error(`Address derivation error: ${err.message}`);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        server.log.error(`Address derivation error: ${message}`);
         return reply.code(500).send({
-          error: `Failed to generate payment address: ${err.message}`,
+          error: `Failed to generate payment address: ${message}`,
         });
       }
 
@@ -286,8 +288,8 @@ export async function invoiceRoutes(app: FastifyInstance) {
   // GET /v1/invoices — List Invoices (Merchant-Scoped)
   // ──────────────────────────────────────────────
   server.get("/v1/invoices", async (request, reply) => {
-    // Force-cast to access the attached merchant from preHandler
-    const merchant = (request as any).merchant;
+    // Rely on type augmentation for the attached merchant from preHandler
+    const merchant = request.merchant;
 
     if (!merchant) {
       return reply.code(401).send({ error: "Authentication required" });
@@ -349,7 +351,8 @@ export async function invoiceRoutes(app: FastifyInstance) {
   server.post<{ Params: { id: string } }>(
     "/v1/invoices/:id/cancel",
     async (request, reply) => {
-      const merchant = (request as any).merchant;
+      const merchant = request.merchant;
+      if (!merchant) return reply.code(401).send({ error: "Unauthorized" });
       const { id } = request.params;
 
       const invoice = await Invoice.findOne({

@@ -123,7 +123,7 @@ export class WebhookDispatcher {
       } else {
         throw new Error(`Merchant returned ${response.status}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       const attempts = (invoice.webhookAttempts || 0) + 1;
 
       // Update attempts in DB regardless of failure
@@ -134,8 +134,9 @@ export class WebhookDispatcher {
         },
       });
 
+      const message = error instanceof Error ? error.message : String(error);
       console.error(
-        `❌ Webhook FAILURE (${attempts}/${this.MAX_ATTEMPTS}) for ${invoiceId}: ${error.message}`,
+        `❌ Webhook FAILURE (${attempts}/${this.MAX_ATTEMPTS}) for ${invoiceId}: ${message}`,
       );
 
       // We don't use setTimeout here anymore for production reliability.
@@ -206,8 +207,9 @@ export class WebhookDispatcher {
 
       console.log(`✅ TEST Webhook SUCCESS`);
       return true;
-    } catch (error: any) {
-      console.error(`❌ TEST Webhook FAILURE: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`❌ TEST Webhook FAILURE: ${message}`);
       throw error;
     }
   }

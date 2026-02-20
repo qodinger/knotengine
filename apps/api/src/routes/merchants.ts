@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { FastifyInstance } from "fastify";
+import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { Merchant, Invoice, TopUpClaim } from "@knotengine/database";
@@ -111,66 +110,71 @@ export async function merchantRoutes(app: FastifyInstance) {
   // GET /v1/merchants/by-oauth/:oauthId — Internal OAuth lookup
   // Used by NextAuth to find an existing merchant by OAuth identity
   // ──────────────────────────────────────────────
-  server.get("/v1/merchants/by-oauth/:oauthId", async (request: any, reply) => {
-    // Protect with internal secret
-    const secret = request.headers["x-internal-secret"];
-    if (secret !== process.env.INTERNAL_SECRET) {
-      return reply.code(403).send({ error: "Forbidden" });
-    }
-
-    const { oauthId } = request.params as { oauthId: string };
-    // Query using regex to find all stores matching this base oauthId prefix
-    const merchants = await Merchant.find({
-      oauthId: { $regex: new RegExp(`^${oauthId}(:|$)`) },
-      isActive: true,
-    }).sort({
-      createdAt: 1,
-    });
-
-    if (merchants.length === 0) {
-      return reply.code(404).send({ error: "Not found" });
-    }
-
-    const results = [];
-
-    for (let merchant of merchants) {
-      let apiKey: string | undefined;
-
-      // Ensure every merchant has an API key
-      if (!merchant.apiKeyHash) {
-        apiKey = `knot_sk_${crypto.randomBytes(24).toString("hex")}`;
-        const apiKeyHash = crypto
-          .createHash("sha256")
-          .update(apiKey)
-          .digest("hex");
-
-        merchant = (await Merchant.findByIdAndUpdate(
-          merchant._id,
-          { $set: { apiKeyHash } },
-          { new: true },
-        )) as any;
-
-        server.log.info(
-          `🔑 Auto-generated API key for OAuth merchant: ${merchant._id}`,
-        );
+  server.get(
+    "/v1/merchants/by-oauth/:oauthId",
+    async (request: FastifyRequest<{ Params: { oauthId: string } }>, reply) => {
+      // Protect with internal secret
+      const secret = request.headers["x-internal-secret"];
+      if (secret !== process.env.INTERNAL_SECRET) {
+        return reply.code(403).send({ error: "Forbidden" });
       }
 
-      results.push({
-        id: merchant._id.toString(),
-        name: merchant.name,
-        email: merchant.email,
-        apiKey: apiKey ?? null, // Will only be returned once if generated just now
-        hasApiKey: true,
+      const { oauthId } = request.params;
+      // Query using regex to find all stores matching this base oauthId prefix
+      const merchants = await Merchant.find({
+        oauthId: { $regex: new RegExp(`^${oauthId}(:|$)`) },
+        isActive: true,
+      }).sort({
+        createdAt: 1,
       });
-    }
 
-    return results;
-  });
+      if (merchants.length === 0) {
+        return reply.code(404).send({ error: "Not found" });
+      }
+
+      const results = [];
+
+      for (let merchant of merchants) {
+        let apiKey: string | undefined;
+
+        // Ensure every merchant has an API key
+        if (!merchant.apiKeyHash) {
+          apiKey = `knot_sk_${crypto.randomBytes(24).toString("hex")}`;
+          const apiKeyHash = crypto
+            .createHash("sha256")
+            .update(apiKey)
+            .digest("hex");
+
+          const updatedMerchant = await Merchant.findByIdAndUpdate(
+            merchant._id,
+            { $set: { apiKeyHash } },
+            { new: true },
+          );
+          if (!updatedMerchant) throw new Error("Failed to update merchant");
+          merchant = updatedMerchant;
+
+          server.log.info(
+            `🔑 Auto-generated API key for OAuth merchant: ${merchant._id}`,
+          );
+        }
+
+        results.push({
+          id: merchant._id.toString(),
+          name: merchant.name,
+          email: merchant.email,
+          apiKey: apiKey ?? null, // Will only be returned once if generated just now
+          hasApiKey: true,
+        });
+      }
+
+      return results;
+    },
+  );
   // ──────────────────────────────────────────────
   // Middleware: API Key Authentication for me/ routes
   // ──────────────────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const authHook = async (request: any, reply: any) => {
+  const authHook = async (request: FastifyRequest, reply: FastifyReply) => {
     const apiKey = request.headers["x-api-key"] as string;
 
     if (!apiKey) {
@@ -192,7 +196,7 @@ export async function merchantRoutes(app: FastifyInstance) {
   // Internal: OAuth session hook — authenticates via x-oauth-id header
   // Used by the dashboard's server actions (not exposed publicly)
   // ──────────────────────────────────────────────
-  const oauthHook = async (request: any, reply: any) => {
+  const oauthHook = async (request: FastifyRequest, reply: FastifyReply) => {
     const oauthId = request.headers["x-oauth-id"] as string;
     const merchantId = request.headers["x-merchant-id"] as string;
     const secret = request.headers["x-internal-secret"] as string;
@@ -201,7 +205,7 @@ export async function merchantRoutes(app: FastifyInstance) {
       return reply.code(401).send({ error: "Unauthorized" });
     }
 
-    const query: any = {
+    const query: Record<string, unknown> = {
       oauthId: { $regex: new RegExp(`^${oauthId}(:|$)`) },
       isActive: true,
     };
@@ -223,7 +227,7 @@ export async function merchantRoutes(app: FastifyInstance) {
   // ──────────────────────────────────────────────
   // Middleware: Unified Auth (API Key OR Internal OAuth)
   // ──────────────────────────────────────────────
-  const requireAuth = async (request: any, reply: any) => {
+  const requireAuth = async (request: FastifyRequest, reply: FastifyReply) => {
     const apiKey = request.headers["x-api-key"];
     if (apiKey) {
       try {
@@ -243,7 +247,7 @@ export async function merchantRoutes(app: FastifyInstance) {
     "/v1/merchants/me",
     { preHandler: requireAuth },
     async (request, reply) => {
-      const merchant = (request as any).merchant;
+      const merchant = request.merchant;
       if (!merchant) return reply.code(500).send({ error: "Auth failed" });
 
       return {
@@ -294,8 +298,10 @@ export async function merchantRoutes(app: FastifyInstance) {
         }),
       },
     },
-    async (request) => {
-      const merchant = (request as any).merchant;
+    async (request, reply) => {
+      const merchant = request.merchant;
+      if (!merchant) return reply.code(500).send({ error: "Auth failed" });
+
       const updates = request.body;
 
       server.log.info(
@@ -308,23 +314,27 @@ export async function merchantRoutes(app: FastifyInstance) {
         { new: true },
       );
 
+      if (!updated) {
+        return reply.code(500).send({ error: "Failed to update merchant" });
+      }
+
       server.log.info(`[Settings] Updated DB result name: '${updated?.name}'`);
 
       return {
-        id: updated!._id,
-        name: updated!.name,
-        btcXpub: updated!.btcXpub,
-        btcXpubTestnet: updated!.btcXpubTestnet,
-        ethAddress: updated!.ethAddress,
-        ethAddressTestnet: updated!.ethAddressTestnet,
-        webhookUrl: updated!.webhookUrl,
-        webhookSecret: updated!.webhookSecret,
-        webhookEvents: updated!.webhookEvents || [
+        id: updated._id,
+        name: updated.name,
+        btcXpub: updated.btcXpub,
+        btcXpubTestnet: updated.btcXpubTestnet,
+        ethAddress: updated.ethAddress,
+        ethAddressTestnet: updated.ethAddressTestnet,
+        webhookUrl: updated.webhookUrl,
+        webhookSecret: updated.webhookSecret,
+        webhookEvents: updated.webhookEvents || [
           "invoice.confirmed",
           "invoice.mempool_detected",
           "invoice.failed",
         ],
-        confirmationPolicy: updated!.confirmationPolicy,
+        confirmationPolicy: updated.confirmationPolicy,
       };
     },
   );
@@ -336,7 +346,8 @@ export async function merchantRoutes(app: FastifyInstance) {
     "/v1/merchants/me/webhooks/test",
     { preHandler: requireAuth },
     async (request, reply) => {
-      const merchant = (request as any).merchant;
+      const merchant = request.merchant;
+      if (!merchant) return reply.code(500).send({ error: "Auth failed" });
 
       try {
         await WebhookDispatcher.dispatchTest(merchant._id);
@@ -344,8 +355,10 @@ export async function merchantRoutes(app: FastifyInstance) {
           success: true,
           message: "Test webhook dispatched successfully",
         };
-      } catch (err: any) {
-        return reply.code(400).send({ error: err.message });
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        server.log.error("❌ Failed to send webhook:", message);
+        return reply.code(400).send({ error: message });
       }
     },
   );
@@ -357,7 +370,8 @@ export async function merchantRoutes(app: FastifyInstance) {
     "/v1/merchants/me/keys/generate",
     { preHandler: requireAuth },
     async (request, reply) => {
-      const merchant = (request as any).merchant;
+      const merchant = request.merchant;
+      if (!merchant) return reply.code(401).send({ error: "Unauthorized" });
 
       if (merchant.apiKeyHash) {
         return reply
@@ -391,7 +405,8 @@ export async function merchantRoutes(app: FastifyInstance) {
     "/v1/merchants/me/keys",
     { preHandler: requireAuth },
     async (request, reply) => {
-      const merchant = (request as any).merchant;
+      const merchant = request.merchant;
+      if (!merchant) return reply.code(401).send({ error: "Unauthorized" });
 
       // Generate new key
       const newApiKey = `knot_sk_${crypto.randomBytes(24).toString("hex")}`;
@@ -420,7 +435,8 @@ export async function merchantRoutes(app: FastifyInstance) {
     "/v1/merchants/me/keys/webhook",
     { preHandler: requireAuth },
     async (request, reply) => {
-      const merchant = (request as any).merchant;
+      const merchant = request.merchant;
+      if (!merchant) return reply.code(401).send({ error: "Unauthorized" });
 
       // Generate new secret
       const newWebhookSecret = `knot_wh_${crypto
@@ -450,26 +466,37 @@ export async function merchantRoutes(app: FastifyInstance) {
     {
       preHandler: requireAuth,
     },
-    async (request) => {
-      const merchant = (request as any).merchant;
+    async (request, reply) => {
+      const merchant = request.merchant;
+      if (!merchant) return reply.code(401).send({ error: "Unauthorized" });
 
-      const [invoicesCount, confirmedInvoices] = await Promise.all([
-        Invoice.countDocuments({ merchantId: merchant._id }),
-        Invoice.find({ merchantId: merchant._id, status: "confirmed" }),
+      const [totalInvoices, confirmedInvoicesResult] = await Promise.all([
+        Invoice.countDocuments({
+          merchantId: merchant._id,
+        }) as unknown as number,
+        Invoice.aggregate<{ _id: null; total: number }>([
+          { $match: { merchantId: merchant._id, status: "confirmed" } },
+          { $group: { _id: null, total: { $sum: "$amountUsd" } } },
+        ]),
       ]);
 
-      const totalVolume = confirmedInvoices.reduce(
-        (sum: number, inv: any) => sum + inv.amountUsd,
-        0,
-      );
+      const totalVolume =
+        confirmedInvoicesResult.length > 0
+          ? confirmedInvoicesResult[0].total
+          : 0;
+      const confirmedInvoicesCount = await Invoice.countDocuments({
+        merchantId: merchant._id,
+        status: "confirmed",
+      });
+
       const successRate =
-        invoicesCount > 0
-          ? ((confirmedInvoices.length / invoicesCount) * 100).toFixed(1)
+        totalInvoices > 0
+          ? ((confirmedInvoicesCount / totalInvoices) * 100).toFixed(1)
           : "0";
 
       return {
         totalVolume,
-        activeInvoices: invoicesCount,
+        activeInvoices: totalInvoices,
         successRate: `${successRate}%`,
         chartData: [
           { name: "Mon", volume: 0 },
@@ -505,10 +532,10 @@ export async function merchantRoutes(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const merchant = (request as any).merchant;
-      const { txHash, currency } = request.body as any;
+      const merchant = request.merchant;
+      if (!merchant) return reply.code(401).send({ error: "Unauthorized" });
 
-      if (!merchant) return reply.code(500).send({ error: "Auth failed" });
+      const { txHash, currency } = request.body;
 
       try {
         // 1. Prevent double spend
@@ -583,8 +610,9 @@ export async function merchantRoutes(app: FastifyInstance) {
           newCreditBalance: updatedMerchant?.creditBalance,
           claimId: claim._id,
         });
-      } catch (err: any) {
-        server.log.error(`Topup Error: ${err.message}`);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        server.log.error(`Topup Error: ${message}`);
         return reply.code(500).send({ error: "Internal top-up error" });
       }
     },
@@ -597,7 +625,8 @@ export async function merchantRoutes(app: FastifyInstance) {
     "/v1/merchants/me/wallet/generate-testnet",
     { preHandler: requireAuth },
     async (request, _reply) => {
-      const merchant = (request as any).merchant;
+      const merchant = request.merchant;
+      if (!merchant) return _reply.code(401).send({ error: "Unauthorized" });
 
       // 1. Generate Mnemonic
       const mnemonic = bip39.generateMnemonic();

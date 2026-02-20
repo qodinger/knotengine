@@ -1,4 +1,6 @@
-import { Server } from "socket.io";
+import { Server as SocketIOServer } from "socket.io";
+import * as http from "http";
+import * as https from "https";
 
 /**
  * 🔌 Socket Service
@@ -7,13 +9,13 @@ import { Server } from "socket.io";
  * Used to notify the checkout frontend when a payment is detected or confirmed.
  */
 export class SocketService {
-  private static io: Server | null = null;
+  private static io: SocketIOServer | null = null;
 
   /**
-   * Initializes the Socket.io server and attaches it to the Fastify instance.
+   * Initializes the Socket.io server and attaches it to the HTTP server.
    */
-  public static init(server: any) {
-    this.io = new Server(server, {
+  public static init(server: http.Server | https.Server) {
+    this.io = new SocketIOServer(server, {
       cors: {
         origin: "*",
         methods: ["GET", "POST"],
@@ -43,7 +45,7 @@ export class SocketService {
   public static emitStatusUpdate(
     invoiceId: string,
     status: string,
-    data: any = {},
+    data: Record<string, unknown> = {},
   ) {
     if (!this.io) {
       console.warn(
