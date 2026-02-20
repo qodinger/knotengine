@@ -19,6 +19,7 @@
     "@knotengine/crypto": "workspace:*",
     "@knotengine/database": "workspace:*",
     "@knotengine/types": "workspace:*",
+    "axios": "^1.13.5",
     "bip32": "^4.0.0",
     "bip39": "^3.1.0",
     "bitcoinjs-lib": "^6.1.7",
@@ -27,6 +28,7 @@
     "fastify": "^4.26.0",
     "fastify-type-provider-zod": "^1.1.9",
     "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
     "tiny-secp256k1": "^2.2.4",
     "zod": "^3.22.4"
   },

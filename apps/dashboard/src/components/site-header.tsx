@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+
 import {
   Search,
   Bell,
@@ -26,64 +27,110 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSession, signOut } from "next-auth/react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { api } from "@/lib/api";
+import { io, Socket } from "socket.io-client";
+import { formatDistanceToNow } from "date-fns";
 
 type Notification = {
   id: string;
   title: string;
   description: string;
-  time: string;
+  createdAt: string;
   isRead: boolean;
   type: "success" | "warning" | "error" | "info";
+  link?: string;
 };
-
-const MOCK_NOTIFICATIONS: Notification[] = [
-  {
-    id: "1",
-    title: "Payment Received",
-    description: "Invoice inv_8f29ax has been fully confirmed.",
-    time: "2 mins ago",
-    isRead: false,
-    type: "success",
-  },
-  {
-    id: "2",
-    title: "New Transaction",
-    description: "Detected 0.042 BTC for inv_3k92ls (mempool).",
-    time: "15 mins ago",
-    isRead: false,
-    type: "info",
-  },
-  {
-    id: "3",
-    title: "Invoice Expired",
-    description: "Invoice inv_p28sl1 has expired without payment.",
-    time: "1 hour ago",
-    isRead: true,
-    type: "error",
-  },
-  {
-    id: "4",
-    title: "System Update",
-    description: "KnotEngine Dashboard updated to v0.2.1.",
-    time: "2 hours ago",
-    isRead: true,
-    type: "info",
-  },
-];
 
 export function SiteHeader() {
   const { data: session } = useSession();
   const user = session?.user;
-  const [notifications, setNotifications] =
-    useState<Notification[]>(MOCK_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [initialLoaded, setInitialLoaded] = useState(false);
+
+  // Fetch initial notifications
+  useEffect(() => {
+    if (!user?.merchantId) return;
+
+    const fetchNotifications = async () => {
+      try {
+        const res = await api.get("/v1/merchants/me/notifications");
+        setNotifications(
+          res.data.data.map((n: any) => ({
+            id: n._id,
+            title: n.title,
+            description: n.description,
+            createdAt: n.createdAt,
+            isRead: n.isRead,
+            type: n.type,
+            link: n.link,
+          })),
+        );
+        setInitialLoaded(true);
+      } catch (err) {
+        console.error("Failed to fetch notifications", err);
+      }
+    };
+
+    fetchNotifications();
+  }, [user?.merchantId]);
+
+  // Socket connection for real-time notifications
+  useEffect(() => {
+    if (!user?.merchantId) return;
+
+    const socketUrl =
+      process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5050";
+    const socket: Socket = io(socketUrl);
+
+    socket.on("connect", () => {
+      console.log("🔌 Connected to notification socket");
+      socket.emit("join_merchant", user.merchantId);
+    });
+
+    socket.on("notification", (newNotification: any) => {
+      console.log("🔔 New notification received:", newNotification);
+      setNotifications((prev) => [
+        {
+          id: newNotification.id,
+          title: newNotification.title,
+          description: newNotification.description,
+          createdAt: newNotification.createdAt,
+          isRead: newNotification.isRead,
+          type: newNotification.type,
+          link: newNotification.link,
+        },
+        ...prev,
+      ]);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [user?.merchantId]);
 
   const unreadCount = useMemo(
     () => notifications.filter((n) => !n.isRead).length,
     [notifications],
   );
 
-  const markAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+  const markAllAsRead = async () => {
+    try {
+      await api.patch("/v1/merchants/me/notifications/mark-read");
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    } catch (err) {
+      console.error("Failed to mark all as read", err);
+    }
+  };
+
+  const markAsRead = async (id: string) => {
+    try {
+      await api.patch(`/v1/merchants/me/notifications/${id}`);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
+      );
+    } catch (err) {
+      console.error("Failed to mark notification as read", err);
+    }
   };
 
   return (
@@ -159,8 +206,13 @@ export function SiteHeader() {
                           "flex items-start gap-4 p-4 cursor-pointer focus:bg-muted/50 border-b border-border/40 last:border-0",
                           !n.isRead && "bg-primary/5 focus:bg-primary/10",
                         )}
+                        onClick={() => {
+                          if (!n.isRead) markAsRead(n.id);
+                          if (n.link) window.location.href = n.link;
+                        }}
                       >
                         <NotificationIcon type={n.type} />
+
                         <div className="flex-1 space-y-1">
                           <div className="flex items-center justify-between gap-2">
                             <p
@@ -174,7 +226,9 @@ export function SiteHeader() {
                               {n.title}
                             </p>
                             <span className="text-[10px] text-muted-foreground font-medium">
-                              {n.time}
+                              {formatDistanceToNow(new Date(n.createdAt), {
+                                addSuffix: true,
+                              })}
                             </span>
                           </div>
                           <p className="text-[11px] leading-relaxed text-muted-foreground/80 line-clamp-2">
@@ -186,16 +240,15 @@ export function SiteHeader() {
                   )}
                 </div>
               </ScrollArea>
-              <DropdownMenuSeparator className="m-0" />
-              <div className="p-2 border-t">
+              <div className="p-2 bg-muted/20 border-t border-border/50">
                 <Button
                   variant="ghost"
-                  className="w-full h-8 text-[11px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  className="w-full group h-9 text-[11px] font-bold uppercase tracking-widest text-muted-foreground transition-all hover:bg-primary/5 hover:text-primary border-none shadow-none"
                   asChild
                 >
-                  <Link href="/dashboard/settings">
+                  <Link href="/dashboard/developers?tab=events">
                     View Activity Log
-                    <ExternalLink className="ml-2 size-3" />
+                    <ExternalLink className="ml-2 size-3 transition-transform group-hover:translate-x-0.5" />
                   </Link>
                 </Button>
               </div>

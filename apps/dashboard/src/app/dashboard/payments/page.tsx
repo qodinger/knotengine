@@ -17,6 +17,10 @@ import {
   CreditCard,
   TrendingUp,
   Receipt,
+  ArrowRight,
+  Info,
+  ShieldCheck,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -47,6 +51,13 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { api } from "@/lib/api";
 
 type Invoice = {
@@ -54,6 +65,7 @@ type Invoice = {
   amount_usd: number;
   crypto_amount: number;
   crypto_currency: string;
+  pay_address: string;
   status: "pending" | "confirmed" | "expired" | "partially_paid";
   confirmations: number;
   required_confirmations: number;
@@ -73,6 +85,9 @@ export default function PaymentsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [timeline, setTimeline] = useState<any[]>([]);
+  const [loadingTimeline, setLoadingTimeline] = useState(false);
 
   const fetchInvoices = useCallback(async () => {
     setLoading(true);
@@ -96,6 +111,25 @@ export default function PaymentsPage() {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const fetchTimeline = async (invoiceId: string) => {
+    setLoadingTimeline(true);
+    try {
+      const res = await api.get("/v1/merchants/me/notifications", {
+        params: { invoiceId, limit: 50 },
+      });
+      setTimeline(res.data.data);
+    } catch (err) {
+      console.error("Failed to fetch timeline", err);
+    } finally {
+      setLoadingTimeline(false);
+    }
+  };
+
+  const openInvoiceDetails = (invoice: Invoice) => {
+    setSelectedInvoice(invoice);
+    fetchTimeline(invoice.invoice_id);
   };
 
   const filteredInvoices = invoices.filter(
@@ -293,7 +327,8 @@ export default function PaymentsPage() {
                 filteredInvoices.map((inv) => (
                   <TableRow
                     key={inv.invoice_id}
-                    className="border-b border-border/20 hover:bg-muted/5 transition-colors group"
+                    className="border-b border-border/20 hover:bg-muted/5 transition-colors group cursor-pointer"
+                    onClick={() => openInvoiceDetails(inv)}
                   >
                     <TableCell className="pl-6">
                       <div className="flex flex-col">
@@ -370,21 +405,33 @@ export default function PaymentsPage() {
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             className="text-xs"
-                            onClick={() =>
-                              copyToClipboard(inv.invoice_id, inv.invoice_id)
-                            }
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openInvoiceDetails(inv);
+                            }}
+                          >
+                            <Info className="mr-2 h-3.5 w-3.5" />
+                            View details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              copyToClipboard(inv.invoice_id, inv.invoice_id);
+                            }}
                           >
                             <Copy className="mr-2 h-3.5 w-3.5" />
                             Copy invoice ID
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-xs"
-                            onClick={() =>
+                            onClick={(e) => {
+                              e.stopPropagation();
                               window.open(
                                 `${process.env.NEXT_PUBLIC_CHECKOUT_URL}/checkout/${inv.invoice_id}`,
                                 "_blank",
-                              )
-                            }
+                              );
+                            }}
                           >
                             <ExternalLink className="mr-2 h-3.5 w-3.5" />
                             Open checkout
@@ -415,6 +462,199 @@ export default function PaymentsPage() {
           </CardFooter>
         )}
       </Card>
+
+      {/* Invoice Details Sheet */}
+      <Sheet
+        open={!!selectedInvoice}
+        onOpenChange={(open) => !open && setSelectedInvoice(null)}
+      >
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <div className="flex items-center gap-2 mb-2">
+              <Badge
+                variant="outline"
+                className="text-[10px] font-bold uppercase tracking-wider"
+              >
+                Invoice Details
+              </Badge>
+              {selectedInvoice?.metadata?.isTestnet && (
+                <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-[9px]">
+                  TESTNET
+                </Badge>
+              )}
+            </div>
+            <SheetTitle className="text-xl font-bold font-mono">
+              {selectedInvoice?.invoice_id}
+            </SheetTitle>
+            <SheetDescription className="text-xs">
+              Created on{" "}
+              {selectedInvoice &&
+                format(new Date(selectedInvoice.created_at), "PPP 'at' HH:mm")}
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="mt-8 space-y-6">
+            {/* Status & Amount summary */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="rounded-xl border border-border/50 bg-muted/20 p-4">
+                <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-1">
+                  Status
+                </p>
+                <StatusBadge status={selectedInvoice?.status || "pending"} />
+              </div>
+              <div className="rounded-xl border border-border/50 bg-muted/20 p-4">
+                <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-1">
+                  Total Amount
+                </p>
+                <p className="text-lg font-bold">
+                  ${selectedInvoice?.amount_usd.toFixed(2)}
+                </p>
+              </div>
+            </div>
+
+            {/* Crypto Details */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold flex items-center gap-2">
+                <ShieldCheck className="size-4 text-primary" />
+                Payment Info
+              </h3>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-sm p-3 rounded-lg border border-border/50">
+                  <span className="text-muted-foreground">Currency</span>
+                  <span className="font-bold">
+                    {selectedInvoice?.crypto_currency}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm p-3 rounded-lg border border-border/50">
+                  <span className="text-muted-foreground">Crypto Amount</span>
+                  <span className="font-mono">
+                    {selectedInvoice?.crypto_amount}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1.5 p-3 rounded-lg border border-border/50">
+                  <span className="text-xs text-muted-foreground">
+                    Destination Address
+                  </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono break-all text-foreground/80">
+                      {selectedInvoice?.pay_address}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-6 shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (selectedInvoice)
+                          copyToClipboard(
+                            selectedInvoice.pay_address,
+                            "side-addr",
+                          );
+                      }}
+                    >
+                      {copiedId === "side-addr" ? (
+                        <Check className="size-3 text-emerald-500" />
+                      ) : (
+                        <Copy className="size-3" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Timeline */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-bold flex items-center gap-2">
+                <Clock className="size-4 text-primary" />
+                Activity History
+              </h3>
+
+              <div className="relative pl-4 border-l border-border/50 ml-2 space-y-6 pb-2">
+                {loadingTimeline ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="relative">
+                      <div className="absolute -left-[21px] top-1 size-3 rounded-full bg-muted border-2 border-background" />
+                      <Skeleton className="h-4 w-32 mb-1" />
+                      <Skeleton className="h-3 w-48" />
+                    </div>
+                  ))
+                ) : (
+                  <>
+                    {/* Real-time events from notifications */}
+                    {timeline.map((event, idx) => (
+                      <div key={event._id || idx} className="relative">
+                        <div
+                          className={cn(
+                            "absolute -left-[21px] top-1 size-3 rounded-full border-2 border-background",
+                            event.type === "success"
+                              ? "bg-emerald-500"
+                              : event.type === "error"
+                                ? "bg-rose-500"
+                                : event.type === "warning"
+                                  ? "bg-amber-500"
+                                  : "bg-primary",
+                          )}
+                        />
+                        <div className="flex justify-between items-start">
+                          <p className="text-xs font-bold">{event.title}</p>
+                          <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                            {format(new Date(event.createdAt), "HH:mm:ss")}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                          {event.description}
+                        </p>
+                      </div>
+                    ))}
+
+                    {/* Initial Creation Event (Always last in timeline, oldest) */}
+                    <div className="relative">
+                      <div className="absolute -left-[21px] top-1 size-3 rounded-full bg-muted-foreground/30 border-2 border-background" />
+                      <div className="flex justify-between items-start">
+                        <p className="text-xs font-bold">Invoice Created</p>
+                        <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                          {selectedInvoice &&
+                            format(
+                              new Date(selectedInvoice.created_at),
+                              "HH:mm:ss",
+                            )}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        System generated invoice for $
+                        {selectedInvoice?.amount_usd.toFixed(2)} USD.
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Actions */}
+            {selectedInvoice?.tx_hash && (
+              <Button
+                asChild
+                className="w-full gap-2 h-10 font-bold uppercase tracking-wider text-[11px]"
+                variant="secondary"
+              >
+                <a
+                  href={
+                    selectedInvoice.crypto_currency === "BTC"
+                      ? `https://mempool.space/tx/${selectedInvoice.tx_hash}`
+                      : `https://etherscan.io/tx/${selectedInvoice.tx_hash}`
+                  }
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <ExternalLink className="size-3" />
+                  View on Blockchain
+                </a>
+              </Button>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

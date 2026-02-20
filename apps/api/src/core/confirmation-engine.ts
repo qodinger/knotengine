@@ -8,6 +8,7 @@ import { SocketService } from "../infra/socket-service";
 import { WebhookDispatcher } from "../infra/webhook-dispatcher";
 import { TatumProvider } from "../infra/tatum-provider";
 import { DEFAULT_CONFIRMATIONS, EVM_CURRENCIES } from "@knotengine/types";
+import { NotificationService } from "../infra/notification-service";
 
 /**
  * 🔒 ConfirmationEngine
@@ -138,6 +139,16 @@ export class ConfirmationEngine {
 
     if (newStatus === "mempool_detected" && invoice.status === "pending") {
       WebhookDispatcher.dispatch(invoice.invoiceId, "invoice.mempool_detected");
+
+      // Notify Merchant
+      NotificationService.create({
+        merchantId: invoice.merchantId.toString(),
+        title: "New Transaction",
+        description: `Detected ${event.amount} ${event.asset} for invoice ${invoice.invoiceId} (mempool).`,
+        type: "info",
+        link: `/dashboard/payments`,
+        meta: { invoiceId: invoice.invoiceId, txHash: event.txHash },
+      });
     }
 
     // 6. Trigger outbound webhook if confirmed
@@ -151,7 +162,6 @@ export class ConfirmationEngine {
 
       // 8. Deduct from Credit Balance & Accrue Fees (KnotEngine Fee)
       if (!invoice.paidAt) {
-        // Double check paidAt to prevent double counting if multiple events fire
         await Merchant.findByIdAndUpdate(invoice.merchantId, {
           $inc: {
             "feesAccrued.usd": invoice.feeUsd,
@@ -159,6 +169,22 @@ export class ConfirmationEngine {
             creditBalance: -invoice.feeUsd, // Deduct from prepaid credits
           },
         });
+
+        // Notify Merchant
+        NotificationService.notifyPaymentConfirmed(
+          invoice.merchantId.toString(),
+          invoice.invoiceId,
+          invoice.amountUsd,
+        );
+
+        // Check if credit balance is getting low
+        const updatedMerchant = await Merchant.findById(invoice.merchantId);
+        if (updatedMerchant && updatedMerchant.creditBalance < 3.0) {
+          NotificationService.notifyLowBalance(
+            invoice.merchantId.toString(),
+            updatedMerchant.creditBalance,
+          );
+        }
       }
     }
 
@@ -233,6 +259,15 @@ export class ConfirmationEngine {
       if (invoice.tatumSubscriptionId) {
         TatumProvider.deleteSubscription(invoice.tatumSubscriptionId);
       }
+
+      NotificationService.create({
+        merchantId: invoice.merchantId.toString(),
+        title: "Invoice Expired",
+        description: `Invoice ${invoice.invoiceId} has expired without receiving payment.`,
+        type: "error",
+        link: "/dashboard/payments",
+        meta: { invoiceId: invoice.invoiceId },
+      });
 
       console.log(`⏰ Invoice ${invoice.invoiceId} expired.`);
     }

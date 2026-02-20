@@ -6,7 +6,7 @@
  * to the ConfirmationEngine.
  */
 async function simulateTatumWebhook() {
-  const publicUrl = "https://2f0a-103-43-77-222.ngrok-free.app"; // Your live ngrok tunnel
+  const publicUrl = "http://localhost:5050"; // Your local API
   const endpoint = `${publicUrl}/v1/webhooks/tatum`;
 
   const payload = {

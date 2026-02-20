@@ -1,7 +1,13 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
-import { Merchant, Invoice, TopUpClaim } from "@knotengine/database";
+import {
+  Merchant,
+  Invoice,
+  TopUpClaim,
+  Notification,
+} from "@knotengine/database";
+
 import * as crypto from "crypto";
 import { TatumProvider } from "../infra/tatum-provider";
 import { TxVerifier } from "../infra/tx-verifier";
@@ -615,6 +621,101 @@ export async function merchantRoutes(app: FastifyInstance) {
         server.log.error(`Topup Error: ${message}`);
         return reply.code(500).send({ error: "Internal top-up error" });
       }
+    },
+  );
+
+  // ──────────────────────────────────────────────
+  // GET /v1/merchants/me/notifications — Get Notifications
+  // ──────────────────────────────────────────────
+  server.get(
+    "/v1/merchants/me/notifications",
+    {
+      preHandler: requireAuth,
+      schema: {
+        querystring: z.object({
+          limit: z.coerce.number().int().min(1).max(100).default(20),
+          offset: z.coerce.number().int().min(0).default(0),
+          invoiceId: z.string().optional(),
+        }),
+      },
+    },
+    async (request, _reply) => {
+      const merchant = request.merchant;
+      if (!merchant) return _reply.code(401).send({ error: "Unauthorized" });
+
+      const { limit, offset, invoiceId } = request.query;
+
+      const query: any = {
+        merchantId: merchant._id,
+      };
+
+      if (invoiceId) {
+        query["meta.invoiceId"] = invoiceId;
+      }
+
+      const notifications = await Notification.find(query)
+        .sort({ createdAt: -1 })
+        .skip(offset)
+        .limit(limit);
+
+      const unreadCount = await Notification.countDocuments({
+        merchantId: merchant._id,
+        isRead: false,
+      });
+
+      return {
+        data: notifications,
+        unreadCount,
+      };
+    },
+  );
+
+  // ──────────────────────────────────────────────
+  // PATCH /v1/merchants/me/notifications/mark-read — Mark all as read
+  // ──────────────────────────────────────────────
+  server.patch(
+    "/v1/merchants/me/notifications/mark-read",
+    {
+      preHandler: requireAuth,
+    },
+    async (request, _reply) => {
+      const merchant = request.merchant;
+      if (!merchant) return _reply.code(401).send({ error: "Unauthorized" });
+
+      await Notification.updateMany(
+        { merchantId: merchant._id, isRead: false },
+        { $set: { isRead: true } },
+      );
+
+      return { success: true };
+    },
+  );
+
+  // ──────────────────────────────────────────────
+  // PATCH /v1/merchants/me/notifications/:id — Mark one as read
+  // ──────────────────────────────────────────────
+  server.patch(
+    "/v1/merchants/me/notifications/:id",
+    {
+      preHandler: requireAuth,
+      schema: {
+        params: z.object({
+          id: z.string(),
+        }),
+      },
+    },
+    async (request, _reply) => {
+      const merchant = request.merchant;
+      if (!merchant) return _reply.code(401).send({ error: "Unauthorized" });
+
+      const { id } = request.params;
+
+      await Notification.findOneAndUpdate(
+        { _id: id, merchantId: merchant._id },
+        { $set: { isRead: true } },
+      );
+
+      return { success: true };
     },
   );
 

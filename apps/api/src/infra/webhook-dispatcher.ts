@@ -1,6 +1,7 @@
 import { Invoice, IInvoice, Merchant } from "@knotengine/database";
 import { Derivator } from "@knotengine/crypto";
 import * as crypto from "crypto";
+import { NotificationService } from "./notification-service";
 
 /**
  * 📡 WebhookDispatcher
@@ -137,6 +138,14 @@ export class WebhookDispatcher {
       const message = error instanceof Error ? error.message : String(error);
       console.error(
         `❌ Webhook FAILURE (${attempts}/${this.MAX_ATTEMPTS}) for ${invoiceId}: ${message}`,
+      );
+
+      // Notify Merchant of persistent failure or first failure?
+      // Let's notify on every failure so they can see the issues in real-time.
+      NotificationService.notifyWebhookFailed(
+        invoice.merchantId.toString(),
+        invoice.invoiceId,
+        message,
       );
 
       // We don't use setTimeout here anymore for production reliability.

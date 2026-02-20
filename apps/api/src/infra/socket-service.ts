@@ -31,6 +31,13 @@ export class SocketService {
         socket.join(invoiceId);
       });
 
+      socket.on("join_merchant", (merchantId: string) => {
+        console.log(
+          `👥 Socket ${socket.id} joined merchant room: ${merchantId}`,
+        );
+        socket.join(merchantId);
+      });
+
       socket.on("disconnect", () => {
         console.log(`🔌 Socket disconnected: ${socket.id}`);
       });
@@ -60,5 +67,18 @@ export class SocketService {
       status,
       ...data,
     });
+  }
+
+  /**
+   * Emits a generic event to all clients in a merchant's specific room.
+   */
+  public static emitToMerchant(
+    merchantId: string,
+    event: string,
+    data: Record<string, unknown> = {},
+  ) {
+    if (!this.io) return;
+    console.log(`📢 Emitting '${event}' to merchant: ${merchantId}`);
+    this.io.to(merchantId.toString()).emit(event, data);
   }
 }

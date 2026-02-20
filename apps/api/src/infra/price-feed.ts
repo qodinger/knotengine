@@ -65,6 +65,8 @@ export class PriceOracle {
         return "bitcoin";
       case "LTC":
         return "litecoin";
+      case "ETH":
+        return "ethereum";
       case "USDT_ERC20":
       case "USDT_POLYGON":
         return "tether";

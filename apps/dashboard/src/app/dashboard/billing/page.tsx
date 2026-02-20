@@ -211,11 +211,27 @@ export default function BillingPage() {
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Billing & Usage</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Manage your prepaid credit balance and view platform usage fees.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Billing & Usage</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Manage your prepaid credit balance and view platform usage fees.
+          </p>
+        </div>
+
+        <Button
+          onClick={handleOpenTopUp}
+          disabled={
+            !loading &&
+            !stats?.platformFeeWallets?.BTC &&
+            !stats?.platformFeeWallets?.LTC &&
+            !stats?.platformFeeWallets?.EVM
+          }
+          className="w-full sm:w-auto gap-2"
+        >
+          <Zap className="size-4" />
+          Top Up Credits
+        </Button>
       </div>
 
       {/* Credit Balance Hero Card */}
@@ -387,22 +403,11 @@ export default function BillingPage() {
         </CardContent>
       </Card>
 
-      {/* Top-Up Section */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Zap className="size-4 text-primary" />
-          <h2 className="text-sm font-semibold text-foreground">
-            Top Up Credits
-          </h2>
-        </div>
-        <p className="text-xs text-muted-foreground max-w-lg mb-4">
-          Add credits to your account to securely process payments and cover
-          platform network fees.
-        </p>
-
-        {!stats?.platformFeeWallets?.BTC &&
+      {/* Missing Wallets Warning */}
+      {!loading &&
+        !stats?.platformFeeWallets?.BTC &&
         !stats?.platformFeeWallets?.LTC &&
-        !stats?.platformFeeWallets?.EVM ? (
+        !stats?.platformFeeWallets?.EVM && (
           <Card className="border-dashed border-2 border-border/40">
             <CardContent className="flex flex-col items-center justify-center py-10 text-center">
               <Coins className="size-8 text-muted-foreground/20 mb-3" />
@@ -415,17 +420,7 @@ export default function BillingPage() {
               </p>
             </CardContent>
           </Card>
-        ) : (
-          <Button
-            onClick={handleOpenTopUp}
-            size="lg"
-            className="w-full sm:w-auto gap-2"
-          >
-            <Zap className="size-4" />
-            Top Up Credits Now
-          </Button>
         )}
-      </div>
 
       <Dialog
         open={isTopUpOpen}

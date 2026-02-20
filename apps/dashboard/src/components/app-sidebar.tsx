@@ -37,7 +37,6 @@ const navItems = {
     { icon: Wallet, label: "Balances", href: "/dashboard/balances" },
     { icon: Coins, label: "Billing", href: "/dashboard/billing" },
     { icon: Code2, label: "Developers", href: "/dashboard/developers" },
-    { icon: Webhook, label: "Webhooks", href: "/dashboard/webhooks" },
   ],
   manage: [
     { icon: Settings, label: "Settings", href: "/dashboard/settings" },
