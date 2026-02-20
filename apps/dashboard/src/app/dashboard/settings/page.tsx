@@ -43,9 +43,6 @@ export default function SettingsPage() {
     webhookSecret: "",
   });
 
-  const [showSecret, setShowSecret] = useState(false);
-  const [rotatingSecret, setRotatingSecret] = useState(false);
-
   // Testnet Generation State
   const [generatingTestnet, setGeneratingTestnet] = useState(false);
 
@@ -104,23 +101,6 @@ export default function SettingsPage() {
     }
   };
 
-  const handleRotateSecret = async () => {
-    setRotatingSecret(true);
-    try {
-      const res = await api.post("/v1/merchants/me/keys/webhook", {});
-      setFormData((prev) => ({
-        ...prev,
-        webhookSecret: res.data.webhookSecret,
-      }));
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
-    } catch (err) {
-      console.error("Failed to rotate webhook secret", err);
-    } finally {
-      setRotatingSecret(false);
-    }
-  };
-
   const handleGenerateTestnet = async () => {
     setGeneratingTestnet(true);
     try {
@@ -145,7 +125,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="w-full space-y-6">
       {/* Header with Save Action */}
       <div className="flex items-center justify-between pb-4 border-b border-border/40">
         <div>
@@ -375,62 +355,6 @@ export default function SettingsPage() {
                     placeholder="0x..."
                     className="font-mono text-xs bg-background/50"
                   />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Webhooks */}
-          <Card className="bg-linear-to-br from-card to-card/50 border-border/50 shadow-sm">
-            <CardHeader>
-              <CardTitle>Webhooks</CardTitle>
-              <CardDescription>
-                Configure real-time event notifications.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-2">
-                <Label htmlFor="webhookUrl">Endpoint URL</Label>
-                <Input
-                  id="webhookUrl"
-                  value={formData.webhookUrl}
-                  onChange={(e) =>
-                    setFormData({ ...formData, webhookUrl: e.target.value })
-                  }
-                  placeholder="https://api.myapp.com/webhooks"
-                  className="bg-background/50"
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="secret">Signing Secret</Label>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleRotateSecret}
-                    disabled={rotatingSecret}
-                    className="h-6 text-[10px] text-destructive"
-                  >
-                    {rotatingSecret ? "Rotating..." : "Rotate Secret"}
-                  </Button>
-                </div>
-                <div className="relative">
-                  <Input
-                    id="secret"
-                    type={showSecret ? "text" : "password"}
-                    value={formData.webhookSecret}
-                    readOnly
-                    className="bg-background/50 font-mono pr-16"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full"
-                    onClick={() => setShowSecret(!showSecret)}
-                  >
-                    {showSecret ? "Hide" : "Show"}
-                  </Button>
                 </div>
               </div>
             </CardContent>

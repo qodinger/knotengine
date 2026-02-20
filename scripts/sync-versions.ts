@@ -22,7 +22,7 @@ function updatePackageJson(filePath: string) {
   if (content.dependencies) {
     Object.keys(content.dependencies).forEach((dep) => {
       if (
-        dep.startsWith("@knotengine/") &&
+        (dep.startsWith("@knotengine/") || dep.startsWith("@tyecode/")) &&
         content.dependencies[dep].includes("workspace:")
       ) {
         // pnpm workspace refs usually look like "workspace:*" or "workspace:^" or "workspace:0.1.0"
@@ -63,6 +63,6 @@ console.log(
 );
 try {
   execSync("pnpm install", { stdio: "inherit" });
-} catch (e) {
+} catch {
   console.warn("⚠️ pnpm install failed, you may need to run it manually.");
 }

@@ -2,9 +2,11 @@ import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5050";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5050";
+const INTERNAL_SECRET = process.env.INTERNAL_SECRET;
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  trustHost: true,
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -35,7 +37,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           console.log(`[Auth] Syncing merchants for oauthId: ${oauthId}`);
           const lookupRes = await fetch(
             `${API_BASE_URL}/v1/merchants/by-oauth/${encodeURIComponent(oauthId)}`,
-            { headers: { "x-internal-secret": process.env.INTERNAL_SECRET! } },
+            { headers: { "x-internal-secret": INTERNAL_SECRET! } },
           );
           if (lookupRes.ok) return await lookupRes.json();
           if (lookupRes.status === 404) return [];
@@ -60,9 +62,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         token.merchants = merchants.map((m: { id: string; name?: string }) => ({
           id: m.id,
-          name: m.name || "Untitled App",
+          name: m.name || "Untitled Store",
         }));
-        if (merchants.length > 0) token.merchantId = merchants[0].id;
+        if (merchants.length > 0) {
+          if (!token.merchantId) token.merchantId = merchants[0].id;
+        }
       }
 
       // 2. Session Update (Triggered by client update())
@@ -71,7 +75,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const merchants = await fetchMerchants(token.oauthId as string);
         token.merchants = merchants.map((m: { id: string; name?: string }) => ({
           id: m.id,
-          name: m.name || "Untitled App",
+          name: m.name || "Untitled Store",
         }));
 
         // Switch active ID if requested and valid
@@ -80,6 +84,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             (m: { id: string }) => m.id === session.merchantId,
           );
           if (isValid) token.merchantId = session.merchantId;
+        }
+
+        if (session?.apiKey) {
+          token.apiKey = session.apiKey;
         }
       }
 
@@ -92,6 +100,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user.oauthId = token.oauthId as string;
       // @ts-expect-error - NextAuth session user type doesn't include merchants by default
       session.user.merchants = token.merchants || [];
+      session.user.apiKey = token.apiKey as string;
       return session;
     },
   },

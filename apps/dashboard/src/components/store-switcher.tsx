@@ -3,7 +3,6 @@
 import * as React from "react";
 import { Check, ChevronsUpDown, PlusCircle, Store } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 
 import {
   DropdownMenu,
@@ -29,7 +28,6 @@ import { SidebarMenuButton } from "@/components/ui/sidebar";
 
 export function StoreSwitcher() {
   const { data: session, update } = useSession();
-  const router = useRouter();
   const [showNewStoreDialog, setShowNewStoreDialog] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [newStoreName, setNewStoreName] = React.useState("");
@@ -50,7 +48,7 @@ export function StoreSwitcher() {
       const newMerchant = await createMerchant(newStoreName);
       // Calls update to refresh server session with new merchant ID
       await update({ merchantId: newMerchant.id });
-      router.refresh();
+      window.location.reload();
       setShowNewStoreDialog(false);
       setNewStoreName("");
     } catch (error) {
@@ -62,7 +60,7 @@ export function StoreSwitcher() {
 
   const handleStoreSwitch = async (merchantId: string) => {
     await update({ merchantId });
-    router.refresh();
+    window.location.reload();
   };
 
   return (
@@ -99,7 +97,7 @@ export function StoreSwitcher() {
           {merchants.map((store: { id: string; name?: string }) => (
             <DropdownMenuItem
               key={store.id}
-              onClick={() => handleStoreSwitch(store.id)}
+              onSelect={() => handleStoreSwitch(store.id)}
               className="gap-2 p-2 cursor-pointer font-medium text-sm"
             >
               <div className="flex size-6 items-center justify-center rounded-sm border">

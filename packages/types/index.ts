@@ -2,7 +2,33 @@
 // @knotengine/types — Shared type definitions for KnotEngine
 // ============================================================
 
-export type Currency = "BTC" | "USDT_POLYGON" | "USDT_ERC20" | "LTC" | "ETH";
+export const SUPPORTED_CURRENCIES = [
+  "BTC",
+  "LTC",
+  "ETH",
+  "USDT_ERC20",
+  "USDT_POLYGON",
+] as const;
+
+export type Currency = (typeof SUPPORTED_CURRENCIES)[number];
+
+export const EVM_CURRENCIES: Currency[] = ["ETH", "USDT_ERC20", "USDT_POLYGON"];
+
+export const CRYPTO_LOGOS: Record<Currency, string> = {
+  BTC: "https://cryptologos.cc/logos/bitcoin-btc-logo.svg?v=032",
+  LTC: "https://cryptologos.cc/logos/litecoin-ltc-logo.svg?v=032",
+  ETH: "https://cryptologos.cc/logos/ethereum-eth-logo.svg?v=032",
+  USDT_ERC20: "https://cryptologos.cc/logos/tether-usdt-logo.svg?v=032",
+  USDT_POLYGON: "https://cryptologos.cc/logos/tether-usdt-logo.svg?v=032",
+};
+
+export const CRYPTO_LABELS: Record<Currency, string> = {
+  BTC: "Bitcoin (BTC)",
+  LTC: "Litecoin (LTC)",
+  ETH: "Ethereum (ETH)",
+  USDT_ERC20: "Tether (USDT) on Ethereum",
+  USDT_POLYGON: "Tether (USDT) on Polygon",
+};
 
 export type InvoiceStatus =
   | "pending"

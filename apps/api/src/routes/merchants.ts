@@ -2,14 +2,18 @@
 import { FastifyInstance } from "fastify";
 import { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
-import { Merchant, Invoice } from "@knotengine/database";
+import { Merchant, Invoice, TopUpClaim } from "@knotengine/database";
 import * as crypto from "crypto";
 import { TatumProvider } from "../infra/tatum-provider";
+import { TxVerifier } from "../infra/tx-verifier";
+import { PriceOracle } from "../infra/price-feed";
 import * as bip39 from "bip39";
 import { BIP32Factory } from "bip32";
 import * as ecc from "tiny-secp256k1";
 import * as bitcoin from "bitcoinjs-lib";
 import { ethers } from "ethers";
+import { SUPPORTED_CURRENCIES } from "@knotengine/types";
+import { WebhookDispatcher } from "../infra/webhook-dispatcher";
 
 const bip32 = BIP32Factory(ecc);
 
@@ -68,6 +72,10 @@ export async function merchantRoutes(app: FastifyInstance) {
       // Append timestamp to invoke uniqueness for multi-store support
       const uniqueOauthId = oauthId ? `${oauthId}:${Date.now()}` : undefined;
 
+      const welcomeCredit = parseFloat(
+        process.env.WELCOME_CREDIT_AMOUNT || "5.00",
+      );
+
       const newMerchant = await Merchant.create({
         name,
         email,
@@ -79,6 +87,7 @@ export async function merchantRoutes(app: FastifyInstance) {
         ethAddressTestnet,
         webhookUrl,
         webhookSecret,
+        creditBalance: welcomeCredit,
       });
 
       server.log.info(`Merchant created: ${newMerchant.id}`);
@@ -112,7 +121,7 @@ export async function merchantRoutes(app: FastifyInstance) {
     const { oauthId } = request.params as { oauthId: string };
     // Query using regex to find all stores matching this base oauthId prefix
     const merchants = await Merchant.find({
-      oauthId: { $regex: new RegExp(`^${oauthId}`) },
+      oauthId: { $regex: new RegExp(`^${oauthId}(:|$)`) },
       isActive: true,
     }).sort({
       createdAt: 1,
@@ -193,7 +202,7 @@ export async function merchantRoutes(app: FastifyInstance) {
     }
 
     const query: any = {
-      oauthId: { $regex: new RegExp(`^${oauthId}`) },
+      oauthId: { $regex: new RegExp(`^${oauthId}(:|$)`) },
       isActive: true,
     };
     if (merchantId) {
@@ -219,7 +228,7 @@ export async function merchantRoutes(app: FastifyInstance) {
     if (apiKey) {
       try {
         await authHook(request, reply);
-      } catch (e) {
+      } catch {
         return reply.code(401).send({ error: "Invalid API Key" });
       }
     } else {
@@ -246,8 +255,14 @@ export async function merchantRoutes(app: FastifyInstance) {
         ethAddressTestnet: merchant.ethAddressTestnet,
         webhookUrl: merchant.webhookUrl,
         webhookSecret: merchant.webhookSecret,
+        webhookEvents: merchant.webhookEvents || [
+          "invoice.confirmed",
+          "invoice.mempool_detected",
+          "invoice.failed",
+        ],
         confirmationPolicy: merchant.confirmationPolicy,
         feesAccrued: merchant.feesAccrued,
+        creditBalance: merchant.creditBalance,
         createdAt: merchant.createdAt,
       };
     },
@@ -268,6 +283,7 @@ export async function merchantRoutes(app: FastifyInstance) {
           ethAddress: z.string().optional(),
           ethAddressTestnet: z.string().optional(),
           webhookUrl: z.string().url().optional(),
+          webhookEvents: z.array(z.string()).optional(),
           confirmationPolicy: z
             .object({
               BTC: z.number().int().min(0),
@@ -303,8 +319,34 @@ export async function merchantRoutes(app: FastifyInstance) {
         ethAddressTestnet: updated!.ethAddressTestnet,
         webhookUrl: updated!.webhookUrl,
         webhookSecret: updated!.webhookSecret,
+        webhookEvents: updated!.webhookEvents || [
+          "invoice.confirmed",
+          "invoice.mempool_detected",
+          "invoice.failed",
+        ],
         confirmationPolicy: updated!.confirmationPolicy,
       };
+    },
+  );
+
+  // ──────────────────────────────────────────────
+  // POST /v1/merchants/me/webhooks/test — Dispatch Test Webhook
+  // ──────────────────────────────────────────────
+  server.post(
+    "/v1/merchants/me/webhooks/test",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const merchant = (request as any).merchant;
+
+      try {
+        await WebhookDispatcher.dispatchTest(merchant._id);
+        return {
+          success: true,
+          message: "Test webhook dispatched successfully",
+        };
+      } catch (err: any) {
+        return reply.code(400).send({ error: err.message });
+      }
     },
   );
 
@@ -437,8 +479,114 @@ export async function merchantRoutes(app: FastifyInstance) {
           { name: "Fri", volume: 0 },
         ],
         feesAccrued: merchant.feesAccrued || { usd: 0 },
-        currentFeeRate: parseFloat(process.env.PLATFORM_FEE_RATE || "0.005"),
+        creditBalance: merchant.creditBalance ?? 5.0,
+        currentFeeRate: parseFloat(process.env.PLATFORM_FEE_RATE || "0.01"),
+        platformFeeWallets: {
+          BTC: process.env.PLATFORM_FEE_WALLET_BTC || null,
+          LTC: process.env.PLATFORM_FEE_WALLET_LTC || null,
+          EVM: process.env.PLATFORM_FEE_WALLET_EVM || null, // Shared for ETH/USDT
+        },
       };
+    },
+  );
+
+  // ──────────────────────────────────────────────
+  // POST /v1/merchants/me/topup — Verify & Claim Top-Up Credits
+  // ──────────────────────────────────────────────
+  server.post(
+    "/v1/merchants/me/topup",
+    {
+      preHandler: requireAuth,
+      schema: {
+        body: z.object({
+          txHash: z.string().min(10),
+          currency: z.enum(SUPPORTED_CURRENCIES),
+        }),
+      },
+    },
+    async (request, reply) => {
+      const merchant = (request as any).merchant;
+      const { txHash, currency } = request.body as any;
+
+      if (!merchant) return reply.code(500).send({ error: "Auth failed" });
+
+      try {
+        // 1. Prevent double spend
+        const existingClaim = await TopUpClaim.findOne({ txHash });
+        if (existingClaim) {
+          return reply.code(400).send({
+            error: "Transaction has already been claimed for top-up credits.",
+            status: existingClaim.status,
+          });
+        }
+
+        // 2. Identify the expected platform wallet
+        let expectedAddress = "";
+        if (currency === "BTC") {
+          expectedAddress = process.env.PLATFORM_FEE_WALLET_BTC || "";
+        } else if (currency === "LTC") {
+          expectedAddress = process.env.PLATFORM_FEE_WALLET_LTC || "";
+        } else {
+          expectedAddress = process.env.PLATFORM_FEE_WALLET_EVM || "";
+        }
+
+        if (!expectedAddress) {
+          return reply.code(500).send({
+            error: `Platform fee wallet for ${currency} is not configured.`,
+          });
+        }
+
+        // 3. Verify on the blockchain
+        const verification = await TxVerifier.verifyTx(
+          txHash,
+          currency,
+          expectedAddress,
+        );
+
+        if (!verification.isValid || verification.amountCrypto <= 0) {
+          return reply.code(400).send({
+            error:
+              "Transaction verification failed. Ensure the transaction is confirmed and sent to the correct platform address.",
+          });
+        }
+
+        // 4. Calculate USD Value
+        const usdPrice = await PriceOracle.getPrice(currency);
+        const usdAmount = parseFloat(
+          (verification.amountCrypto * usdPrice).toFixed(2),
+        );
+
+        // 5. Save the Claim and Update Merchant Balance in a transaction-like flow
+        const claim = await TopUpClaim.create({
+          merchantId: merchant._id,
+          txHash,
+          currency,
+          amountCrypto: verification.amountCrypto,
+          amountUsd: usdAmount,
+          status: "approved",
+        });
+
+        await Merchant.findByIdAndUpdate(merchant._id, {
+          $inc: { creditBalance: usdAmount },
+        });
+
+        // Fetch fresh state for response
+        const updatedMerchant = await Merchant.findById(merchant._id);
+
+        server.log.info(
+          `🤑 Top-Up Claimed: ${merchant._id} +$${usdAmount} (${txHash})`,
+        );
+
+        return reply.send({
+          success: true,
+          addedUsd: usdAmount,
+          newCreditBalance: updatedMerchant?.creditBalance,
+          claimId: claim._id,
+        });
+      } catch (err: any) {
+        server.log.error(`Topup Error: ${err.message}`);
+        return reply.code(500).send({ error: "Internal top-up error" });
+      }
     },
   );
 
@@ -448,7 +596,7 @@ export async function merchantRoutes(app: FastifyInstance) {
   server.post(
     "/v1/merchants/me/wallet/generate-testnet",
     { preHandler: requireAuth },
-    async (request, reply) => {
+    async (request, _reply) => {
       const merchant = (request as any).merchant;
 
       // 1. Generate Mnemonic

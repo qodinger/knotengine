@@ -43,6 +43,7 @@ interface DashboardStats {
   successRate: string;
   chartData: Array<{ name: string; volume: number }>;
   feesAccrued: { usd: number };
+  creditBalance: number;
   currentFeeRate: number;
 }
 
@@ -109,13 +110,18 @@ export default function DashboardOverview() {
       color: "text-emerald-500",
     },
     {
-      label: "Fees Accrued",
+      label: "Credit Balance",
       value: data
-        ? `$${data.feesAccrued.usd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        ? `$${(data.creditBalance ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
         : "$0.00",
-      description: `Platform usage fees (${data ? `${(data.currentFeeRate * 100).toFixed(2)}%` : "—"})`,
+      description: "Prepaid platform credits",
       icon: DollarSign,
-      color: "text-amber-500",
+      color:
+        data && (data.creditBalance ?? 0) <= 0
+          ? "text-rose-500"
+          : data && (data.creditBalance ?? 0) < 3
+            ? "text-amber-500"
+            : "text-emerald-500",
     },
   ];
 
@@ -324,8 +330,8 @@ export default function DashboardOverview() {
           </CardContent>
           <CardFooter>
             <Button variant="ghost" className="w-full justify-between" asChild>
-              <Link href="/dashboard/invoices">
-                View all invoices
+              <Link href="/dashboard/payments">
+                View all payments
                 <ArrowRight className="size-4" />
               </Link>
             </Button>

@@ -45,6 +45,20 @@ export class WebhookDispatcher {
       return false;
     }
 
+    // Check if merchant is subscribed to this event
+    const subscribedEvents = merchant.webhookEvents || [
+      "invoice.confirmed",
+      "invoice.mempool_detected",
+      "invoice.failed",
+    ];
+
+    if (!subscribedEvents.includes(event)) {
+      console.log(
+        `📡 Webhook skipped. Merchant is not subscribed to '${event}'.`,
+      );
+      return true;
+    }
+
     const payload = {
       id: `evt_${crypto.randomBytes(12).toString("hex")}`,
       event,
@@ -80,9 +94,9 @@ export class WebhookDispatcher {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-KnotEngine-Signature": signature,
-          "X-KnotEngine-Event": event,
-          "X-KnotEngine-Invoice": invoice.invoiceId,
+          "x-knot-signature": signature,
+          "x-knot-event": event,
+          "x-knot-invoice": invoice.invoiceId,
           "User-Agent": "KnotEngine-Webhook-Dispatcher/1.0",
         },
         body: payloadString,
@@ -90,14 +104,21 @@ export class WebhookDispatcher {
       });
 
       if (response.ok) {
+        const updateSet: Record<string, unknown> = {
+          webhookAttempts: (invoice.webhookAttempts || 0) + 1,
+          lastWebhookAttempt: new Date(),
+        };
+
+        if (event === "invoice.confirmed" || event === "invoice.failed") {
+          updateSet.webhookDelivered = true;
+        }
+
         await Invoice.findByIdAndUpdate(invoice._id, {
-          $set: {
-            webhookDelivered: true,
-            webhookAttempts: (invoice.webhookAttempts || 0) + 1,
-            lastWebhookAttempt: new Date(),
-          },
+          $set: updateSet,
         });
-        console.log(`✅ Webhook SUCCESS: ${invoiceId} confirmed by merchant.`);
+        console.log(
+          `✅ Webhook SUCCESS: ${invoiceId} ${event} delivered to merchant.`,
+        );
         return true;
       } else {
         throw new Error(`Merchant returned ${response.status}`);
@@ -122,6 +143,72 @@ export class WebhookDispatcher {
       // based on the 'lastWebhookAttempt' and 'webhookAttempts' count.
 
       return false;
+    }
+  }
+
+  /**
+   * Dispatches a test webhook notification to the merchant with dummy data.
+   */
+  public static async dispatchTest(merchantId: string): Promise<boolean> {
+    const merchant = await Merchant.findById(merchantId);
+
+    if (!merchant?.webhookUrl) {
+      throw new Error("No webhook URL configured");
+    }
+
+    const event = "invoice.confirmed";
+    const payload = {
+      id: `evt_test_${crypto.randomBytes(8).toString("hex")}`,
+      event,
+      created: Math.floor(Date.now() / 1000),
+      invoice_id: "inv_test_1234567890",
+      status: "confirmed",
+      amount: {
+        usd: 100.0,
+        crypto: 0.0015,
+        currency: "BTC",
+        fee_usd: 1.0,
+      },
+      payment: {
+        address: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
+        tx_hash:
+          "0x0000000000000000000000000000000000000000000000000000000000000000",
+        confirmations: 2,
+        paid_at: new Date().toISOString(),
+      },
+      metadata: { is_test: true },
+    };
+
+    const payloadString = JSON.stringify(payload);
+    const secret =
+      merchant.webhookSecret || process.env.WEBHOOK_SECRET || "default_secret";
+    const signature = Derivator.signWebhookPayload(payloadString, secret);
+
+    try {
+      console.log(`📡 Dispatching TEST webhook to ${merchant.webhookUrl}`);
+
+      const response = await fetch(merchant.webhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-knot-signature": signature,
+          "x-knot-event": event,
+          "x-knot-invoice": payload.invoice_id,
+          "User-Agent": "KnotEngine-Webhook-Dispatcher/1.0",
+        },
+        body: payloadString,
+        signal: AbortSignal.timeout(10000), // 10 second timeout for tests
+      });
+
+      if (!response.ok) {
+        throw new Error(`Merchant returned ${response.status}`);
+      }
+
+      console.log(`✅ TEST Webhook SUCCESS`);
+      return true;
+    } catch (error: any) {
+      console.error(`❌ TEST Webhook FAILURE: ${error.message}`);
+      throw error;
     }
   }
 
@@ -169,7 +256,7 @@ export class WebhookDispatcher {
 
   private static async triggerInvoiceWebhook(invoice: IInvoice) {
     const event =
-      invoice.status === "confirmed" ? "invoice.confirmed" : "invoice.expired";
+      invoice.status === "confirmed" ? "invoice.confirmed" : "invoice.failed";
     await this.dispatch(invoice.invoiceId, event);
   }
 }

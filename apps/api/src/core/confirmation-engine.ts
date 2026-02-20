@@ -4,10 +4,10 @@ import {
   Merchant,
   WebhookEvent,
 } from "@knotengine/database";
-import { DEFAULT_CONFIRMATIONS } from "@knotengine/types";
 import { SocketService } from "../infra/socket-service";
 import { WebhookDispatcher } from "../infra/webhook-dispatcher";
 import { TatumProvider } from "../infra/tatum-provider";
+import { DEFAULT_CONFIRMATIONS, EVM_CURRENCIES } from "@knotengine/types";
 
 /**
  * 🔒 ConfirmationEngine
@@ -73,7 +73,7 @@ export class ConfirmationEngine {
       // Validation: If we matched loosely, ensure it's safe (EVM) or verify strictness (BTC)
       if (candidate) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const isEVM = ["ETH", "USDT_ERC20", "USDT_POLYGON", "USDC"].includes(
+        const isEVM = EVM_CURRENCIES.includes(
           (candidate as any).cryptoCurrency,
         );
         // If it's EVM, case doesn't matter (0xAbC == 0xabc).
@@ -137,6 +137,10 @@ export class ConfirmationEngine {
       txHash: event.txHash,
     });
 
+    if (newStatus === "mempool_detected" && invoice.status === "pending") {
+      WebhookDispatcher.dispatch(invoice.invoiceId, "invoice.mempool_detected");
+    }
+
     // 6. Trigger outbound webhook if confirmed
     if (newStatus === "confirmed") {
       WebhookDispatcher.dispatch(invoice.invoiceId, "invoice.confirmed");
@@ -146,13 +150,14 @@ export class ConfirmationEngine {
         TatumProvider.deleteSubscription(invoice.tatumSubscriptionId);
       }
 
-      // 8. Accrue Fees (KnotEngine Fee)
+      // 8. Deduct from Credit Balance & Accrue Fees (KnotEngine Fee)
       if (!invoice.paidAt) {
         // Double check paidAt to prevent double counting if multiple events fire
         await Merchant.findByIdAndUpdate(invoice.merchantId, {
           $inc: {
             "feesAccrued.usd": invoice.feeUsd,
             [`feesAccrued.${invoice.cryptoCurrency}`]: invoice.feeCrypto,
+            creditBalance: -invoice.feeUsd, // Deduct from prepaid credits
           },
         });
       }

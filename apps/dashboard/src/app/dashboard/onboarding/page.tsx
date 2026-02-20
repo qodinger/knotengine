@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { PlusCircle, Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 
@@ -19,7 +18,6 @@ import { Label } from "@/components/ui/label";
 import { createMerchant } from "@/actions/merchant";
 
 export default function OnboardingPage() {
-  const router = useRouter();
   const { update } = useSession();
   const [storeName, setStoreName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -36,8 +34,7 @@ export default function OnboardingPage() {
       await update({ merchantId: newMerchant.id });
 
       // 3. Redirect to dashboard
-      router.push("/dashboard");
-      router.refresh();
+      window.location.href = "/dashboard";
     } catch (error) {
       console.error("Failed to create store:", error);
     } finally {

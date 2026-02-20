@@ -3,14 +3,13 @@
 import * as React from "react";
 import {
   LayoutDashboard,
-  Receipt,
-  Settings,
-  Key,
+  CreditCard,
   Wallet,
+  Code2,
+  Coins,
+  Settings,
   LifeBuoy,
-  Activity,
-  Target,
-  FlaskConical,
+  Webhook,
 } from "lucide-react";
 
 import {
@@ -32,25 +31,27 @@ import { usePathname } from "next/navigation";
 import packageJson from "../../package.json";
 
 const navItems = {
-  platform: [
-    { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-    { icon: Activity, label: "Lifecycle", href: "/dashboard/lifecycle" },
-    { icon: Target, label: "Analytics", href: "/dashboard/analytics" },
+  core: [
+    { icon: LayoutDashboard, label: "Home", href: "/dashboard" },
+    { icon: CreditCard, label: "Payments", href: "/dashboard/payments" },
+    { icon: Wallet, label: "Balances", href: "/dashboard/balances" },
+    { icon: Coins, label: "Billing", href: "/dashboard/billing" },
+    { icon: Code2, label: "Developers", href: "/dashboard/developers" },
+    { icon: Webhook, label: "Webhooks", href: "/dashboard/webhooks" },
   ],
-  infrastructure: [
-    { icon: Receipt, label: "Invoices", href: "/dashboard/invoices" },
-    { icon: Wallet, label: "Wallets", href: "/dashboard/wallets" },
-    { icon: Key, label: "API Keys", href: "/dashboard/keys" },
-    { icon: FlaskConical, label: "Simulate", href: "/dashboard/testnet" },
-  ],
-  support: [
-    { icon: LifeBuoy, label: "Get Help", href: "/dashboard/support" },
+  manage: [
     { icon: Settings, label: "Settings", href: "/dashboard/settings" },
+    { icon: LifeBuoy, label: "Get Help", href: "/dashboard/support" },
   ],
 };
 
 export function AppSidebar() {
   const pathname = usePathname();
+
+  const isActive = (href: string) => {
+    if (href === "/dashboard") return pathname === "/dashboard";
+    return pathname.startsWith(href);
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r-0!">
@@ -65,40 +66,15 @@ export function AppSidebar() {
       <SidebarContent className="mt-4 space-y-2 overflow-hidden group-data-[collapsible=icon]:px-0 px-2">
         <SidebarGroup>
           <SidebarGroupLabel className="px-4 font-bold text-[10px] uppercase tracking-wider text-muted-foreground/30 mb-2 truncate group-data-[collapsible=icon]:hidden">
-            Core
+            Overview
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.platform.map((item) => (
+              {navItems.core.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     asChild
-                    isActive={pathname === item.href}
-                    tooltip={item.label}
-                    className="font-medium h-9"
-                  >
-                    <Link href={item.href}>
-                      <item.icon className="size-4" />
-                      <span>{item.label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel className="px-4 font-bold text-[10px] uppercase tracking-wider text-muted-foreground/30 mb-2 truncate group-data-[collapsible=icon]:hidden">
-            Infrastructure
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navItems.infrastructure.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={pathname === item.href}
+                    isActive={isActive(item.href)}
                     tooltip={item.label}
                     className="font-medium h-9"
                   >
@@ -116,11 +92,11 @@ export function AppSidebar() {
         <SidebarGroup className="mt-auto">
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.support.map((item) => (
+              {navItems.manage.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     asChild
-                    isActive={pathname === item.href}
+                    isActive={isActive(item.href)}
                     tooltip={item.label}
                     className="font-medium h-9"
                   >

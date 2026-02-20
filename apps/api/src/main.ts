@@ -19,19 +19,22 @@ import path from "path";
 import fs from "fs";
 import packageJson from "../package.json";
 
-// Load .env from monorepo root
-// Try multiple paths to ensure we find the environment variables
+// Load environment-specific .env file from monorepo root
+const envSuffix =
+  process.env.NODE_ENV === "production" ? "production" : "development";
+const envFileName = `.env.${envSuffix}`;
+
 const possibleEnvPaths = [
-  path.resolve(__dirname, "../../../.env"), // Monorepo root from built dist/ src/
-  path.resolve(process.cwd(), ".env"), // Current working directory
-  path.resolve(process.cwd(), "../../.env"), // Two levels up from CWD
+  path.resolve(__dirname, `../../../${envFileName}`), // Monorepo root from built dist/
+  path.resolve(process.cwd(), envFileName), // Current working directory
+  path.resolve(process.cwd(), `../../${envFileName}`), // Two levels up from CWD
 ];
 
 let envLoaded = false;
 for (const envPath of possibleEnvPaths) {
   if (fs.existsSync(envPath)) {
     dotenv.config({ path: envPath });
-    console.log(`✅ Loaded .env from ${envPath}`);
+    console.log(`✅ Loaded ${envFileName} from ${envPath}`);
     envLoaded = true;
     break;
   }
@@ -39,7 +42,7 @@ for (const envPath of possibleEnvPaths) {
 
 if (!envLoaded) {
   console.warn(
-    "⚠️  No .env file found. Relying on system environment variables.",
+    `⚠️  No ${envFileName} file found. Relying on system environment variables.`,
   );
 }
 

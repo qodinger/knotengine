@@ -3,7 +3,9 @@ import dotenv from "dotenv";
 import path from "path";
 
 // Load environment variables
-dotenv.config({ path: path.resolve(__dirname, "../../../../.env") });
+dotenv.config({
+  path: path.resolve(__dirname, "../../../../.env.development"),
+});
 
 const API_Endpoint = "http://localhost:3000/v1/webhooks/alchemy";
 const signingKey = process.env.ALCHEMY_WEBHOOK_SIGNING_KEY;

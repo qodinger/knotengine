@@ -46,7 +46,7 @@ Or run services individually:
 
 - **KnotEngine (API)**: `pnpm dev:api` (Port 5050)
 - **Checkout UI**: `pnpm dev:checkout` (Port 5051)
-- **Merchant Dashboard**: `pnpm dev:dashboard` (Port 5052)
+- **Store Dashboard**: `pnpm dev:dashboard` (Port 5052)
 
 ## 📡 Port Mapping
 
@@ -54,17 +54,17 @@ Or run services individually:
 | :-------------- | :--- | :--------------------------- |
 | **KnotEngine**  | 5050 | Core API & Socket.io Server  |
 | **Checkout UI** | 5051 | Customer-facing payment page |
-| **Dashboard**   | 5052 | Merchant Console & Stats     |
+| **Dashboard**   | 5052 | Store Console & Stats        |
 
 ## 🧪 Testing & Simulation
 
 - **Run Unit Tests**: `pnpm test`
 
-## 🛒 Merchant Workflow
+## 🛒 Store Workflow
 
 KnotEngine is designed to be integrated into any application in under 5 minutes.
 
-### 1. Register as a Merchant
+### 1. Register a Store
 
 Send a `POST` request to the API to get your unique credentials:
 
@@ -96,7 +96,7 @@ Redirect your user to the `checkout_url` provided. This page handles the QR code
 ### 4. Receive Funds & Notifications
 
 - **Funds**: Go directly to the wallet associated with your `xpub`. KnotEngine is non-custodial.
-- **Notifications**: Once confirmed on-chain, KnotEngine sends an HMAC-signed webhook to your `webhookUrl` (configurable in merchant settings).
+- **Notifications**: Once confirmed on-chain, KnotEngine sends an HMAC-signed webhook to your `webhookUrl` (configurable in store settings).
 
 ---
 

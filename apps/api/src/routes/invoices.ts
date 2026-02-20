@@ -5,7 +5,7 @@ import { Invoice, Merchant } from "@knotengine/database";
 import { Derivator } from "@knotengine/crypto";
 import { PriceOracle } from "../infra/price-feed";
 import { ConfirmationEngine } from "../core/confirmation-engine";
-import { Currency } from "@knotengine/types";
+import { Currency, SUPPORTED_CURRENCIES } from "@knotengine/types";
 import { TatumProvider } from "../infra/tatum-provider";
 import * as crypto from "crypto";
 
@@ -57,7 +57,10 @@ export async function invoiceRoutes(app: FastifyInstance) {
     const merchantId = request.headers["x-merchant-id"] as string;
 
     if (oauthId && internalSecret === process.env.INTERNAL_SECRET) {
-      const query: any = { oauthId, isActive: true };
+      const query: any = {
+        oauthId: { $regex: new RegExp(`^${oauthId}(:|$)`) },
+        isActive: true,
+      };
       if (merchantId) query._id = merchantId;
 
       const merchant = await Merchant.findOne(query);
@@ -80,7 +83,7 @@ export async function invoiceRoutes(app: FastifyInstance) {
       schema: {
         body: z.object({
           amount_usd: z.number().positive(),
-          currency: z.enum(["BTC", "LTC", "USDT_ERC20", "USDT_POLYGON"]),
+          currency: z.enum(SUPPORTED_CURRENCIES),
           /** Invoice TTL in minutes (default: 30) */
           ttl_minutes: z.number().int().min(5).max(1440).default(30),
           metadata: z.record(z.unknown()).optional(),
@@ -135,23 +138,55 @@ export async function invoiceRoutes(app: FastifyInstance) {
         });
       }
 
-      // 3. Get required confirmations
+      // 3. Safety Rails: Minimum Invoice Amount
+      const minInvoiceAmount = parseFloat(
+        process.env.MIN_INVOICE_AMOUNT || "1.00",
+      );
+      if (amount_usd < minInvoiceAmount) {
+        return reply.code(400).send({
+          error: `Minimum invoice amount is $${minInvoiceAmount.toFixed(2)}`,
+        });
+      }
+
+      // 4. Credit Balance Gate
+      if (merchant.creditBalance <= 0) {
+        return reply.code(402).send({
+          error:
+            "Insufficient credit balance. Please top up your account to continue creating invoices.",
+          creditBalance: merchant.creditBalance,
+          topUpWallets: {
+            BTC: process.env.PLATFORM_FEE_WALLET_BTC || null,
+            LTC: process.env.PLATFORM_FEE_WALLET_LTC || null,
+            EVM: process.env.PLATFORM_FEE_WALLET_EVM || null,
+          },
+        });
+      }
+
+      // 5. Get required confirmations
       const requiredConfirmations =
         await ConfirmationEngine.getRequiredConfirmations(
           merchant._id.toString(),
           currency,
         );
 
-      // 4. Generate unique invoice ID
+      // 5. Generate unique invoice ID
       const invoiceId = `inv_${crypto.randomBytes(12).toString("hex")}`;
 
-      // 5. Create the invoice
+      // 6. Create the invoice
       const expiresAt = new Date(Date.now() + ttl_minutes * 60 * 1000);
       const platfromFeeRate = parseFloat(
-        process.env.PLATFORM_FEE_RATE || "0.005",
-      ); // Default 0.5%
-      const feeUsd = parseFloat((amount_usd * platfromFeeRate).toFixed(2));
-      const feeCrypto = parseFloat((cryptoAmount * platfromFeeRate).toFixed(8));
+        process.env.PLATFORM_FEE_RATE || "0.01",
+      ); // 1%
+      const minFeeUsd = parseFloat(process.env.MIN_FEE_USD || "0.05");
+
+      // Calculate fee with a minimum floor to cover infrastructure costs
+      const rawFeeUsd = amount_usd * platfromFeeRate;
+      const feeUsd = parseFloat(Math.max(rawFeeUsd, minFeeUsd).toFixed(2));
+
+      // Calculate proportionate crypto fee
+      const feeCrypto = parseFloat(
+        ((feeUsd / amount_usd) * cryptoAmount).toFixed(8),
+      );
 
       const invoice = await Invoice.create({
         merchantId: merchant._id,

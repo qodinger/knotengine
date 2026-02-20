@@ -6,7 +6,6 @@ import {
   RefreshCw,
   Zap,
   CheckCircle2,
-  ExternalLink,
   Copy,
   Plus,
   AlertCircle,
@@ -144,9 +143,9 @@ export default function TestnetPage() {
 
       const availableCurrencies: string[] = [];
       if (config.btcXpub || config.btcXpubTestnet)
-        availableCurrencies.push("BTC", "LTC");
+        availableCurrencies.push("BTC");
       if (config.ethAddress || config.ethAddressTestnet)
-        availableCurrencies.push("USDT_POLYGON", "USDT_ERC20");
+        availableCurrencies.push("ETH");
 
       if (availableCurrencies.length === 0) {
         setError(
@@ -173,7 +172,7 @@ export default function TestnetPage() {
   };
 
   return (
-    <div className="max-w-4xl space-y-8">
+    <div className="w-full space-y-8">
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -210,8 +209,8 @@ export default function TestnetPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+          <div className="flex w-full">
+            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 w-full">
               <h3 className="text-sm font-bold text-amber-500 mb-2 flex items-center gap-2">
                 <Zap className="size-4" /> Realistic Simulation
               </h3>
@@ -219,41 +218,6 @@ export default function TestnetPage() {
                 Simulates a real 3-step payment flow: Mempool &rarr; Confirming
                 &rarr; Settled (takes ~6 seconds).
               </p>
-            </div>
-            <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
-              <h3 className="text-sm font-bold text-blue-500 mb-2 flex items-center gap-2">
-                <ExternalLink className="size-4" /> External Faucets
-              </h3>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 text-[10px] uppercase font-bold"
-                  asChild
-                >
-                  <a
-                    href="https://coinfaucet.eu/en/btc-testnet/"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    BTC Testnet
-                  </a>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 text-[10px] uppercase font-bold"
-                  asChild
-                >
-                  <a
-                    href="https://sepoliafaucet.com/"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Sepolia ETH
-                  </a>
-                </Button>
-              </div>
             </div>
           </div>
         </CardContent>

@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-02-20
+
+### Added
+
+- **Automated Releases** — GitHub Actions workflow for automatic creation of GitHub Releases with changelog extraction.
+- **SDK Automation** — Integrated GitHub Packages publishing for the `@tyecode/knotengine-sdk`.
+
+### Changed
+
+- **Branding & Scope** — Renamed official SDK to `@tyecode/knotengine-sdk` for compatibility with GitHub's package registry.
+- **Version Syncing** — Updated `sync-versions` script to support both `@knotengine` and `@tyecode` scopes across the monorepo.
+
 ## [0.2.0] - 2026-02-18
 
 ### Added
@@ -29,4 +41,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **API Engine** — Improved error handling and performance optimizations for the core Knot server.
 - **Webhooks** — Enhanced payload security with HMAC signatures and unique event IDs (`evt_...`).
 
+[0.2.1]: https://github.com/tyecode/knotengine/releases/tag/v0.2.1
 [0.2.0]: https://github.com/tyecode/knotengine/releases/tag/v0.2.0

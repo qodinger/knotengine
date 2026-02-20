@@ -17,6 +17,7 @@ export interface IMerchant extends Document {
   ethAddressTestnet?: string;
   webhookUrl?: string;
   webhookSecret?: string;
+  webhookEvents?: string[];
   /** Current derivation index for unique address generation */
   derivationIndex: number;
   /** Required confirmations per currency */
@@ -33,6 +34,8 @@ export interface IMerchant extends Document {
     USDT_ERC20: number;
     USDT_POLYGON: number;
   };
+  /** Prepaid credit balance (USD) — deducted per confirmed invoice */
+  creditBalance: number;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -50,6 +53,14 @@ const MerchantSchema: Schema = new Schema(
     ethAddressTestnet: { type: String },
     webhookUrl: { type: String },
     webhookSecret: { type: String },
+    webhookEvents: {
+      type: [String],
+      default: [
+        "invoice.confirmed",
+        "invoice.mempool_detected",
+        "invoice.failed",
+      ],
+    },
     derivationIndex: { type: Number, default: 0 },
     confirmationPolicy: {
       type: {
@@ -67,6 +78,7 @@ const MerchantSchema: Schema = new Schema(
       USDT_ERC20: { type: Number, default: 0 },
       USDT_POLYGON: { type: Number, default: 0 },
     },
+    creditBalance: { type: Number, default: 5.0 },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true },
@@ -226,4 +238,45 @@ WebhookEventSchema.index({ processed: 1 });
 export const WebhookEvent = mongoose.model<IWebhookEvent>(
   "WebhookEvent",
   WebhookEventSchema,
+);
+
+// ============================================================
+// 💰 TOPUP CLAIM MODEL
+// Tracks merchant top-up TX IDs to prevent double-claiming.
+// ============================================================
+
+export interface ITopUpClaim extends Document {
+  merchantId: mongoose.Types.ObjectId;
+  txHash: string;
+  currency: string;
+  amountCrypto: number;
+  amountUsd: number;
+  status: "approved" | "rejected" | "pending";
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const TopUpClaimSchema: Schema = new Schema(
+  {
+    merchantId: {
+      type: Schema.Types.ObjectId,
+      ref: "Merchant",
+      required: true,
+    },
+    txHash: { type: String, required: true, unique: true }, // Prevent double-claiming globally
+    currency: { type: String, required: true },
+    amountCrypto: { type: Number, required: true },
+    amountUsd: { type: Number, required: true },
+    status: {
+      type: String,
+      enum: ["approved", "rejected", "pending"],
+      default: "pending",
+    },
+  },
+  { timestamps: true },
+);
+
+export const TopUpClaim = mongoose.model<ITopUpClaim>(
+  "TopUpClaim",
+  TopUpClaimSchema,
 );

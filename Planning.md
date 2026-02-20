@@ -1,4 +1,4 @@
-# 🚀 Project: KnotEngine
+# 🚀 KnotEngine
 
 > **Minimalist, Non-Custodial Crypto Payment Infrastructure for Humans.**
 
@@ -10,7 +10,7 @@
 
 ---
 
-## 📌 Project Overview
+## 📌 Service Overview
 
 KnotEngine is a **non-custodial** payment gateway designed for modern developers and digital stores. Unlike traditional centralist gateways, KnotEngine never touches a merchant's private keys.
 
@@ -20,7 +20,7 @@ By leveraging **HD Wallet Derivation (BIP44)**, the system generates unique, one
 
 - **🛡️ Zero Custody:** Merchants maintain 100% control. Funds never pass through KnotEngine's servers.
 - **🕵️ Privacy-First:** No invasive KYC for small-scale developers.
-- **🧩 Minimalist:** A "plug-and-play" library architecture that avoids project bloat.
+- **🧩 Minimalist:** A "plug-and-play" library architecture that avoids infrastructure bloat.
 
 ---
 
@@ -58,7 +58,7 @@ By leveraging **HD Wallet Derivation (BIP44)**, the system generates unique, one
 - [x] **Confirmation Logic:** Configurable block-depth engine with merchant-level policy overrides + auto-expiration.
 - [x] **API V1:** Complete invoice lifecycle endpoints (`POST /v1/invoices`, `GET /v1/invoices/:id`, list, cancel).
 - [x] **SaaS Onboarding:** Automated xPub subscription with Tatum API on merchant registration.
-- [x] **KnotEngine Fee:** Built-in 0.5% platform fee calculation and tracking in every invoice.
+- [x] **KnotEngine Fee:** Built-in 1.0% platform fee calculation and tracking in every invoice.
 
 ### Phase 3: Checkout Experience & Webhooks ✅
 
@@ -81,17 +81,18 @@ By leveraging **HD Wallet Derivation (BIP44)**, the system generates unique, one
 - [x] **Auth Integration:** Wire up Login/Register UI to backend (API Key Based).
 - [x] **Testnet Beta:** Launch public testnet for developer feedback with free faucet coins.
 - [ ] **Legal Framework:** Register under KnotEngine IT Services.
-- [x] **Monetization:** Implement the 0.5% "KnotEngine Fee" via auto-routing logic (On-chain settlement).
-- [x] **Ecosystem:** Launch documentation portal and official `@knotengine/sdk` NPM package.
+- [x] **Monetization:** Implement the 1.0% "KnotEngine Fee" via auto-accrual logic with designated platform collection wallets (BTC, LTC, EVM).
+- [x] **Ecosystem:** Launch documentation portal and official `@tyecode/knotengine-sdk` NPM package (Automated via GitHub Actions).
 
-### Phase 5: Growth & Enterprise Security (Future) 🔮
+### Phase 5: Growth & Advanced Tools (Future) 🔮
 
-**Focus:** Transitioning from "Developer Tool" to "SaaS Platform".
+**Focus:** Enhancing security and power-user tools for independent merchants.
 
-- [ ] **Identity Layer:** abstract the current API Key model into a full RBAC system.
-- [ ] **Team Management:** Invite multiple users (Support, Finance, Admin) to a single Merchant account.
-- [ ] **Traditional Auth:** Email/Password (or Magic Link) login for non-technical users.
-- [ ] **Audit Logs:** Track who did what and when within the dashboard.
+- [ ] **Enhanced Security:** Implement 2FA (Two-Factor Authentication) for session protection.
+- [ ] **Reporting & Accounting:** Generate monthly revenue reports and CSV/JSON exports for taxes.
+- [ ] **Mobile Optimization:** Progressive Web App (PWA) for managing stores on mobile devices.
+- [ ] **Multi-Asset Support:** Expand to higher-layer networks (L2s) for even lower transaction fees.
+- [ ] **Audit Logs:** Personal audit trail to track account changes and security events.
 
 ---
 
