@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
 import {
   Loader2,
   Send,
@@ -10,7 +9,6 @@ import {
   ShieldCheck,
   ExternalLink,
 } from "lucide-react";
-import { api } from "@/lib/api";
 import { cn, dedent } from "@/lib/utils";
 import {
   Card,
@@ -24,93 +22,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CodeBlock } from "@/components/ui/code-block";
+import { useWebhooks } from "../hooks/use-webhooks";
 
 export function WebhooksTab() {
-  const [copied, setCopied] = useState<string | null>(null);
-  const [savingWebhooks, setSavingWebhooks] = useState(false);
-  const [webhookSuccess, setWebhookSuccess] = useState(false);
-  const [testingWebhook, setTestingWebhook] = useState(false);
-  const [showWebhookSecret, setShowWebhookSecret] = useState(false);
-  const [rotatingWebhookSecret, setRotatingWebhookSecret] = useState(false);
-  const [webhookData, setWebhookData] = useState({
-    webhookUrl: "",
-    webhookSecret: "",
-    webhookEvents: [] as string[],
-  });
-  const [selectedLanguage, setSelectedLanguage] = useState("nodejs-sdk");
-
-  const copyToClipboard = (text: string, id?: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(id || "generic");
-    setTimeout(() => setCopied(null), 2000);
-  };
-
-  const fetchMerchantConfig = useCallback(async () => {
-    try {
-      const res = await api.get("/v1/merchants/me");
-      const m = res.data;
-      setWebhookData({
-        webhookUrl: m.webhookUrl || "",
-        webhookSecret: m.webhookSecret || "",
-        webhookEvents: m.webhookEvents || [
-          "invoice.confirmed",
-          "invoice.mempool_detected",
-          "invoice.failed",
-        ],
-      });
-    } catch (err) {
-      console.error("Failed to load merchant config", err);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchMerchantConfig();
-  }, [fetchMerchantConfig]);
-
-  const handleSaveWebhooks = async () => {
-    setSavingWebhooks(true);
-    setWebhookSuccess(false);
-    try {
-      await api.patch("/v1/merchants/me", {
-        webhookUrl: webhookData.webhookUrl,
-        webhookEvents: webhookData.webhookEvents,
-      });
-      setWebhookSuccess(true);
-      setTimeout(() => setWebhookSuccess(false), 3000);
-    } catch (err) {
-      console.error("Failed to save settings", err);
-    } finally {
-      setSavingWebhooks(false);
-    }
-  };
-
-  const handleRotateWebhookSecret = async () => {
-    setRotatingWebhookSecret(true);
-    try {
-      const res = await api.post("/v1/merchants/me/keys/webhook", {});
-      setWebhookData((prev) => ({
-        ...prev,
-        webhookSecret: res.data.webhookSecret,
-      }));
-      setWebhookSuccess(true);
-      setTimeout(() => setWebhookSuccess(false), 3000);
-    } catch (err) {
-      console.error("Failed to rotate webhook secret", err);
-    } finally {
-      setRotatingWebhookSecret(false);
-    }
-  };
-
-  const handleTestWebhook = async () => {
-    setTestingWebhook(true);
-    try {
-      await api.post("/v1/merchants/me/webhooks/test", {});
-    } catch (err) {
-      console.error("Failed to test webhook", err);
-    } finally {
-      setTestingWebhook(false);
-    }
-  };
+  const {
+    webhookData,
+    setWebhookData,
+    copied,
+    savingWebhooks,
+    webhookSuccess,
+    testingWebhook,
+    showWebhookSecret,
+    setShowWebhookSecret,
+    rotatingWebhookSecret,
+    selectedLanguage,
+    setSelectedLanguage,
+    copyToClipboard,
+    handleSaveWebhooks,
+    handleRotateWebhookSecret,
+    handleTestWebhook,
+  } = useWebhooks();
 
   return (
     <div className="space-y-6">
@@ -318,60 +249,54 @@ export function WebhooksTab() {
         </CardContent>
       </Card>
 
-      {/* Developer Documentation Section */}
-      <div className="flex flex-col gap-6 mt-6 items-start w-full">
-        {/* Payload Preview */}
-        <Card className="border shadow-sm bg-[#0c0c0c] text-slate-50 relative overflow-hidden w-full">
-          <CardContent className="p-8">
-            <div className="flex flex-col gap-6">
-              <div className="space-y-2">
-                <h3 className="text-sm font-bold text-slate-50">
-                  Payload preview
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Sample HTTP request structure sent to your server.
-                </p>
-              </div>
-              <CodeBlock
-                language="json"
-                className="w-full h-[400px]"
-                code={dedent`
-                  POST /webhooks HTTP/1.1
-                  x-knot-signature: 8f...2a
-                  x-knot-event: invoice.confirmed
-                  Content-Type: application/json
-
-                  {
-                    "id": "evt_test_1234567890",
-                    "event": "invoice.confirmed",
-                    "created": 1700000000,
-                    "invoice_id": "inv_test_1234567890",
-                    "status": "confirmed",
-                    "amount": {
-                      "usd": 100.0,
-                      "crypto": 0.0015,
-                      "currency": "BTC",
-                      "fee_usd": 1.0
-                    },
-                    "payment": {
-                      "address": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
-                      "tx_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-                      "confirmations": 2,
-                      "paid_at": "2024-02-21T01:52:45.000Z"
-                    },
-                    "metadata": {
-                      "is_test": true
-                    }
-                  }
-                `}
-              />
+      <Card className="border shadow-sm bg-[#0c0c0c] text-slate-50 relative overflow-hidden w-full">
+        <CardContent className="p-8">
+          <div className="flex flex-col gap-6">
+            <div className="space-y-2">
+              <h3 className="text-sm font-bold text-slate-50">
+                Payload preview
+              </h3>
+              <p className="text-xs text-slate-400">
+                Sample HTTP request structure sent to your server.
+              </p>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+            <CodeBlock
+              language="json"
+              className="w-full h-[400px]"
+              code={dedent`
+                POST /webhooks HTTP/1.1
+                x-knot-signature: 8f...2a
+                x-knot-event: invoice.confirmed
+                Content-Type: application/json
 
-      {/* Implementation Guide */}
-      {/* Implementation Guide */}
+                {
+                  "id": "evt_test_1234567890",
+                  "event": "invoice.confirmed",
+                  "created": 1700000000,
+                  "invoice_id": "inv_test_1234567890",
+                  "status": "confirmed",
+                  "amount": {
+                    "usd": 100.0,
+                    "crypto": 0.0015,
+                    "currency": "BTC",
+                    "fee_usd": 1.0
+                  },
+                  "payment": {
+                    "address": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
+                    "tx_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                    "confirmations": 2,
+                    "paid_at": "2024-02-21T01:52:45.000Z"
+                  },
+                  "metadata": {
+                    "is_test": true
+                  }
+                }
+              `}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       <Card className="border shadow-sm mt-6 bg-[#0c0c0c] text-slate-50 relative overflow-hidden">
         <CardContent className="p-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">

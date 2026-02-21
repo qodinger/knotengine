@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { useSession } from "next-auth/react";
 import {
   Copy,
   Check,
@@ -12,7 +10,6 @@ import {
   ExternalLink,
   Key,
 } from "lucide-react";
-import { api } from "@/lib/api";
 import { cn, dedent } from "@/lib/utils";
 import { CodeBlock } from "@/components/ui/code-block";
 import {
@@ -51,37 +48,24 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useApiKeys } from "../hooks/use-api-keys";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5050";
 
 export function ApiKeysTab() {
-  const { data: session, update: updateSession } = useSession();
-  const [copied, setCopied] = useState<string | null>(null);
-  const [rotating, setRotating] = useState(false);
-  const [isRotateDialogOpen, setIsRotateDialogOpen] = useState(false);
-  const [newKey, setNewKey] = useState<string | null>(null);
-  const [selectedIntegrationLanguage, setSelectedIntegrationLanguage] =
-    useState("nodejs");
-
-  const copyToClipboard = (text: string, id?: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(id || "generic");
-    setTimeout(() => setCopied(null), 2000);
-  };
-
-  const handleRotateKey = async () => {
-    setRotating(true);
-    try {
-      const res = await api.post("/v1/merchants/me/keys");
-      await updateSession({ apiKey: res.data.apiKey });
-      setNewKey(res.data.apiKey);
-      setIsRotateDialogOpen(false);
-    } catch (err) {
-      console.error("Failed to rotate key:", err);
-    } finally {
-      setRotating(false);
-    }
-  };
+  const {
+    session,
+    copied,
+    rotating,
+    isRotateDialogOpen,
+    setIsRotateDialogOpen,
+    newKey,
+    setNewKey,
+    selectedIntegrationLanguage,
+    setSelectedIntegrationLanguage,
+    copyToClipboard,
+    handleRotateKey,
+  } = useApiKeys();
 
   return (
     <div className="space-y-6">

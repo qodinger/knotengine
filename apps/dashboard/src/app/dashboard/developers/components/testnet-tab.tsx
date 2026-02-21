@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
@@ -14,7 +13,6 @@ import {
   ShieldCheck,
   ExternalLink,
 } from "lucide-react";
-import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,174 +28,27 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-
-interface TestnetInvoice {
-  invoice_id: string;
-  amount_usd: number;
-  crypto_amount: number;
-  crypto_currency: string;
-  pay_address: string;
-  status: string;
-  created_at: string;
-}
+import { useTestnet } from "../hooks/use-testnet";
 
 export function TestnetTab() {
-  const [invoices, setInvoices] = useState<TestnetInvoice[]>([]);
-  const [testnetLoading, setTestnetLoading] = useState(true);
-  const [simulating, setSimulating] = useState<string | null>(null);
-  const [successId, setSuccessId] = useState<string | null>(null);
-  const [config, setConfig] = useState<{
-    btcXpub?: string;
-    btcXpubTestnet?: string;
-    ethAddress?: string;
-    ethAddressTestnet?: string;
-  } | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState<string | null>(null);
+  const {
+    invoices,
+    testnetLoading,
+    simulating,
+    successId,
+    config,
+    error,
+    copied,
+    simulatePayment,
+    createTestInvoice,
+    fetchPendingInvoices,
+    copyToClipboard,
+  } = useTestnet();
 
   const truncate = (addr: string) => {
     if (!addr) return "";
     if (addr.length <= 16) return addr;
     return `${addr.slice(0, 10)}...${addr.slice(-6)}`;
-  };
-
-  const copyToClipboard = (text: string, id?: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(id || "generic");
-    setTimeout(() => setCopied(null), 2000);
-  };
-
-  const fetchTestnetData = useCallback(async () => {
-    try {
-      setTestnetLoading(true);
-      const [configRes, invoicesRes] = await Promise.all([
-        api.get("/v1/merchants/me"),
-        api.get("/v1/invoices?limit=10&include_testnet=true"),
-      ]);
-      setConfig(configRes.data);
-      // Only show active (non-expired, non-confirmed) invoices in the pipeline
-      const active = (invoicesRes.data.data as TestnetInvoice[]).filter((inv) =>
-        ["pending", "mempool_detected", "confirming"].includes(inv.status),
-      );
-      setInvoices(active);
-    } catch (err) {
-      console.error("Failed to load data", err);
-    } finally {
-      setTestnetLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchTestnetData();
-  }, [fetchTestnetData]);
-
-  const fetchPendingInvoices = async () => {
-    try {
-      const res = await api.get("/v1/invoices?limit=10&include_testnet=true");
-      const active = (res.data.data as TestnetInvoice[]).filter((inv) =>
-        ["pending", "mempool_detected", "confirming"].includes(inv.status),
-      );
-      setInvoices(active);
-    } catch (err) {
-      console.error("Failed to fetch active invoices", err);
-    }
-  };
-
-  const simulatePayment = async (invoice: TestnetInvoice) => {
-    setSimulating(invoice.invoice_id);
-    const txHash = `0x${Math.random().toString(16).slice(2)}${Math.random().toString(16).slice(2)}`;
-
-    // Helper to optimistically update invoice status in local state
-    const setInvoiceStatus = (status: string) => {
-      setInvoices((prev) =>
-        prev.map((inv) =>
-          inv.invoice_id === invoice.invoice_id ? { ...inv, status } : inv,
-        ),
-      );
-    };
-
-    try {
-      // Step 1: Mempool detected (0 confirmations)
-      setInvoiceStatus("mempool_detected");
-      await api.post("/v1/webhooks/simulate", {
-        invoiceId: invoice.invoice_id,
-        txHash,
-        amount: invoice.crypto_amount.toString(),
-        asset: invoice.crypto_currency,
-        confirmations: 0,
-      });
-
-      // Step 2: Confirming (1 confirmation)
-      setTimeout(async () => {
-        setInvoiceStatus("confirming");
-        await api.post("/v1/webhooks/simulate", {
-          invoiceId: invoice.invoice_id,
-          txHash,
-          amount: invoice.crypto_amount.toString(),
-          asset: invoice.crypto_currency,
-          confirmations: 1,
-        });
-      }, 2000);
-
-      // Step 3: Confirmed (enough confirmations)
-      setTimeout(async () => {
-        setInvoiceStatus("confirmed");
-        await api.post("/v1/webhooks/simulate", {
-          invoiceId: invoice.invoice_id,
-          txHash,
-          amount: invoice.crypto_amount.toString(),
-          asset: invoice.crypto_currency,
-          confirmations: 12,
-        });
-        setSuccessId(invoice.invoice_id);
-        setSimulating(null);
-        // After 3s remove the confirmed invoice from the list and refresh
-        setTimeout(() => {
-          setSuccessId(null);
-          fetchPendingInvoices();
-        }, 3000);
-      }, 5000);
-    } catch (err) {
-      console.error("Simulation failed", err);
-      setSimulating(null);
-    }
-  };
-
-  const createTestInvoice = async () => {
-    if (!config) return;
-    try {
-      setTestnetLoading(true);
-      setError(null);
-      const availableCurrencies: string[] = [];
-      if (config.btcXpub || config.btcXpubTestnet) {
-        availableCurrencies.push("BTC");
-      }
-      if (config.ethAddress || config.ethAddressTestnet) {
-        availableCurrencies.push("ETH");
-      }
-
-      if (availableCurrencies.length === 0) {
-        setError(
-          "Wallet configuration missing. Add a BTC xPub or ETH Address in Settings or generate Testnet Wallets here.",
-        );
-        return;
-      }
-
-      const currency =
-        availableCurrencies[
-          Math.floor(Math.random() * availableCurrencies.length)
-        ];
-      await api.post("/v1/invoices", {
-        amount_usd: Math.round((10 + Math.random() * 90) * 100) / 100,
-        currency,
-        is_testnet: true,
-      });
-      await fetchPendingInvoices();
-    } catch (err) {
-      console.error("Failed to create test invoice", err);
-    } finally {
-      setTestnetLoading(false);
-    }
   };
 
   const wallets = [];
