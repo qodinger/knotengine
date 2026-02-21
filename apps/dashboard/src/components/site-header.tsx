@@ -45,7 +45,6 @@ export function SiteHeader() {
   const { data: session } = useSession();
   const user = session?.user;
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [initialLoaded, setInitialLoaded] = useState(false);
 
   // Fetch initial notifications
   useEffect(() => {
@@ -55,7 +54,7 @@ export function SiteHeader() {
       try {
         const res = await api.get("/v1/merchants/me/notifications");
         setNotifications(
-          res.data.data.map((n: any) => ({
+          res.data.data.map((n: Notification & { _id: string }) => ({
             id: n._id,
             title: n.title,
             description: n.description,
@@ -65,7 +64,6 @@ export function SiteHeader() {
             link: n.link,
           })),
         );
-        setInitialLoaded(true);
       } catch (err) {
         console.error("Failed to fetch notifications", err);
       }
@@ -87,21 +85,24 @@ export function SiteHeader() {
       socket.emit("join_merchant", user.merchantId);
     });
 
-    socket.on("notification", (newNotification: any) => {
-      console.log("🔔 New notification received:", newNotification);
-      setNotifications((prev) => [
-        {
-          id: newNotification.id,
-          title: newNotification.title,
-          description: newNotification.description,
-          createdAt: newNotification.createdAt,
-          isRead: newNotification.isRead,
-          type: newNotification.type,
-          link: newNotification.link,
-        },
-        ...prev,
-      ]);
-    });
+    socket.on(
+      "notification",
+      (newNotification: Notification & { id: string }) => {
+        console.log("🔔 New notification received:", newNotification);
+        setNotifications((prev) => [
+          {
+            id: newNotification.id,
+            title: newNotification.title,
+            description: newNotification.description,
+            createdAt: newNotification.createdAt,
+            isRead: newNotification.isRead,
+            type: newNotification.type,
+            link: newNotification.link,
+          },
+          ...prev,
+        ]);
+      },
+    );
 
     return () => {
       socket.disconnect();

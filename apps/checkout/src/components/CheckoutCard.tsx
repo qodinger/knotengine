@@ -2,15 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import {
-  Copy,
-  Check,
-  Clock,
-  ShieldCheck,
-  AlertCircle,
-  Wallet,
-} from "lucide-react";
+import { Copy, Check, Clock, AlertCircle, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CRYPTO_LOGOS, Currency } from "@knotengine/types";
 
 interface CheckoutCardProps {
   invoice: {
@@ -24,6 +18,11 @@ interface CheckoutCardProps {
     fee_usd: number;
     metadata?: {
       isTestnet?: boolean;
+    };
+    store?: {
+      name: string;
+      logo_url?: string | null;
+      return_url?: string | null;
     };
   };
 }
@@ -89,6 +88,31 @@ export function CheckoutCard({ invoice }: CheckoutCardProps) {
       )}
 
       <div className="p-6">
+        {/* Store Branding */}
+        <div className="flex items-center gap-3 mb-8 pb-6 border-b border-border/50">
+          <div className="size-10 rounded-lg bg-muted flex items-center justify-center overflow-hidden border border-border/50">
+            {invoice.store?.logo_url ? (
+              <img
+                src={invoice.store.logo_url}
+                alt={invoice.store.name}
+                className="size-full object-cover"
+              />
+            ) : (
+              <span className="text-xl font-bold text-muted-foreground uppercase">
+                {invoice.store?.name?.charAt(0) || "S"}
+              </span>
+            )}
+          </div>
+          <div className="flex flex-col">
+            <h1 className="text-sm font-bold tracking-tight text-foreground">
+              {invoice.store?.name || "Merchant Store"}
+            </h1>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium">
+              Payment Request
+            </p>
+          </div>
+        </div>
+
         {/* Header */}
         <div className="w-full flex justify-between items-center mb-8">
           <div className="flex items-center gap-2">
@@ -156,7 +180,19 @@ export function CheckoutCard({ invoice }: CheckoutCardProps) {
         <div className="flex flex-col gap-6">
           {/* QR Code */}
           <div className="bg-white p-4 rounded-xl mx-auto shadow-sm">
-            <QRCodeSVG value={generatePaymentUri()} size={180} level="H" />
+            <QRCodeSVG
+              value={generatePaymentUri()}
+              size={180}
+              level="H"
+              imageSettings={{
+                src:
+                  CRYPTO_LOGOS[invoice.crypto_currency as Currency] ||
+                  CRYPTO_LOGOS["BTC"],
+                height: 48,
+                width: 48,
+                excavate: true,
+              }}
+            />
           </div>
 
           {/* Address Input */}
@@ -186,15 +222,14 @@ export function CheckoutCard({ invoice }: CheckoutCardProps) {
           </div>
         </div>
       </div>
-
       {/* Footer Info */}
-      <div className="bg-secondary/30 border-t border-border p-4 space-y-3">
-        <div className="flex items-center justify-between text-[10px] font-medium text-muted-foreground">
-          <div className="flex items-center gap-1.5">
-            <ShieldCheck size={12} />
-            <span>Non-Custodial</span>
+      <div className="bg-secondary/30 border-t border-border p-4 px-6 mt-2">
+        <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            Live Network Status
           </div>
-          <span>Includes Network Fee</span>
+          <span className="opacity-60 font-medium">Automatic Verification</span>
         </div>
       </div>
     </div>

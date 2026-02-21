@@ -11,24 +11,84 @@ export class Derivator {
    * Derives a Bitcoin (SegWit P2WPKH) address from an xPub and index.
    * Standard: BIP44/BIP84 style derivation for external addresses.
    */
+  private static getNetwork(networkName: string): bitcoin.networks.Network {
+    if (networkName === "litecoin") {
+      return {
+        messagePrefix: "\x19Litecoin Signed Message:\n",
+        bech32: "ltc",
+        bip32: {
+          public: 0x019da462,
+          private: 0x019d9cfe,
+        },
+        pubKeyHash: 0x30,
+        scriptHash: 0x32,
+        wif: 0xb0,
+      };
+    }
+    if (networkName === "litecoin-testnet") {
+      return {
+        messagePrefix: "\x19Litecoin Signed Message:\n",
+        bech32: "tltc",
+        bip32: {
+          public: 0x043587cf,
+          private: 0x04358394,
+        },
+        pubKeyHash: 0x6f,
+        scriptHash: 0x3a,
+        wif: 0xef,
+      };
+    }
+    return (
+      bitcoin.networks[networkName as keyof typeof bitcoin.networks] ||
+      bitcoin.networks.bitcoin
+    );
+  }
+
+  /**
+   * Derives a UTXO-based address (BTC/LTC) from an xPub and index.
+   * Standard: BIP44/BIP84 style derivation for external addresses.
+   */
+  public static deriveUTXOAddress(
+    xpub: string,
+    index: number,
+    targetNetworkName: "bitcoin" | "testnet" | "litecoin" | "litecoin-testnet",
+  ): string {
+    const targetNetwork = this.getNetwork(targetNetworkName);
+
+    // Determine the network for decoding the xPub based on its prefix
+    // Standard xpub/ypub/zpub starts with 'x', 'y', 'z'
+    // Testnet tpub/upub/vpub starts with 't', 'u', 'v'
+    const isTestnetXpub = /^[tuv]pub/i.test(xpub);
+    const xpubNetwork = isTestnetXpub
+      ? bitcoin.networks.testnet
+      : bitcoin.networks.bitcoin;
+
+    const node: BIP32Interface = bip32.fromBase58(xpub, xpubNetwork);
+    const child = node.derive(0).derive(index);
+
+    const { address } = bitcoin.payments.p2wpkh({
+      pubkey: child.publicKey,
+      network: targetNetwork,
+    });
+
+    if (!address)
+      throw new Error(`Failed to derive ${targetNetworkName} address`);
+    return address;
+  }
+
+  /**
+   * @deprecated Use deriveUTXOAddress instead
+   */
   public static deriveBitcoinAddress(
     xpub: string,
     index: number,
     networkName: "bitcoin" | "testnet" | "regtest" = "bitcoin",
   ): string {
-    const network =
-      bitcoin.networks[networkName as keyof typeof bitcoin.networks] ||
-      bitcoin.networks.bitcoin;
-    const node: BIP32Interface = bip32.fromBase58(xpub, network);
-    const child = node.derive(0).derive(index);
-
-    const { address } = bitcoin.payments.p2wpkh({
-      pubkey: child.publicKey,
-      network,
-    });
-
-    if (!address) throw new Error("Failed to derive BTC address");
-    return address;
+    return this.deriveUTXOAddress(
+      xpub,
+      index,
+      networkName as "bitcoin" | "testnet",
+    );
   }
 
   /**

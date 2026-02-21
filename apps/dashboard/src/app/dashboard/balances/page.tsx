@@ -10,6 +10,11 @@ import {
   Target,
   CreditCard,
   Activity,
+  Plus,
+  Loader2,
+  Trash2,
+  Wand2,
+  Save,
 } from "lucide-react";
 import {
   XAxis,
@@ -32,15 +37,37 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
-import Link from "next/link";
+import { CRYPTO_LOGOS, CRYPTO_LABELS, EVM_CURRENCIES } from "@knotengine/types";
 
 interface MerchantProfile {
   id: string;
   name: string;
   btcXpub: string | null;
   ethAddress: string | null;
+  btcXpubTestnet: string | null;
+  ethAddressTestnet: string | null;
+  enabledCurrencies: string[];
   feesAccrued: { usd: number } | null;
 }
 
@@ -69,6 +96,86 @@ export default function BalancesPage() {
   const [loading, setLoading] = useState(true);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
+  const [isAddWalletOpen, setIsAddWalletOpen] = useState(false);
+  const [newWalletAddress, setNewWalletAddress] = useState("");
+  const [newWalletCoin, setNewWalletCoin] = useState<string>("");
+  const [newWalletNetwork, setNewWalletNetwork] = useState<string>("");
+  const [isAddingWallet, setIsAddingWallet] = useState(false);
+
+  const [walletToRemove, setWalletToRemove] = useState<string | null>(null);
+  const [isRemovingWallet, setIsRemovingWallet] = useState(false);
+
+  // Smart Detection Logic
+  const handleAddressChange = (val: string) => {
+    setNewWalletAddress(val);
+    const input = val.trim();
+    if (!input) return;
+
+    // 1. BTC/LTC xPub Detection (xpub, ypub, zpub, tpub, vpub, upub)
+    if (/^[xyzvtu]pub[1-9A-HJ-NP-Za-km-z]{10,}$/i.test(input)) {
+      setNewWalletCoin("BTC");
+      setNewWalletNetwork("BTC");
+      return;
+    }
+
+    // 2. Bitcoin Address Detection (1..., 3..., bc1...)
+    if (/^(1|3|bc1q|bc1p)[a-zA-HJ-NP-Z0-9]{25,62}$/i.test(input)) {
+      setNewWalletCoin("BTC");
+      setNewWalletNetwork("BTC");
+      return;
+    }
+
+    // 3. Litecoin Address Detection (L..., M..., ltc1...)
+    if (/^(L|M|ltc1)[a-zA-HJ-NP-Z0-9]{25,62}$/i.test(input)) {
+      setNewWalletCoin("LTC");
+      setNewWalletNetwork("LTC");
+      return;
+    }
+
+    // 4. EVM Address Detection (ETH, USDT)
+    if (/^0x[a-fA-F0-9]{40}$/.test(input)) {
+      if (
+        !newWalletCoin ||
+        newWalletCoin === "BTC" ||
+        newWalletCoin === "LTC"
+      ) {
+        setNewWalletCoin("ETH");
+        setNewWalletNetwork("ETH");
+      }
+      return;
+    }
+  };
+  // Define Assets and their Networks
+  const CONFIGURABLE_ASSETS = [
+    { id: "BTC", label: "Bitcoin", symbol: "BTC", icon: CRYPTO_LOGOS.BTC },
+    { id: "LTC", label: "Litecoin", symbol: "LTC", icon: CRYPTO_LOGOS.LTC },
+    { id: "ETH", label: "Ethereum", symbol: "ETH", icon: CRYPTO_LOGOS.ETH },
+    {
+      id: "USDT",
+      label: "Tether",
+      symbol: "USDT",
+      icon: CRYPTO_LOGOS.USDT_ERC20,
+    },
+  ];
+
+  const NETWORKS: Record<
+    string,
+    { id: string; label: string; networkName: string }[]
+  > = {
+    BTC: [{ id: "BTC", label: "Bitcoin Network", networkName: "Bitcoin" }],
+    LTC: [{ id: "LTC", label: "Litecoin Network", networkName: "Litecoin" }],
+    ETH: [
+      { id: "ETH", label: "Ethereum (ERC20)", networkName: "Ethereum (ERC20)" },
+    ],
+    USDT: [
+      {
+        id: "USDT_ERC20",
+        label: "Ethereum (ERC20)",
+        networkName: "Ethereum (ERC20)",
+      },
+      { id: "USDT_POLYGON", label: "Polygon Network", networkName: "Polygon" },
+    ],
+  };
   const fetchData = useCallback(async () => {
     try {
       const [merchantRes, statsRes, invoicesRes] = await Promise.all([
@@ -99,6 +206,69 @@ export default function BalancesPage() {
   const truncate = (addr: string) => {
     if (addr.length <= 16) return addr;
     return `${addr.slice(0, 10)}...${addr.slice(-6)}`;
+  };
+
+  const handleAddWallet = async () => {
+    setIsAddingWallet(true);
+    try {
+      const payload: Record<string, any> = {};
+      if (newWalletNetwork === "BTC" || newWalletNetwork === "LTC") {
+        payload.btcXpub = newWalletAddress;
+      } else {
+        payload.ethAddress = newWalletAddress;
+      }
+
+      // Add to enabled list
+      const updatedEnabled = [...(merchant?.enabledCurrencies || [])];
+      if (!updatedEnabled.includes(newWalletNetwork)) {
+        updatedEnabled.push(newWalletNetwork);
+      }
+      payload.enabledCurrencies = updatedEnabled;
+
+      await api.patch("/v1/merchants/me", payload);
+      await fetchData();
+      setIsAddWalletOpen(false);
+      setNewWalletAddress("");
+    } catch (err) {
+      console.error("Failed to add wallet", err);
+    } finally {
+      setIsAddingWallet(false);
+    }
+  };
+
+  const handleRemoveWallet = async () => {
+    if (!walletToRemove) return;
+    setIsRemovingWallet(true);
+    try {
+      const payload: Record<string, any> = {};
+      const updatedEnabled = (merchant?.enabledCurrencies || []).filter(
+        (c) => c !== walletToRemove,
+      );
+      payload.enabledCurrencies = updatedEnabled;
+
+      // Only nullify address if it was the last one using it
+      const btcRelated = ["BTC", "LTC"];
+      if (
+        btcRelated.includes(walletToRemove) &&
+        !updatedEnabled.some((c) => btcRelated.includes(c))
+      ) {
+        payload.btcXpub = null;
+      }
+      if (
+        EVM_CURRENCIES.includes(walletToRemove as any) &&
+        !updatedEnabled.some((c) => EVM_CURRENCIES.includes(c as any))
+      ) {
+        payload.ethAddress = null;
+      }
+
+      await api.patch("/v1/merchants/me", payload);
+      await fetchData();
+    } catch (err) {
+      console.error("Failed to remove wallet", err);
+    } finally {
+      setIsRemovingWallet(false);
+      setWalletToRemove(null);
+    }
   };
 
   // Analytics derived data
@@ -152,27 +322,79 @@ export default function BalancesPage() {
     }))
     .sort((a, b) => b.value - a.value);
 
-  // Wallet cards
   const wallets = [];
-  if (merchant?.btcXpub) {
-    wallets.push({
-      id: "btc",
-      label: "Bitcoin",
-      currency: "BTC / LTC",
-      address: merchant.btcXpub,
-      type: "HD Wallet (xPub)",
-      icon: "₿",
-    });
-  }
-  if (merchant?.ethAddress) {
-    wallets.push({
-      id: "eth",
-      label: "Ethereum",
-      currency: "ETH / ERC-20",
-      address: merchant.ethAddress,
-      type: "Static Address",
-      icon: "Ξ",
-    });
+  if (merchant) {
+    const isEnabled = (id: string) => merchant.enabledCurrencies?.includes(id);
+
+    if (merchant.btcXpub) {
+      if (isEnabled("BTC")) {
+        wallets.push({
+          id: "BTC",
+          label: CRYPTO_LABELS.BTC,
+          currency: "BTC",
+          network: "Bitcoin",
+          address: merchant.btcXpub,
+          type: "HD Wallet (xPub)",
+          iconUrl: CRYPTO_LOGOS.BTC,
+          iconColor: "bg-amber-500",
+          iconFallback: "BTC",
+        });
+      }
+      if (isEnabled("LTC")) {
+        wallets.push({
+          id: "LTC",
+          label: CRYPTO_LABELS.LTC,
+          currency: "LTC",
+          network: "Litecoin",
+          address: merchant.btcXpub,
+          type: "HD Wallet (xPub)",
+          iconUrl: CRYPTO_LOGOS.LTC,
+          iconColor: "bg-blue-600",
+          iconFallback: "LTC",
+        });
+      }
+    }
+    if (merchant.ethAddress) {
+      if (isEnabled("ETH")) {
+        wallets.push({
+          id: "ETH",
+          label: CRYPTO_LABELS.ETH,
+          currency: "ETH",
+          network: "Ethereum (ERC20)",
+          address: merchant.ethAddress,
+          type: "Static Address",
+          iconUrl: CRYPTO_LOGOS.ETH,
+          iconColor: "bg-indigo-500",
+          iconFallback: "ETH",
+        });
+      }
+      if (isEnabled("USDT_ERC20")) {
+        wallets.push({
+          id: "USDT_ERC20",
+          label: CRYPTO_LABELS.USDT_ERC20,
+          currency: "USDT",
+          network: "Ethereum (ERC20)",
+          address: merchant.ethAddress,
+          type: "Static Address",
+          iconUrl: CRYPTO_LOGOS.USDT_ERC20,
+          iconColor: "bg-emerald-500",
+          iconFallback: "USDT",
+        });
+      }
+      if (isEnabled("USDT_POLYGON")) {
+        wallets.push({
+          id: "USDT_POLYGON",
+          label: CRYPTO_LABELS.USDT_POLYGON,
+          currency: "USDT",
+          network: "Polygon",
+          address: merchant.ethAddress,
+          type: "Static Address",
+          iconUrl: CRYPTO_LOGOS.USDT_POLYGON,
+          iconColor: "bg-emerald-600",
+          iconFallback: "USDT",
+        });
+      }
+    }
   }
 
   return (
@@ -247,9 +469,190 @@ export default function BalancesPage() {
           <h2 className="text-sm font-semibold text-foreground">
             Settlement Wallets
           </h2>
-          <Button variant="outline" size="sm" className="h-8 text-xs" asChild>
-            <Link href="/dashboard/settings">Configure</Link>
-          </Button>
+          <Dialog open={isAddWalletOpen} onOpenChange={setIsAddWalletOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="h-8 text-xs gap-2">
+                <Plus className="size-3" />
+                Add Wallet
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Add Settlement Wallet</DialogTitle>
+                <DialogDescription>
+                  Configure a new wallet to receive your settlements.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-5 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="address">Wallet Address</Label>
+                  <div className="relative">
+                    <Input
+                      id="address"
+                      className="w-full pr-10 font-mono text-sm h-11 bg-background/50 border-border/80"
+                      placeholder="Paste your address here..."
+                      value={newWalletAddress}
+                      onChange={(e) => handleAddressChange(e.target.value)}
+                      autoComplete="off"
+                    />
+                    {newWalletAddress && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500 animate-in fade-in zoom-in duration-300">
+                        <Wand2 className="size-4" />
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                    <Wand2 className="size-2.5 opacity-50" />
+                    Tip: Paste your wallet to auto-detect the network.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="coin">Coin</Label>
+                    <Select
+                      value={newWalletCoin}
+                      onValueChange={(val) => {
+                        setNewWalletCoin(val);
+                        setNewWalletNetwork("");
+                      }}
+                    >
+                      <SelectTrigger
+                        id="coin"
+                        className="w-full h-10! bg-background/50 border-border/80"
+                      >
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CONFIGURABLE_ASSETS.map((asset) => {
+                          const input = newWalletAddress.trim();
+                          let isLocked = false;
+
+                          if (input) {
+                            const isXpub = /^[xyzvtu]pub/i.test(input);
+                            const isBtcAddr = /^(1|3|bc1q|bc1p)/i.test(input);
+                            const isLtcAddr = /^(L|M|ltc1)/i.test(input);
+                            const isEvmAddr = /^0x/i.test(input);
+
+                            if (isXpub || isBtcAddr) {
+                              isLocked = !["BTC", "LTC"].includes(asset.id);
+                            } else if (isLtcAddr) {
+                              isLocked = asset.id !== "LTC";
+                            } else if (isEvmAddr) {
+                              isLocked = !["ETH", "USDT"].includes(asset.id);
+                            }
+                          }
+
+                          return (
+                            <SelectItem
+                              key={asset.id}
+                              value={asset.id}
+                              disabled={isLocked}
+                              className="h-10!"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span>{asset.label}</span>
+                                {isLocked && (
+                                  <span className="text-[9px] text-muted-foreground ml-auto opacity-50">
+                                    (Incompatible)
+                                  </span>
+                                )}
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="network">Network</Label>
+                    <Select
+                      value={newWalletNetwork}
+                      onValueChange={setNewWalletNetwork}
+                      disabled={!newWalletCoin}
+                    >
+                      <SelectTrigger
+                        id="network"
+                        className="w-full h-10! bg-background/50 border-border/80 disabled:opacity-40"
+                      >
+                        <SelectValue placeholder="Network" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {newWalletCoin &&
+                          NETWORKS[newWalletCoin]?.map((network) => (
+                            <SelectItem
+                              key={network.id}
+                              value={network.id}
+                              className="h-10!"
+                            >
+                              {network.networkName}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {newWalletNetwork === "USDT_POLYGON" && (
+                  <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10 flex items-start gap-3">
+                    <ShieldCheck className="size-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <p className="text-[10.5px] text-emerald-600 font-medium leading-relaxed">
+                      Smart Match: This network shares the same address as your
+                      Ethereum (ERC20) wallet.
+                    </p>
+                  </div>
+                )}
+              </div>
+              <DialogFooter className="grid grid-cols-2 gap-3 sm:space-x-0">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsAddWalletOpen(false)}
+                  className="h-10 font-bold uppercase text-[10px] tracking-widest"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleAddWallet}
+                  className="h-10 font-bold uppercase text-[10px] tracking-widest"
+                  disabled={
+                    isAddingWallet ||
+                    !newWalletAddress ||
+                    !newWalletNetwork ||
+                    !!(
+                      newWalletNetwork &&
+                      (newWalletNetwork === "BTC" || newWalletNetwork === "LTC"
+                        ? merchant?.btcXpub === newWalletAddress.trim()
+                        : merchant?.ethAddress === newWalletAddress.trim()) &&
+                      merchant?.enabledCurrencies.includes(newWalletNetwork)
+                    )
+                  }
+                >
+                  {isAddingWallet ? (
+                    <Loader2 className="mr-2 size-3 animate-spin" />
+                  ) : (
+                    <Save className="mr-2 size-3" />
+                  )}
+                  {(() => {
+                    const isAlreadyEnabled =
+                      merchant?.enabledCurrencies.includes(newWalletNetwork);
+                    const currentStored =
+                      newWalletNetwork === "BTC" || newWalletNetwork === "LTC"
+                        ? merchant?.btcXpub
+                        : merchant?.ethAddress;
+                    const isSameAddress =
+                      currentStored === newWalletAddress.trim();
+
+                    if (isAlreadyEnabled && isSameAddress)
+                      return "Already Configured";
+                    if (isAlreadyEnabled && !isSameAddress)
+                      return "Update Wallet";
+                    return "Confirm Wallet";
+                  })()}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {wallets.length === 0 ? (
@@ -260,40 +663,64 @@ export default function BalancesPage() {
                 No wallets configured
               </p>
               <p className="text-xs text-muted-foreground/40 max-w-xs mb-4">
-                Add your BTC xPub or ETH address in Settings to receive
-                non-custodial payments.
+                Add your BTC xPub or ETH address to receive non-custodial
+                payments.
               </p>
-              <Button variant="outline" size="sm" asChild>
-                <Link href="/dashboard/settings">Go to Settings</Link>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsAddWalletOpen(true)}
+              >
+                <Plus className="size-3 mr-2" />
+                Add Wallet
               </Button>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {wallets.map((wallet) => (
-              <Card key={wallet.id} className="border shadow-sm group">
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-lg font-bold">
-                        {wallet.icon}
+          <Card className="border shadow-sm overflow-hidden">
+            <div className="divide-y divide-border/40">
+              {wallets.map((wallet) => (
+                <div
+                  key={wallet.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4"
+                >
+                  <div className="flex items-center gap-4 min-w-0">
+                    <Avatar className="size-10 bg-transparent p-0 shrink-0">
+                      <AvatarImage
+                        src={wallet.iconUrl}
+                        className="object-contain"
+                      />
+                      <AvatarFallback
+                        className={cn(
+                          "text-[10px] font-bold text-white",
+                          wallet.iconColor,
+                        )}
+                      >
+                        {wallet.iconFallback}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-sm truncate">
+                          {wallet.label}
+                        </p>
+                        <Badge
+                          variant="secondary"
+                          className="text-[10px] font-medium"
+                        >
+                          {wallet.network}
+                        </Badge>
                       </div>
-                      <div>
-                        <p className="font-semibold text-sm">{wallet.label}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {wallet.currency}
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <p className="text-xs text-muted-foreground whitespace-nowrap">
+                          {wallet.type}
                         </p>
                       </div>
                     </div>
-                    <Badge
-                      variant="secondary"
-                      className="text-[10px] font-medium"
-                    >
-                      {wallet.type}
-                    </Badge>
                   </div>
-                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/30 border border-border/30">
-                    <code className="text-xs font-mono flex-1 truncate text-muted-foreground">
+
+                  <div className="flex items-center gap-2 shrink-0 bg-muted/30 p-2 rounded-lg border border-border/30 w-full sm:w-auto">
+                    <code className="text-xs font-mono text-muted-foreground truncate flex-1 sm:max-w-xs px-1">
                       {truncate(wallet.address)}
                     </code>
                     <Button
@@ -303,17 +730,59 @@ export default function BalancesPage() {
                       onClick={() => copyAddress(wallet.address, wallet.id)}
                     >
                       {copiedField === wallet.id ? (
-                        <Check className="size-3 text-emerald-500" />
+                        <Check className="size-3.5 text-emerald-500" />
                       ) : (
-                        <Copy className="size-3" />
+                        <Copy className="size-3.5" />
                       )}
                     </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-7 shrink-0 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+                      onClick={() => setWalletToRemove(wallet.id)}
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                </div>
+              ))}
+            </div>
+          </Card>
         )}
+
+        <Dialog
+          open={!!walletToRemove}
+          onOpenChange={(open) => !open && setWalletToRemove(null)}
+        >
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Remove Settlement Wallet?</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to remove this wallet? Any active
+                transactions or pending payouts might be affected.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="mt-4">
+              <Button
+                variant="outline"
+                onClick={() => setWalletToRemove(null)}
+                disabled={isRemovingWallet}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleRemoveWallet}
+                disabled={isRemovingWallet}
+              >
+                {isRemovingWallet && (
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                )}
+                Remove Wallet
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Non-custodial notice */}
         <div className="flex items-center gap-2 text-xs text-muted-foreground px-1">

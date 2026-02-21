@@ -134,8 +134,16 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              <button className="w-full py-3 bg-emerald-500 text-black font-bold rounded-lg hover:bg-emerald-400 transition-colors text-sm">
-                Return to Store
+              <button
+                onClick={() => {
+                  if (invoice.store?.return_url) {
+                    window.location.href = invoice.store.return_url;
+                  }
+                }}
+                className={`w-full py-3 bg-emerald-500 text-black font-bold rounded-lg hover:bg-emerald-400 transition-colors text-sm ${!invoice.store?.return_url ? "opacity-50 cursor-not-allowed" : ""}`}
+                disabled={!invoice.store?.return_url}
+              >
+                Return to {invoice.store?.name || "Store"}
               </button>
             </motion.div>
           ) : (

@@ -161,7 +161,9 @@ export class ConfirmationEngine {
       }
 
       // 8. Deduct from Credit Balance & Accrue Fees (KnotEngine Fee)
-      if (!invoice.paidAt) {
+      // Skip for testnet invoices — they are free and should not affect billing.
+      const isTestnet = invoice.metadata?.isTestnet === true;
+      if (!invoice.paidAt && !isTestnet) {
         await Merchant.findByIdAndUpdate(invoice.merchantId, {
           $inc: {
             "feesAccrued.usd": invoice.feeUsd,
@@ -185,6 +187,13 @@ export class ConfirmationEngine {
             updatedMerchant.creditBalance,
           );
         }
+      } else if (!invoice.paidAt && isTestnet) {
+        // Testnet: still notify the merchant about the simulated payment, but no billing impact
+        NotificationService.notifyPaymentConfirmed(
+          invoice.merchantId.toString(),
+          invoice.invoiceId,
+          invoice.amountUsd,
+        );
       }
     }
 

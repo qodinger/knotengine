@@ -11,12 +11,16 @@ import {
   Copy,
   Check,
   CheckCircle2,
+  ShieldCheck,
+  ExternalLink,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { CRYPTO_LOGOS } from "@knotengine/types";
 import {
   Table,
   TableBody,
@@ -51,6 +55,12 @@ export function TestnetTab() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
+  const truncate = (addr: string) => {
+    if (!addr) return "";
+    if (addr.length <= 16) return addr;
+    return `${addr.slice(0, 10)}...${addr.slice(-6)}`;
+  };
+
   const copyToClipboard = (text: string, id?: string) => {
     navigator.clipboard.writeText(text);
     setCopied(id || "generic");
@@ -62,10 +72,14 @@ export function TestnetTab() {
       setTestnetLoading(true);
       const [configRes, invoicesRes] = await Promise.all([
         api.get("/v1/merchants/me"),
-        api.get("/v1/invoices?status=pending&limit=5"),
+        api.get("/v1/invoices?limit=10&include_testnet=true"),
       ]);
       setConfig(configRes.data);
-      setInvoices(invoicesRes.data.data);
+      // Only show active (non-expired, non-confirmed) invoices in the pipeline
+      const active = (invoicesRes.data.data as TestnetInvoice[]).filter((inv) =>
+        ["pending", "mempool_detected", "confirming"].includes(inv.status),
+      );
+      setInvoices(active);
     } catch (err) {
       console.error("Failed to load data", err);
     } finally {
@@ -79,46 +93,70 @@ export function TestnetTab() {
 
   const fetchPendingInvoices = async () => {
     try {
-      const res = await api.get("/v1/invoices?status=pending&limit=5");
-      setInvoices(res.data.data);
+      const res = await api.get("/v1/invoices?limit=10&include_testnet=true");
+      const active = (res.data.data as TestnetInvoice[]).filter((inv) =>
+        ["pending", "mempool_detected", "confirming"].includes(inv.status),
+      );
+      setInvoices(active);
     } catch (err) {
-      console.error("Failed to fetch pending invoices", err);
+      console.error("Failed to fetch active invoices", err);
     }
   };
 
   const simulatePayment = async (invoice: TestnetInvoice) => {
     setSimulating(invoice.invoice_id);
+    const txHash = `0x${Math.random().toString(16).slice(2)}${Math.random().toString(16).slice(2)}`;
+
+    // Helper to optimistically update invoice status in local state
+    const setInvoiceStatus = (status: string) => {
+      setInvoices((prev) =>
+        prev.map((inv) =>
+          inv.invoice_id === invoice.invoice_id ? { ...inv, status } : inv,
+        ),
+      );
+    };
+
     try {
+      // Step 1: Mempool detected (0 confirmations)
+      setInvoiceStatus("mempool_detected");
       await api.post("/v1/webhooks/simulate", {
         invoiceId: invoice.invoice_id,
-        txHash: `0x${Math.random().toString(16).slice(2)}${Math.random().toString(16).slice(2)}`,
+        txHash,
         amount: invoice.crypto_amount.toString(),
         asset: invoice.crypto_currency,
         confirmations: 0,
       });
 
+      // Step 2: Confirming (1 confirmation)
       setTimeout(async () => {
+        setInvoiceStatus("confirming");
         await api.post("/v1/webhooks/simulate", {
           invoiceId: invoice.invoice_id,
-          txHash: `0x${Math.random().toString(16).slice(2)}${Math.random().toString(16).slice(2)}`,
+          txHash,
           amount: invoice.crypto_amount.toString(),
           asset: invoice.crypto_currency,
           confirmations: 1,
         });
-      }, 3000);
+      }, 2000);
 
+      // Step 3: Confirmed (enough confirmations)
       setTimeout(async () => {
+        setInvoiceStatus("confirmed");
         await api.post("/v1/webhooks/simulate", {
           invoiceId: invoice.invoice_id,
-          txHash: `0x${Math.random().toString(16).slice(2)}${Math.random().toString(16).slice(2)}`,
+          txHash,
           amount: invoice.crypto_amount.toString(),
           asset: invoice.crypto_currency,
           confirmations: 12,
         });
         setSuccessId(invoice.invoice_id);
         setSimulating(null);
-        fetchPendingInvoices();
-      }, 6000);
+        // After 3s remove the confirmed invoice from the list and refresh
+        setTimeout(() => {
+          setSuccessId(null);
+          fetchPendingInvoices();
+        }, 3000);
+      }, 5000);
     } catch (err) {
       console.error("Simulation failed", err);
       setSimulating(null);
@@ -131,14 +169,16 @@ export function TestnetTab() {
       setTestnetLoading(true);
       setError(null);
       const availableCurrencies: string[] = [];
-      if (config.btcXpub || config.btcXpubTestnet)
+      if (config.btcXpub || config.btcXpubTestnet) {
         availableCurrencies.push("BTC");
-      if (config.ethAddress || config.ethAddressTestnet)
+      }
+      if (config.ethAddress || config.ethAddressTestnet) {
         availableCurrencies.push("ETH");
+      }
 
       if (availableCurrencies.length === 0) {
         setError(
-          "Wallet configuration missing. Add a BTC xPub or ETH Address in Settings.",
+          "Wallet configuration missing. Add a BTC xPub or ETH Address in Settings or generate Testnet Wallets here.",
         );
         return;
       }
@@ -150,6 +190,7 @@ export function TestnetTab() {
       await api.post("/v1/invoices", {
         amount_usd: Math.round((10 + Math.random() * 90) * 100) / 100,
         currency,
+        is_testnet: true,
       });
       await fetchPendingInvoices();
     } catch (err) {
@@ -158,6 +199,32 @@ export function TestnetTab() {
       setTestnetLoading(false);
     }
   };
+
+  const wallets = [];
+  if (config?.btcXpubTestnet) {
+    wallets.push({
+      id: "btc-testnet",
+      label: "Bitcoin (Testnet)",
+      currency: "BTC / LTC",
+      address: config.btcXpubTestnet,
+      type: "Testnet xPub",
+      iconUrl: CRYPTO_LOGOS.BTC,
+      iconColor: "bg-amber-500",
+      iconFallback: "BTC",
+    });
+  }
+  if (config?.ethAddressTestnet) {
+    wallets.push({
+      id: "eth-testnet",
+      label: "Ethereum (Testnet)",
+      currency: "ETH / ERC-20",
+      address: config.ethAddressTestnet,
+      type: "Testnet Address",
+      iconUrl: CRYPTO_LOGOS.ETH,
+      iconColor: "bg-indigo-500",
+      iconFallback: "ETH",
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -179,26 +246,99 @@ export function TestnetTab() {
         </Alert>
       )}
 
-      {/* Simulation info */}
-      <div className="flex w-full">
-        <Card className="border shadow-sm relative overflow-hidden w-full">
-          <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
-          <CardContent className="p-5">
-            <h3 className="text-sm font-semibold text-amber-500 mb-1.5 flex items-center gap-2">
-              <Zap className="size-4" /> Realistic Simulation
-            </h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Simulates a 3-step payment flow: Mempool → Confirming → Settled
-              (~6 seconds).
+      {/* Testnet Wallets Section */}
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-sm font-semibold">Testnet Wallets</h2>
+      </div>
+
+      {wallets.length === 0 ? (
+        <Card className="border-dashed border-2 bg-muted/5">
+          <CardContent className="flex flex-col items-center justify-center py-8 text-center">
+            <ShieldCheck className="size-6 text-muted-foreground/30 mb-2" />
+            <p className="text-sm font-medium text-muted-foreground/60">
+              No Testnet Wallets
             </p>
           </CardContent>
         </Card>
-      </div>
+      ) : (
+        <Card className="border shadow-sm overflow-hidden mb-8">
+          <div className="divide-y divide-border/40">
+            {wallets.map((wallet) => (
+              <div
+                key={wallet.id}
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-muted/10"
+              >
+                <div className="flex items-center gap-4 min-w-0">
+                  <Avatar className="size-10 bg-transparent p-0 shrink-0">
+                    <AvatarImage
+                      src={wallet.iconUrl}
+                      className="object-contain"
+                    />
+                    <AvatarFallback
+                      className={cn(
+                        "text-[10px] font-bold text-white",
+                        wallet.iconColor,
+                      )}
+                    >
+                      {wallet.iconFallback}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-sm truncate">
+                        {wallet.label}
+                      </p>
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] font-medium"
+                      >
+                        {wallet.type}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <p className="text-xs text-muted-foreground whitespace-nowrap">
+                        {wallet.currency}
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
-      {/* Pending invoices table */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold">Pending Invoices</h2>
-        <div className="flex gap-2">
+                <div className="flex items-center gap-2 shrink-0 bg-muted/30 p-2 rounded-lg border border-border/30 w-full sm:w-auto">
+                  <code className="text-xs font-mono text-muted-foreground truncate flex-1 sm:max-w-xs px-1">
+                    {truncate(wallet.address)}
+                  </code>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-7 shrink-0"
+                    onClick={() => copyToClipboard(wallet.address, wallet.id)}
+                  >
+                    {copied === wallet.id ? (
+                      <Check className="size-3.5 text-emerald-500" />
+                    ) : (
+                      <Copy className="size-3.5" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* Simulator Section */}
+      <div className="flex items-center justify-between mb-4 mt-8">
+        <div>
+          <h2 className="text-sm font-semibold flex items-center gap-2">
+            Simulation Pipeline
+          </h2>
+          <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1.5">
+            <Zap className="size-3.5 text-amber-500" />
+            Simulates a 3-step payment flow: Mempool → Confirming → Settled (~6
+            seconds).
+          </p>
+        </div>
+        <div className="flex gap-2 items-start pt-1">
           <Button
             variant="outline"
             size="sm"
@@ -231,6 +371,7 @@ export function TestnetTab() {
                 Invoice
               </TableHead>
               <TableHead className="text-xs font-medium">Amount</TableHead>
+              <TableHead className="text-xs font-medium">Status</TableHead>
               <TableHead className="text-xs font-medium">Address</TableHead>
               <TableHead className="text-right text-xs font-medium pr-6">
                 Actions
@@ -318,12 +459,59 @@ export function TestnetTab() {
                       </Button>
                     </div>
                   </TableCell>
+                  <TableCell>
+                    {(() => {
+                      const isSuccess = successId === inv.invoice_id;
+                      const isSimulating = simulating === inv.invoice_id;
+                      const s = isSuccess ? "confirmed" : inv.status;
+                      const stages: Record<
+                        string,
+                        { label: string; className: string }
+                      > = {
+                        pending: {
+                          label: "Pending",
+                          className:
+                            "bg-muted/50 text-muted-foreground border-border/50",
+                        },
+                        mempool_detected: {
+                          label: "Mempool",
+                          className:
+                            "bg-blue-500/10 text-blue-400 border-blue-500/20",
+                        },
+                        confirming: {
+                          label: "Confirming",
+                          className:
+                            "bg-amber-500/10 text-amber-400 border-amber-500/20",
+                        },
+                        confirmed: {
+                          label: "Settled ✓",
+                          className:
+                            "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+                        },
+                      };
+                      const stage = stages[s] || stages.pending;
+                      return (
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-[10px] font-bold h-5",
+                            stage.className,
+                            isSimulating && "animate-pulse",
+                          )}
+                        >
+                          {stage.label}
+                        </Badge>
+                      );
+                    })()}
+                  </TableCell>
                   <TableCell className="text-right pr-6">
                     <Button
                       size="sm"
                       disabled={
                         simulating === inv.invoice_id ||
-                        successId === inv.invoice_id
+                        successId === inv.invoice_id ||
+                        (inv.status !== "pending" &&
+                          simulating !== inv.invoice_id)
                       }
                       onClick={() => simulatePayment(inv)}
                       className={cn(
@@ -355,6 +543,23 @@ export function TestnetTab() {
           </TableBody>
         </Table>
       </Card>
+
+      <div className="flex justify-center mt-4">
+        <Button
+          variant="link"
+          size="sm"
+          asChild
+          className="text-muted-foreground text-xs font-medium"
+        >
+          <Link
+            href="/dashboard/payments?tab=testnet"
+            className="flex items-center gap-1.5"
+          >
+            View full test payment history
+            <ExternalLink className="size-3" />
+          </Link>
+        </Button>
+      </div>
     </div>
   );
 }

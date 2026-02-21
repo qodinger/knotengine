@@ -48,6 +48,8 @@ import { Currency, CRYPTO_LOGOS } from "@knotengine/types";
 
 interface StatsData {
   totalVolume: number;
+  testnetVolume: number;
+  testnetInvoicesCount: number;
   activeInvoices: number;
   feesAccrued: { usd: number };
   creditBalance: number;
@@ -197,9 +199,6 @@ export default function BillingPage() {
   const feesAccrued = stats?.feesAccrued?.usd ?? 0;
   const feeRate = stats?.currentFeeRate ?? 0.01;
   const totalVolume = stats?.totalVolume ?? 0;
-
-  // Calculate how much processing volume the credit can cover
-  const remainingVolume = feeRate > 0 ? creditBalance / feeRate : 0;
 
   // Credit health status
   const creditHealth =
@@ -361,42 +360,48 @@ export default function BillingPage() {
 
               <div className="flex flex-col gap-1 p-4 rounded-xl bg-background/60 border border-border/40">
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                  Total Fees Paid
+                  Fees Paid
                 </span>
                 <span className="text-xl font-bold">
                   {loading ? "—" : `$${feesAccrued.toFixed(2)}`}
                 </span>
                 <span className="text-[10px] text-muted-foreground">
-                  Lifetime usage
+                  Production usage
                 </span>
               </div>
 
               <div className="flex flex-col gap-1 p-4 rounded-xl bg-background/60 border border-border/40">
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                  Volume Processed
+                  Production Volume
                 </span>
-                <span className="text-xl font-bold">
+                <span className="text-lg font-bold">
                   {loading
                     ? "—"
                     : `$${totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
                 </span>
-                <span className="text-[10px] text-muted-foreground">
-                  Confirmed settlements
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" />
+                  <span className="text-[10px] text-muted-foreground">
+                    Real settlements
+                  </span>
+                </div>
               </div>
 
               <div className="flex flex-col gap-1 p-4 rounded-xl bg-background/60 border border-border/40">
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                  Remaining Capacity
+                  Testnet Volume
                 </span>
-                <span className="text-xl font-bold">
+                <span className="text-lg font-bold">
                   {loading
                     ? "—"
-                    : `$${remainingVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+                    : `$${(stats?.testnetVolume ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
                 </span>
-                <span className="text-[10px] text-muted-foreground">
-                  Before top-up needed
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="size-1.5 rounded-full bg-amber-500 shrink-0" />
+                  <span className="text-[10px] text-muted-foreground uppercase">
+                    Simulation
+                  </span>
+                </div>
               </div>
             </div>
           </div>

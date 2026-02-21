@@ -84,6 +84,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             (m: { id: string }) => m.id === session.merchantId,
           );
           if (isValid) token.merchantId = session.merchantId;
+        } else {
+          // No specific switch requested — check if current active store still exists
+          const currentStillExists = merchants.find(
+            (m: { id: string }) => m.id === token.merchantId,
+          );
+          if (!currentStillExists && merchants.length > 0) {
+            // Active store was deleted — fall back to first remaining store
+            token.merchantId = merchants[0].id;
+          } else if (merchants.length === 0) {
+            token.merchantId = undefined;
+          }
         }
 
         if (session?.apiKey) {

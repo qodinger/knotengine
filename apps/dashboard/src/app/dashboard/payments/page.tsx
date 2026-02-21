@@ -17,10 +17,8 @@ import {
   CreditCard,
   TrendingUp,
   Receipt,
-  ArrowRight,
   Info,
   ShieldCheck,
-  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -86,14 +84,28 @@ export default function PaymentsPage() {
   const [activeTab, setActiveTab] = useState("all");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
-  const [timeline, setTimeline] = useState<any[]>([]);
+  const [timeline, setTimeline] = useState<
+    {
+      _id?: string;
+      title: string;
+      description: string;
+      createdAt: string;
+      type: string;
+    }[]
+  >([]);
   const [loadingTimeline, setLoadingTimeline] = useState(false);
 
   const fetchInvoices = useCallback(async () => {
     setLoading(true);
     try {
       const params: Record<string, string> = { limit: "100" };
-      if (activeTab !== "all") params.status = activeTab;
+      if (activeTab === "testnet") {
+        // Show only testnet invoices
+        params.include_testnet = "true";
+        params.only_testnet = "true";
+      } else {
+        if (activeTab !== "all") params.status = activeTab;
+      }
       const res = await api.get("/v1/invoices", { params });
       setInvoices(res.data.data);
     } catch (err) {
@@ -153,9 +165,13 @@ export default function PaymentsPage() {
     <div className="flex flex-col gap-6">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Payments</h1>
+        <h1 className="text-2xl font-bold tracking-tight">
+          {activeTab === "testnet" ? "Test Payments" : "Payments"}
+        </h1>
         <p className="text-muted-foreground text-sm mt-1">
-          View and manage all incoming payment invoices.
+          {activeTab === "testnet"
+            ? "View and manage all simulated testnet transactions."
+            : "View and manage all incoming payment invoices."}
         </p>
       </div>
 
@@ -163,25 +179,26 @@ export default function PaymentsPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           {
-            label: "All payments",
+            label:
+              activeTab === "testnet" ? "All test payments" : "All payments",
             value: invoices.length,
             icon: Receipt,
-            color: "text-blue-500",
+            color: activeTab === "testnet" ? "text-amber-500" : "text-blue-500",
           },
           {
-            label: "Succeeded",
+            label: activeTab === "testnet" ? "Test succeeded" : "Succeeded",
             value: confirmedCount,
             icon: CheckCircle2,
             color: "text-emerald-500",
           },
           {
-            label: "Pending",
+            label: activeTab === "testnet" ? "Test pending" : "Pending",
             value: pendingCount,
             icon: Clock,
             color: "text-amber-500",
           },
           {
-            label: "Volume",
+            label: activeTab === "testnet" ? "Test volume" : "Volume",
             value: `$${totalVolume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
             icon: TrendingUp,
             color: "text-emerald-500",
@@ -246,6 +263,13 @@ export default function PaymentsPage() {
                   className="text-xs font-medium px-3"
                 >
                   Expired
+                </TabsTrigger>
+                <TabsTrigger
+                  value="testnet"
+                  className="text-xs font-medium px-3 gap-1.5"
+                >
+                  <span className="size-1.5 rounded-full bg-yellow-500 shrink-0" />
+                  Testnet
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -468,7 +492,7 @@ export default function PaymentsPage() {
         open={!!selectedInvoice}
         onOpenChange={(open) => !open && setSelectedInvoice(null)}
       >
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto p-6">
           <SheetHeader>
             <div className="flex items-center gap-2 mb-2">
               <Badge

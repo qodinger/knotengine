@@ -87,13 +87,15 @@ export async function invoiceRoutes(app: FastifyInstance) {
           /** Invoice TTL in minutes (default: 30) */
           ttl_minutes: z.number().int().min(5).max(1440).default(30),
           metadata: z.record(z.unknown()).optional(),
+          is_testnet: z.boolean().optional(),
         }),
       },
     },
     async (request, reply) => {
       const merchant = request.merchant;
       if (!merchant) return reply.code(401).send({ error: "Unauthorized" });
-      const { amount_usd, currency, ttl_minutes, metadata } = request.body;
+      const { amount_usd, currency, ttl_minutes, metadata, is_testnet } =
+        request.body;
 
       // 1. Get real-time crypto price
       const priceUsd = await PriceOracle.getPrice(currency as Currency);
@@ -103,10 +105,19 @@ export async function invoiceRoutes(app: FastifyInstance) {
       const nextIndex = merchant.derivationIndex + 1;
       let payAddress: string;
 
-      const network =
+      // Determine network context: is it a testnet invoice?
+      const isTestnet = is_testnet === true;
+      const envNetwork =
         (process.env.BITCOIN_NETWORK as "bitcoin" | "testnet" | "regtest") ||
         "bitcoin";
-      const isTestnet = network === "testnet" || network === "regtest";
+
+      // Safety Rail: Only BTC and ETH supported on Testnet
+      if (isTestnet && !["BTC", "ETH"].includes(currency)) {
+        return reply.code(400).send({
+          error:
+            "Testnet is currently only supported for Bitcoin (BTC) and Ethereum (ETH).",
+        });
+      }
 
       try {
         if (currency === "BTC" || currency === "LTC") {
@@ -114,23 +125,44 @@ export async function invoiceRoutes(app: FastifyInstance) {
 
           if (!xpub) {
             return reply.code(400).send({
-              error: `Merchant has no BTC xPub configured for ${network}`,
+              error: `Merchant has no ${currency} ${isTestnet ? "Testnet" : "Mainnet"} xPub configured.`,
             });
           }
-          payAddress = Derivator.deriveBitcoinAddress(xpub, nextIndex, network);
+
+          // Map currency and testnet flag to internal network name
+          let targetNetwork:
+            | "bitcoin"
+            | "testnet"
+            | "litecoin"
+            | "litecoin-testnet";
+          if (currency === "BTC") {
+            targetNetwork = isTestnet ? "testnet" : "bitcoin";
+          } else {
+            targetNetwork = isTestnet ? "litecoin-testnet" : "litecoin";
+          }
+
+          payAddress = Derivator.deriveUTXOAddress(
+            xpub,
+            nextIndex,
+            targetNetwork,
+          );
         } else {
-          const ethAddr = isTestnet
+          const ethXpub = isTestnet
+            ? merchant.ethXpubTestnet
+            : merchant.ethXpub;
+          const ethStaticAddr = isTestnet
             ? merchant.ethAddressTestnet
             : merchant.ethAddress;
 
-          if (!ethAddr) {
+          if (ethXpub) {
+            payAddress = Derivator.deriveEthereumAddress(ethXpub, nextIndex);
+          } else if (ethStaticAddr) {
+            payAddress = ethStaticAddr;
+          } else {
             return reply.code(400).send({
-              error: `Merchant has no ETH address configured for ${network}`,
+              error: `Merchant has no ETH ${isTestnet ? "Testnet" : "Mainnet"} configuration.`,
             });
           }
-          // For EVM tokens, we use the merchant's main address
-          // In production, HD derivation with xPub would be better
-          payAddress = ethAddr;
         }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
@@ -151,7 +183,7 @@ export async function invoiceRoutes(app: FastifyInstance) {
       }
 
       // 4. Credit Balance Gate
-      if (merchant.creditBalance <= 0) {
+      if (!isTestnet && merchant.creditBalance <= 0) {
         return reply.code(402).send({
           error:
             "Insufficient credit balance. Please top up your account to continue creating invoices.",
@@ -182,13 +214,16 @@ export async function invoiceRoutes(app: FastifyInstance) {
       const minFeeUsd = parseFloat(process.env.MIN_FEE_USD || "0.05");
 
       // Calculate fee with a minimum floor to cover infrastructure costs
-      const rawFeeUsd = amount_usd * platfromFeeRate;
-      const feeUsd = parseFloat(Math.max(rawFeeUsd, minFeeUsd).toFixed(2));
+      let feeUsd = 0;
+      let feeCrypto = 0;
 
-      // Calculate proportionate crypto fee
-      const feeCrypto = parseFloat(
-        ((feeUsd / amount_usd) * cryptoAmount).toFixed(8),
-      );
+      if (!isTestnet) {
+        const rawFeeUsd = amount_usd * platfromFeeRate;
+        feeUsd = parseFloat(Math.max(rawFeeUsd, minFeeUsd).toFixed(2));
+        feeCrypto = parseFloat(
+          ((feeUsd / amount_usd) * cryptoAmount).toFixed(8),
+        );
+      }
 
       const invoice = await Invoice.create({
         merchantId: merchant._id,
@@ -204,7 +239,7 @@ export async function invoiceRoutes(app: FastifyInstance) {
         expiresAt,
         metadata: {
           ...metadata,
-          network,
+          network: envNetwork,
           isTestnet,
         },
       });
@@ -258,7 +293,9 @@ export async function invoiceRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { id } = request.params;
 
-      const invoice = await Invoice.findOne({ invoiceId: id });
+      const invoice = await Invoice.findOne({ invoiceId: id }).populate<{
+        merchantId: { name: string; logoUrl?: string; returnUrl?: string };
+      }>("merchantId", "name logoUrl returnUrl");
 
       if (!invoice) {
         return reply.code(404).send({ error: "Invoice not found" });
@@ -280,6 +317,11 @@ export async function invoiceRoutes(app: FastifyInstance) {
         paid_at: invoice.paidAt?.toISOString() || null,
         created_at: invoice.createdAt.toISOString(),
         metadata: invoice.metadata,
+        store: {
+          name: invoice.merchantId.name,
+          logo_url: invoice.merchantId.logoUrl || null,
+          return_url: invoice.merchantId.returnUrl || null,
+        },
       };
     },
   );
@@ -297,10 +339,14 @@ export async function invoiceRoutes(app: FastifyInstance) {
 
     const {
       status,
+      include_testnet = "false",
+      only_testnet = "false",
       page = "1",
       limit = "20",
     } = request.query as {
       status?: string;
+      include_testnet?: string;
+      only_testnet?: string;
       page?: string;
       limit?: string;
     };
@@ -308,6 +354,13 @@ export async function invoiceRoutes(app: FastifyInstance) {
     const filter: Record<string, unknown> = { merchantId: merchant._id };
     if (status) {
       filter.status = status;
+    }
+    if (only_testnet === "true") {
+      // Exclusively testnet invoices
+      filter["metadata.isTestnet"] = true;
+    } else if (include_testnet !== "true") {
+      // Default: exclude testnet invoices
+      filter["metadata.isTestnet"] = { $ne: true };
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);

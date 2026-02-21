@@ -81,15 +81,31 @@ export async function merchantRoutes(app: FastifyInstance) {
         process.env.WELCOME_CREDIT_AMOUNT || "5.00",
       );
 
+      let finalBtcXpubTestnet = btcXpubTestnet;
+      let finalEthAddressTestnet = ethAddressTestnet;
+
+      if (!finalBtcXpubTestnet || !finalEthAddressTestnet) {
+        const mnemonic = bip39.generateMnemonic();
+        const seed = await bip39.mnemonicToSeed(mnemonic);
+
+        const root = bip32.fromSeed(seed, bitcoin.networks.testnet);
+        const btcNode = root.derivePath("m/84'/1'/0'");
+        finalBtcXpubTestnet =
+          finalBtcXpubTestnet || btcNode.neutered().toBase58();
+
+        const ethWallet = ethers.Wallet.fromPhrase(mnemonic);
+        finalEthAddressTestnet = finalEthAddressTestnet || ethWallet.address;
+      }
+
       const newMerchant = await Merchant.create({
         name,
         email,
         apiKeyHash,
         oauthId: uniqueOauthId,
         btcXpub,
-        btcXpubTestnet,
+        btcXpubTestnet: finalBtcXpubTestnet,
         ethAddress,
-        ethAddressTestnet,
+        ethAddressTestnet: finalEthAddressTestnet,
         webhookUrl,
         webhookSecret,
         creditBalance: welcomeCredit,
@@ -265,6 +281,9 @@ export async function merchantRoutes(app: FastifyInstance) {
         ethAddressTestnet: merchant.ethAddressTestnet,
         webhookUrl: merchant.webhookUrl,
         webhookSecret: merchant.webhookSecret,
+        logoUrl: merchant.logoUrl,
+        returnUrl: merchant.returnUrl,
+        enabledCurrencies: merchant.enabledCurrencies || [],
         webhookEvents: merchant.webhookEvents || [
           "invoice.confirmed",
           "invoice.mempool_detected",
@@ -279,6 +298,29 @@ export async function merchantRoutes(app: FastifyInstance) {
   );
 
   // ──────────────────────────────────────────────
+  // DELETE /v1/merchants/me — Delete Profile
+  // ──────────────────────────────────────────────
+  server.delete(
+    "/v1/merchants/me",
+    {
+      preHandler: requireAuth,
+    },
+    async (request, reply) => {
+      const merchant = request.merchant;
+      if (!merchant) return reply.code(500).send({ error: "Auth failed" });
+
+      await Merchant.findByIdAndDelete(merchant._id);
+
+      server.log.info(`[Settings] Deleted merchant: '${merchant._id}'`);
+
+      return {
+        success: true,
+        message: "Store deleted successfully",
+      };
+    },
+  );
+
+  // ──────────────────────────────────────────────
   // PATCH /v1/merchants/me — Update Profile
   // ──────────────────────────────────────────────
   server.patch(
@@ -288,12 +330,14 @@ export async function merchantRoutes(app: FastifyInstance) {
       schema: {
         body: z.object({
           name: z.string().min(0).optional(),
-          btcXpub: z.string().optional(),
-          btcXpubTestnet: z.string().optional(),
-          ethAddress: z.string().optional(),
-          ethAddressTestnet: z.string().optional(),
-          webhookUrl: z.string().url().optional(),
+          btcXpub: z.string().nullable().optional(),
+          btcXpubTestnet: z.string().nullable().optional(),
+          ethAddress: z.string().nullable().optional(),
+          ethAddressTestnet: z.string().nullable().optional(),
+          webhookUrl: z.string().url().nullable().optional(),
           webhookEvents: z.array(z.string()).optional(),
+          logoUrl: z.string().nullable().optional(),
+          returnUrl: z.string().nullable().optional(),
           confirmationPolicy: z
             .object({
               BTC: z.number().int().min(0),
@@ -301,6 +345,7 @@ export async function merchantRoutes(app: FastifyInstance) {
               ETH: z.number().int().min(0),
             })
             .optional(),
+          enabledCurrencies: z.array(z.string()).optional(),
         }),
       },
     },
@@ -335,6 +380,9 @@ export async function merchantRoutes(app: FastifyInstance) {
         ethAddressTestnet: updated.ethAddressTestnet,
         webhookUrl: updated.webhookUrl,
         webhookSecret: updated.webhookSecret,
+        enabledCurrencies: updated.enabledCurrencies,
+        logoUrl: updated.logoUrl,
+        returnUrl: updated.returnUrl,
         webhookEvents: updated.webhookEvents || [
           "invoice.confirmed",
           "invoice.mempool_detected",
@@ -476,23 +524,54 @@ export async function merchantRoutes(app: FastifyInstance) {
       const merchant = request.merchant;
       if (!merchant) return reply.code(401).send({ error: "Unauthorized" });
 
-      const [totalInvoices, confirmedInvoicesResult] = await Promise.all([
-        Invoice.countDocuments({
-          merchantId: merchant._id,
-        }) as unknown as number,
-        Invoice.aggregate<{ _id: null; total: number }>([
-          { $match: { merchantId: merchant._id, status: "confirmed" } },
-          { $group: { _id: null, total: { $sum: "$amountUsd" } } },
-        ]),
-      ]);
+      const [totalInvoices, confirmedInvoicesResult, testnetInvoicesResult] =
+        await Promise.all([
+          Invoice.countDocuments({
+            merchantId: merchant._id,
+            "metadata.isTestnet": { $ne: true },
+          }) as unknown as number,
+          Invoice.aggregate<{ _id: null; total: number }>([
+            {
+              $match: {
+                merchantId: merchant._id,
+                status: "confirmed",
+                "metadata.isTestnet": { $ne: true },
+              },
+            },
+            { $group: { _id: null, total: { $sum: "$amountUsd" } } },
+          ]),
+          Invoice.aggregate<{ _id: null; total: number; count: number }>([
+            {
+              $match: {
+                merchantId: merchant._id,
+                status: "confirmed",
+                "metadata.isTestnet": true,
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                total: { $sum: "$amountUsd" },
+                count: { $sum: 1 },
+              },
+            },
+          ]),
+        ]);
 
       const totalVolume =
         confirmedInvoicesResult.length > 0
           ? confirmedInvoicesResult[0].total
           : 0;
+
+      const testnetVolume =
+        testnetInvoicesResult.length > 0 ? testnetInvoicesResult[0].total : 0;
+      const testnetInvoicesCount =
+        testnetInvoicesResult.length > 0 ? testnetInvoicesResult[0].count : 0;
+
       const confirmedInvoicesCount = await Invoice.countDocuments({
         merchantId: merchant._id,
         status: "confirmed",
+        "metadata.isTestnet": { $ne: true },
       });
 
       const successRate =
@@ -502,6 +581,8 @@ export async function merchantRoutes(app: FastifyInstance) {
 
       return {
         totalVolume,
+        testnetVolume,
+        testnetInvoicesCount,
         activeInvoices: totalInvoices,
         successRate: `${successRate}%`,
         chartData: [
@@ -645,7 +726,7 @@ export async function merchantRoutes(app: FastifyInstance) {
 
       const { limit, offset, invoiceId } = request.query;
 
-      const query: any = {
+      const query: Record<string, unknown> = {
         merchantId: merchant._id,
       };
 

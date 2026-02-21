@@ -25,8 +25,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+type TabNotification = {
+  _id: string;
+  title: string;
+  description: string;
+  createdAt: string;
+  type: string;
+};
+
 function EventIcon({ type }: { type: string }) {
-  const configs: any = {
+  const configs: Record<
+    string,
+    { icon: React.ComponentType<{ className?: string }>; class: string }
+  > = {
     success: {
       icon: CheckCircle2,
       class: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
@@ -62,9 +73,8 @@ function EventIcon({ type }: { type: string }) {
 
 export function EventsTab() {
   const { data: session } = useSession();
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<TabNotification[]>([]);
   const [eventsLoading, setEventsLoading] = useState(true);
-  const [eventFilter, setEventFilter] = useState("all");
 
   const fetchNotifications = useCallback(async () => {
     if (!session?.user?.merchantId) return;
@@ -94,7 +104,7 @@ export function EventsTab() {
       socket.emit("join_merchant", session.user.merchantId);
     });
 
-    socket.on("notification", (newNotification: any) => {
+    socket.on("notification", (newNotification: TabNotification) => {
       setNotifications((prev) => [newNotification, ...prev]);
     });
 

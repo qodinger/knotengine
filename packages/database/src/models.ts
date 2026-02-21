@@ -15,9 +15,14 @@ export interface IMerchant extends Document {
   btcXpubTestnet?: string;
   ethAddress?: string;
   ethAddressTestnet?: string;
+  ethXpub?: string;
+  ethXpubTestnet?: string;
   webhookUrl?: string;
   webhookSecret?: string;
   webhookEvents?: string[];
+  logoUrl?: string;
+  returnUrl?: string;
+  enabledCurrencies: string[];
   /** Current derivation index for unique address generation */
   derivationIndex: number;
   /** Required confirmations per currency */
@@ -51,8 +56,13 @@ const MerchantSchema: Schema = new Schema(
     btcXpubTestnet: { type: String },
     ethAddress: { type: String },
     ethAddressTestnet: { type: String },
+    ethXpub: { type: String },
+    ethXpubTestnet: { type: String },
     webhookUrl: { type: String },
     webhookSecret: { type: String },
+    logoUrl: { type: String },
+    returnUrl: { type: String },
+    enabledCurrencies: { type: [String], default: [] },
     webhookEvents: {
       type: [String],
       default: [
