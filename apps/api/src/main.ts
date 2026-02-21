@@ -8,6 +8,7 @@ import { merchantRoutes } from "./routes/merchants";
 import { invoiceRoutes } from "./routes/invoices";
 import { webhookRoutes } from "./routes/webhooks";
 import { twoFactorRoutes } from "./routes/two-factor";
+import { configRoutes } from "./routes/config";
 import { PriceOracle } from "./infra/price-feed";
 import { ConfirmationEngine } from "./core/confirmation-engine";
 import { WebhookDispatcher } from "./infra/webhook-dispatcher";
@@ -81,6 +82,7 @@ server.register(merchantRoutes);
 server.register(invoiceRoutes);
 server.register(webhookRoutes);
 server.register(twoFactorRoutes);
+server.register(configRoutes);
 
 // ──────────────────────────────────────────────
 // Price Oracle Endpoint (Phase 1)

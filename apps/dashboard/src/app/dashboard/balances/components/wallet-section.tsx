@@ -34,12 +34,14 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { CRYPTO_LOGOS } from "@qodinger/knot-types";
-import { MerchantProfile, WalletInfo } from "../types";
+import { NetworkInfo } from "@qodinger/knot-types";
+import { MerchantProfile, WalletInfo, ConfigAsset } from "../types";
 
 interface WalletSectionProps {
   merchant: MerchantProfile | null;
   wallets: WalletInfo[];
+  configAssets: ConfigAsset[];
+  configNetworks: Record<string, NetworkInfo[]>;
   copiedField: string | null;
   isAddWalletOpen: boolean;
   setIsAddWalletOpen: (open: boolean) => void;
@@ -58,40 +60,11 @@ interface WalletSectionProps {
   copyAddress: (value: string, field: string) => void;
 }
 
-const CONFIGURABLE_ASSETS = [
-  { id: "BTC", label: "Bitcoin", symbol: "BTC", icon: CRYPTO_LOGOS.BTC },
-  { id: "LTC", label: "Litecoin", symbol: "LTC", icon: CRYPTO_LOGOS.LTC },
-  { id: "ETH", label: "Ethereum", symbol: "ETH", icon: CRYPTO_LOGOS.ETH },
-  {
-    id: "USDT",
-    label: "Tether",
-    symbol: "USDT",
-    icon: CRYPTO_LOGOS.USDT_ERC20,
-  },
-];
-
-const NETWORKS: Record<
-  string,
-  { id: string; label: string; networkName: string }[]
-> = {
-  BTC: [{ id: "BTC", label: "Bitcoin Network", networkName: "Bitcoin" }],
-  LTC: [{ id: "LTC", label: "Litecoin Network", networkName: "Litecoin" }],
-  ETH: [
-    { id: "ETH", label: "Ethereum (ERC20)", networkName: "Ethereum (ERC20)" },
-  ],
-  USDT: [
-    {
-      id: "USDT_ERC20",
-      label: "Ethereum (ERC20)",
-      networkName: "Ethereum (ERC20)",
-    },
-    { id: "USDT_POLYGON", label: "Polygon Network", networkName: "Polygon" },
-  ],
-};
-
 export function WalletSection({
   merchant,
   wallets,
+  configAssets,
+  configNetworks,
   copiedField,
   isAddWalletOpen,
   setIsAddWalletOpen,
@@ -175,7 +148,7 @@ export function WalletSection({
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
                     <SelectContent>
-                      {CONFIGURABLE_ASSETS.map((asset) => {
+                      {configAssets.map((asset) => {
                         const input = newWalletAddress.trim();
                         let isLocked = false;
 
@@ -231,7 +204,7 @@ export function WalletSection({
                     </SelectTrigger>
                     <SelectContent>
                       {newWalletCoin &&
-                        NETWORKS[newWalletCoin]?.map((network) => (
+                        configNetworks[newWalletCoin]?.map((network) => (
                           <SelectItem
                             key={network.id}
                             value={network.id}
@@ -270,13 +243,22 @@ export function WalletSection({
                   isAddingWallet ||
                   !newWalletAddress ||
                   !newWalletNetwork ||
-                  !!(
-                    newWalletNetwork &&
-                    (newWalletNetwork === "BTC" || newWalletNetwork === "LTC"
-                      ? merchant?.btcXpub === newWalletAddress.trim()
-                      : merchant?.ethAddress === newWalletAddress.trim()) &&
-                    merchant?.enabledCurrencies.includes(newWalletNetwork)
-                  )
+                  (() => {
+                    if (!newWalletNetwork || !merchant) return false;
+                    // Find the merchantField for this network dynamically
+                    let field = "";
+                    Object.values(configNetworks).forEach((nets) => {
+                      const match = nets.find((n) => n.id === newWalletNetwork);
+                      if (match) field = match.merchantField;
+                    });
+                    const currentSaved = field
+                      ? (merchant as any)[field]
+                      : undefined;
+                    return (
+                      currentSaved === newWalletAddress.trim() &&
+                      merchant.enabledCurrencies.includes(newWalletNetwork)
+                    );
+                  })()
                 }
               >
                 {isAddingWallet ? (
@@ -287,10 +269,13 @@ export function WalletSection({
                 {(() => {
                   const isAlreadyEnabled =
                     merchant?.enabledCurrencies.includes(newWalletNetwork);
+                  let field = "";
+                  Object.values(configNetworks).forEach((nets) => {
+                    const match = nets.find((n) => n.id === newWalletNetwork);
+                    if (match) field = match.merchantField;
+                  });
                   const currentSaved =
-                    newWalletNetwork === "BTC" || newWalletNetwork === "LTC"
-                      ? merchant?.btcXpub
-                      : merchant?.ethAddress;
+                    field && merchant ? (merchant as any)[field] : undefined;
                   const isSameAddress =
                     currentSaved === newWalletAddress.trim();
 

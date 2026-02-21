@@ -37,3 +37,9 @@ export interface WalletInfo {
   iconColor: string;
   iconFallback: string;
 }
+export interface ConfigAsset {
+  id: string;
+  label: string;
+  symbol: string;
+  icon: string;
+}

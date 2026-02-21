@@ -29,6 +29,8 @@ export default function BalancesPage() {
     handleAddressChange,
     handleAddWallet,
     handleRemoveWallet,
+    configAssets,
+    configNetworks,
   } = useBalances();
 
   return (
@@ -40,6 +42,8 @@ export default function BalancesPage() {
       <WalletSection
         merchant={merchant}
         wallets={wallets}
+        configAssets={configAssets}
+        configNetworks={configNetworks}
         copiedField={copiedField}
         isAddWalletOpen={isAddWalletOpen}
         setIsAddWalletOpen={setIsAddWalletOpen}

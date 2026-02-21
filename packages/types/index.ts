@@ -30,6 +30,90 @@ export const CRYPTO_LABELS: Record<Currency, string> = {
   USDT_POLYGON: "Tether (USDT) on Polygon",
 };
 
+/**
+ * UI-focused asset grouping
+ */
+export const ASSET_CONFIG = [
+  { id: "BTC", label: "Bitcoin", symbol: "BTC", icon: CRYPTO_LOGOS.BTC },
+  { id: "LTC", label: "Litecoin", symbol: "LTC", icon: CRYPTO_LOGOS.LTC },
+  { id: "ETH", label: "Ethereum", symbol: "ETH", icon: CRYPTO_LOGOS.ETH },
+  {
+    id: "USDT",
+    label: "Tether",
+    symbol: "USDT",
+    icon: CRYPTO_LOGOS.USDT_ERC20,
+  },
+];
+
+export interface NetworkInfo {
+  id: Currency;
+  label: string;
+  networkName: string;
+  merchantField: "btcXpub" | "ethAddress";
+  type: string;
+  iconColor: string;
+  iconUrl: string;
+}
+
+/**
+ * Network specific metadata for each asset
+ */
+export const NETWORK_CONFIG: Record<string, NetworkInfo[]> = {
+  BTC: [
+    {
+      id: "BTC",
+      label: "Bitcoin Network",
+      networkName: "Bitcoin",
+      merchantField: "btcXpub",
+      type: "HD Wallet (xPub)",
+      iconColor: "bg-amber-500",
+      iconUrl: CRYPTO_LOGOS.BTC,
+    },
+  ],
+  LTC: [
+    {
+      id: "LTC",
+      label: "Litecoin Network",
+      networkName: "Litecoin",
+      merchantField: "btcXpub",
+      type: "HD Wallet (xPub)",
+      iconColor: "bg-blue-600",
+      iconUrl: CRYPTO_LOGOS.LTC,
+    },
+  ],
+  ETH: [
+    {
+      id: "ETH",
+      label: "Ethereum (ERC20)",
+      networkName: "Ethereum (ERC20)",
+      merchantField: "ethAddress",
+      type: "Static Address",
+      iconColor: "bg-indigo-500",
+      iconUrl: CRYPTO_LOGOS.ETH,
+    },
+  ],
+  USDT: [
+    {
+      id: "USDT_ERC20",
+      label: "Ethereum (ERC20)",
+      networkName: "Ethereum (ERC20)",
+      merchantField: "ethAddress",
+      type: "Static Address",
+      iconColor: "bg-emerald-500",
+      iconUrl: CRYPTO_LOGOS.USDT_ERC20,
+    },
+    {
+      id: "USDT_POLYGON",
+      label: "Polygon Network",
+      networkName: "Polygon",
+      merchantField: "ethAddress",
+      type: "Static Address",
+      iconColor: "bg-emerald-600",
+      iconUrl: CRYPTO_LOGOS.USDT_POLYGON,
+    },
+  ],
+};
+
 export type InvoiceStatus =
   | "pending"
   | "mempool_detected"

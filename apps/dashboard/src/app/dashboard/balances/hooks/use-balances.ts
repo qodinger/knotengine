@@ -1,12 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { api } from "@/lib/api";
-import {
-  EVM_CURRENCIES,
-  CRYPTO_LABELS,
-  CRYPTO_LOGOS,
-} from "@qodinger/knot-types";
+import { ASSET_CONFIG, NETWORK_CONFIG } from "@qodinger/knot-types";
 import { MerchantProfile, StatsData, Invoice, WalletInfo } from "../types";
 
 export function useBalances() {
@@ -25,80 +21,36 @@ export function useBalances() {
   const [walletToRemove, setWalletToRemove] = useState<string | null>(null);
   const [isRemovingWallet, setIsRemovingWallet] = useState(false);
 
-  const wallets: WalletInfo[] = [];
-  if (merchant) {
-    const isEnabled = (id: string) => merchant.enabledCurrencies?.includes(id);
+  const wallets = useMemo<WalletInfo[]>(() => {
+    if (!merchant) return [];
 
-    if (merchant.btcXpub) {
-      if (isEnabled("BTC")) {
-        wallets.push({
-          id: "BTC",
-          label: CRYPTO_LABELS.BTC,
-          currency: "BTC",
-          network: "Bitcoin",
-          address: merchant.btcXpub,
-          type: "HD Wallet (xPub)",
-          iconUrl: CRYPTO_LOGOS.BTC,
-          iconColor: "bg-amber-500",
-          iconFallback: "BTC",
-        });
-      }
-      if (isEnabled("LTC")) {
-        wallets.push({
-          id: "LTC",
-          label: CRYPTO_LABELS.LTC,
-          currency: "LTC",
-          network: "Litecoin",
-          address: merchant.btcXpub,
-          type: "HD Wallet (xPub)",
-          iconUrl: CRYPTO_LOGOS.LTC,
-          iconColor: "bg-blue-600",
-          iconFallback: "LTC",
-        });
-      }
-    }
-    if (merchant.ethAddress) {
-      if (isEnabled("ETH")) {
-        wallets.push({
-          id: "ETH",
-          label: CRYPTO_LABELS.ETH,
-          currency: "ETH",
-          network: "Ethereum (ERC20)",
-          address: merchant.ethAddress,
-          type: "Static Address",
-          iconUrl: CRYPTO_LOGOS.ETH,
-          iconColor: "bg-indigo-500",
-          iconFallback: "ETH",
-        });
-      }
-      if (isEnabled("USDT_ERC20")) {
-        wallets.push({
-          id: "USDT_ERC20",
-          label: CRYPTO_LABELS.USDT_ERC20,
-          currency: "USDT",
-          network: "Ethereum (ERC20)",
-          address: merchant.ethAddress,
-          type: "Static Address",
-          iconUrl: CRYPTO_LOGOS.USDT_ERC20,
-          iconColor: "bg-emerald-500",
-          iconFallback: "USDT",
-        });
-      }
-      if (isEnabled("USDT_POLYGON")) {
-        wallets.push({
-          id: "USDT_POLYGON",
-          label: CRYPTO_LABELS.USDT_POLYGON,
-          currency: "USDT",
-          network: "Polygon",
-          address: merchant.ethAddress,
-          type: "Static Address",
-          iconUrl: CRYPTO_LOGOS.USDT_POLYGON,
-          iconColor: "bg-emerald-600",
-          iconFallback: "USDT",
-        });
-      }
-    }
-  }
+    const list: WalletInfo[] = [];
+    const enabled = merchant.enabledCurrencies || [];
+
+    // Iterate through all supported assets and their networks
+    Object.entries(NETWORK_CONFIG).forEach(([coinId, networks]) => {
+      networks.forEach((net: any) => {
+        if (enabled.includes(net.id)) {
+          const address = (merchant as any)[net.merchantField];
+          if (address) {
+            list.push({
+              id: net.id,
+              label: net.label,
+              currency: coinId,
+              network: net.networkName,
+              address: address,
+              type: net.type,
+              iconUrl: net.iconUrl,
+              iconColor: net.iconColor,
+              iconFallback: coinId,
+            });
+          }
+        }
+      });
+    });
+
+    return list;
+  }, [merchant]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -132,6 +84,8 @@ export function useBalances() {
     const input = val.trim();
     if (!input) return;
 
+    // Detection logic can still be local as it's UX-based,
+    // but ideally we could also offload this to the backend if complex
     if (/^[xyzvtu]pub[1-9A-HJ-NP-Za-km-z]{10,}$/i.test(input)) {
       setNewWalletCoin("BTC");
       setNewWalletNetwork("BTC");
@@ -166,12 +120,18 @@ export function useBalances() {
   const handleAddWallet = async () => {
     setIsAddingWallet(true);
     try {
-      const payload: Record<string, string | string[] | null> = {};
-      if (newWalletNetwork === "BTC" || newWalletNetwork === "LTC") {
-        payload.btcXpub = newWalletAddress;
-      } else {
-        payload.ethAddress = newWalletAddress;
-      }
+      // Find the network config to know which field to update
+      let merchantField = "";
+      Object.values(NETWORK_CONFIG).forEach((nets: any) => {
+        const match = nets.find((n: any) => n.id === newWalletNetwork);
+        if (match) merchantField = match.merchantField;
+      });
+
+      if (!merchantField) throw new Error("Invalid network selection");
+
+      const payload: Record<string, string | string[] | null> = {
+        [merchantField]: newWalletAddress,
+      };
 
       const updatedEnabled = [...(merchant?.enabledCurrencies || [])];
       if (!updatedEnabled.includes(newWalletNetwork)) {
@@ -202,22 +162,31 @@ export function useBalances() {
       );
       payload.enabledCurrencies = updatedEnabled;
 
-      const btcRelated = ["BTC", "LTC"];
-      if (
-        btcRelated.includes(walletToRemove) &&
-        !updatedEnabled.some((c) => btcRelated.includes(c))
-      ) {
-        payload.btcXpub = null;
-      }
-      if (
-        EVM_CURRENCIES.includes(
-          walletToRemove as (typeof EVM_CURRENCIES)[number],
-        ) &&
-        !updatedEnabled.some((c) =>
-          EVM_CURRENCIES.includes(c as (typeof EVM_CURRENCIES)[number]),
-        )
-      ) {
-        payload.ethAddress = null;
+      // Find which field this wallet used
+      let merchantField = "";
+      Object.values(NETWORK_CONFIG).forEach((nets: any) => {
+        const match = nets.find((n: any) => n.id === walletToRemove);
+        if (match) merchantField = match.merchantField;
+      });
+
+      // If no other enabled currency uses this field, we can null it out
+      if (merchantField) {
+        const otherUses = updatedEnabled.some((currId) => {
+          let field = "";
+          Object.values(NETWORK_CONFIG).forEach((nets: any) => {
+            if (
+              nets.find((n: any) => n.id === currId)?.merchantField ===
+              merchantField
+            ) {
+              field = merchantField;
+            }
+          });
+          return field === merchantField;
+        });
+
+        if (!otherUses) {
+          payload[merchantField] = null;
+        }
       }
 
       await api.patch("/v1/merchants/me", payload);
@@ -235,6 +204,8 @@ export function useBalances() {
     merchant,
     stats,
     invoices,
+    configAssets: ASSET_CONFIG,
+    configNetworks: NETWORK_CONFIG,
     loading,
     copiedField,
     isAddWalletOpen,
