@@ -18,9 +18,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
 import { QRCodeSVG } from "qrcode.react";
-import { Currency, CRYPTO_LOGOS } from "@qodinger/knot-types";
+import { Currency, NETWORK_CONFIG, CRYPTO_LABELS } from "@qodinger/knot-types";
 import { StatsData } from "../types";
+
+/**
+ * Maps a currency id to the platformFeeWallets key to check availability.
+ * BTC/LTC have their own keys, all EVM-based currencies share "EVM".
+ */
+function getPlatformWalletKey(currencyId: string): "BTC" | "LTC" | "EVM" {
+  if (currencyId === "BTC") return "BTC";
+  if (currencyId === "LTC") return "LTC";
+  return "EVM";
+}
 
 interface TopUpDialogProps {
   isOpen: boolean;
@@ -134,78 +145,33 @@ export function TopUpDialog({
                     <SelectValue placeholder="Select a currency" />
                   </SelectTrigger>
                   <SelectContent className="[&_*[role=option]>span]:flex [&_*[role=option]>span]:items-center [&_*[role=option]>span]:gap-2">
-                    {stats?.platformFeeWallets?.EVM ? (
-                      <>
-                        <SelectItem value="USDT_ERC20">
+                    {Object.values(NETWORK_CONFIG)
+                      .flat()
+                      .filter((net) => {
+                        const key = getPlatformWalletKey(net.id);
+                        return !!stats?.platformFeeWallets?.[key];
+                      })
+                      .map((net) => (
+                        <SelectItem key={net.id} value={net.id}>
                           <Avatar className="size-5 bg-transparent p-0">
                             <AvatarImage
-                              src={CRYPTO_LOGOS.USDT_ERC20}
+                              src={net.iconUrl}
                               className="object-contain"
                             />
-                            <AvatarFallback className="text-[10px] bg-emerald-500 text-white">
-                              USDT
+                            <AvatarFallback
+                              className={cn(
+                                "text-[10px] text-white",
+                                net.iconColor,
+                              )}
+                            >
+                              {net.id.split("_")[0]}
                             </AvatarFallback>
                           </Avatar>
                           <span className="truncate">
-                            Tether (USDT) on Ethereum
+                            {CRYPTO_LABELS[net.id as Currency]}
                           </span>
                         </SelectItem>
-                        <SelectItem value="USDT_POLYGON">
-                          <Avatar className="size-5 bg-transparent p-0">
-                            <AvatarImage
-                              src={CRYPTO_LOGOS.USDT_POLYGON}
-                              className="object-contain"
-                            />
-                            <AvatarFallback className="text-[10px] bg-emerald-500 text-white">
-                              USDT
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="truncate">
-                            Tether (USDT) on Polygon
-                          </span>
-                        </SelectItem>
-                        <SelectItem value="ETH">
-                          <Avatar className="size-5 bg-transparent p-0">
-                            <AvatarImage
-                              src={CRYPTO_LOGOS.ETH}
-                              className="object-contain"
-                            />
-                            <AvatarFallback className="text-[10px] bg-indigo-500 text-white">
-                              ETH
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="truncate">Ethereum (ETH)</span>
-                        </SelectItem>
-                      </>
-                    ) : null}
-                    {stats?.platformFeeWallets?.BTC && (
-                      <SelectItem value="BTC">
-                        <Avatar className="size-5 bg-transparent p-0">
-                          <AvatarImage
-                            src={CRYPTO_LOGOS.BTC}
-                            className="object-contain"
-                          />
-                          <AvatarFallback className="text-[10px] bg-amber-500 text-white">
-                            BTC
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="truncate">Bitcoin (BTC)</span>
-                      </SelectItem>
-                    )}
-                    {stats?.platformFeeWallets?.LTC && (
-                      <SelectItem value="LTC">
-                        <Avatar className="size-5 bg-transparent p-0">
-                          <AvatarImage
-                            src={CRYPTO_LOGOS.LTC}
-                            className="object-contain"
-                          />
-                          <AvatarFallback className="text-[10px] bg-blue-500 text-white">
-                            LTC
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="truncate">Litecoin (LTC)</span>
-                      </SelectItem>
-                    )}
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -241,7 +207,11 @@ export function TopUpDialog({
                   imageSettings={
                     selectedCurrency
                       ? {
-                          src: CRYPTO_LOGOS[selectedCurrency as Currency],
+                          src:
+                            Object.values(NETWORK_CONFIG)
+                              .flat()
+                              .find((n) => n.id === selectedCurrency)
+                              ?.iconUrl || "",
                           height: 48,
                           width: 48,
                           excavate: true,

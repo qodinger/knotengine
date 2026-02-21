@@ -68,6 +68,7 @@ export function useBilling() {
     if (!stats?.platformFeeWallets) return null;
     if (currency === "BTC") return stats.platformFeeWallets.BTC;
     if (currency === "LTC") return stats.platformFeeWallets.LTC;
+    // All EVM-based currencies (ETH, USDT_ERC20, USDT_POLYGON) share the same wallet
     return stats.platformFeeWallets.EVM;
   };
 

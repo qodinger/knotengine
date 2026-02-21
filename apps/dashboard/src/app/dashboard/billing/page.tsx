@@ -37,9 +37,8 @@ export default function BillingPage() {
 
   const isTopUpDisabled =
     !loading &&
-    !stats?.platformFeeWallets?.BTC &&
-    !stats?.platformFeeWallets?.LTC &&
-    !stats?.platformFeeWallets?.EVM;
+    (!stats?.platformFeeWallets ||
+      !Object.values(stats.platformFeeWallets).some(Boolean));
 
   return (
     <div className="flex flex-col gap-6">

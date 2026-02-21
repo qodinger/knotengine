@@ -18,7 +18,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CRYPTO_LOGOS } from "@qodinger/knot-types";
+import { NETWORK_CONFIG } from "@qodinger/knot-types";
 import {
   Table,
   TableBody,
@@ -59,8 +59,8 @@ export function TestnetTab() {
       currency: "BTC / LTC",
       address: config.btcXpubTestnet,
       type: "Testnet xPub",
-      iconUrl: CRYPTO_LOGOS.BTC,
-      iconColor: "bg-amber-500",
+      iconUrl: NETWORK_CONFIG.BTC[0].iconUrl,
+      iconColor: NETWORK_CONFIG.BTC[0].iconColor,
       iconFallback: "BTC",
     });
   }
@@ -71,8 +71,8 @@ export function TestnetTab() {
       currency: "ETH / ERC-20",
       address: config.ethAddressTestnet,
       type: "Testnet Address",
-      iconUrl: CRYPTO_LOGOS.ETH,
-      iconColor: "bg-indigo-500",
+      iconUrl: NETWORK_CONFIG.ETH[0].iconUrl,
+      iconColor: NETWORK_CONFIG.ETH[0].iconColor,
       iconFallback: "ETH",
     });
   }

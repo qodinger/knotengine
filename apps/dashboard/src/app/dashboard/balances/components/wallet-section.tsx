@@ -218,15 +218,35 @@ export function WalletSection({
                 </div>
               </div>
 
-              {newWalletNetwork === "USDT_POLYGON" && (
-                <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10 flex items-start gap-3">
-                  <ShieldCheck className="size-4 text-emerald-500 shrink-0 mt-0.5" />
-                  <p className="text-[10.5px] text-emerald-600 font-medium leading-relaxed">
-                    Smart Match: This network shares the same address as your
-                    Ethereum (ERC20) wallet.
-                  </p>
-                </div>
-              )}
+              {(() => {
+                // Show a hint when the selected network shares the same address with another network
+                if (!newWalletNetwork || !newWalletCoin) return null;
+                const selectedNet = configNetworks[newWalletCoin]?.find(
+                  (n) => n.id === newWalletNetwork,
+                );
+                if (!selectedNet) return null;
+
+                // Find other networks that share the same merchantField
+                const siblings = Object.values(configNetworks)
+                  .flat()
+                  .filter(
+                    (n) =>
+                      n.id !== selectedNet.id &&
+                      n.merchantField === selectedNet.merchantField,
+                  );
+
+                if (siblings.length === 0) return null;
+
+                return (
+                  <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10 flex items-start gap-3">
+                    <ShieldCheck className="size-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <p className="text-[10.5px] text-emerald-600 font-medium leading-relaxed">
+                      Smart Match: This network shares the same address as your{" "}
+                      {siblings.map((s) => s.label).join(", ")} wallet.
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
             <DialogFooter className="grid grid-cols-2 gap-3 sm:space-x-0">
               <Button
