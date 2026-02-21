@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense, useCallback, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Key, FlaskConical, Webhook } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,9 +9,21 @@ import { ApiKeysTab } from "./components/api-keys-tab";
 import { TestnetTab } from "./components/testnet-tab";
 import { WebhooksTab } from "./components/webhooks-tab";
 
-export default function DevelopersPage() {
+function DevelopersContent() {
   const searchParams = useSearchParams();
-  const defaultTab = searchParams.get("tab") || "api-keys";
+  const initialTab = searchParams.get("tab") || "api-keys";
+
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  // Sync state if URL changes organically (e.g. user hits back button)
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
+  const handleTabChange = useCallback((value: string) => {
+    setActiveTab(value);
+    window.history.replaceState(null, "", `?tab=${value}`);
+  }, []);
 
   return (
     <div className="flex flex-col gap-6">
@@ -21,7 +34,11 @@ export default function DevelopersPage() {
         </p>
       </div>
 
-      <Tabs defaultValue={defaultTab} className="w-full">
+      <Tabs
+        value={activeTab}
+        onValueChange={handleTabChange}
+        className="w-full"
+      >
         <TabsList className="bg-muted/30 h-9 w-auto">
           <TabsTrigger
             value="api-keys"
@@ -60,5 +77,13 @@ export default function DevelopersPage() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+export default function DevelopersPage() {
+  return (
+    <Suspense fallback={<div className="p-8">Loading...</div>}>
+      <DevelopersContent />
+    </Suspense>
   );
 }

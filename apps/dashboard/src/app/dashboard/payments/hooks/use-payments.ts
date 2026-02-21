@@ -1,14 +1,18 @@
 "use client";
 
 import { useState, useCallback, useEffect, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { Invoice, TimelineEvent } from "../types";
 
 export function usePayments() {
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState(tabParam || "all");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
@@ -36,6 +40,17 @@ export function usePayments() {
   useEffect(() => {
     fetchInvoices();
   }, [fetchInvoices]);
+
+  useEffect(() => {
+    if (tabParam && tabParam !== activeTab) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam, activeTab]);
+
+  const handleTabChange = useCallback((tab: string) => {
+    setActiveTab(tab);
+    window.history.replaceState(null, "", `?tab=${tab}`);
+  }, []);
 
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -95,7 +110,7 @@ export function usePayments() {
     searchTerm,
     setSearchTerm,
     activeTab,
-    setActiveTab,
+    setActiveTab: handleTabChange,
     copiedId,
     selectedInvoice,
     setSelectedInvoice,

@@ -179,20 +179,20 @@ export function CheckoutCard({ invoice }: CheckoutCardProps) {
 
         <div className="flex flex-col gap-6">
           {/* QR Code */}
-          <div className="bg-white p-4 rounded-xl mx-auto shadow-sm">
-            <QRCodeSVG
-              value={generatePaymentUri()}
-              size={180}
-              level="H"
-              imageSettings={{
-                src:
-                  CRYPTO_LOGOS[invoice.crypto_currency as Currency] ||
-                  CRYPTO_LOGOS["BTC"],
-                height: 48,
-                width: 48,
-                excavate: true,
-              }}
-            />
+          <div className="bg-white p-4 rounded-xl mx-auto shadow-sm relative flex items-center justify-center">
+            <QRCodeSVG value={generatePaymentUri()} size={180} level="H" />
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="bg-white p-2 rounded-full size-12 flex items-center justify-center">
+                <img
+                  src={
+                    CRYPTO_LOGOS[invoice.crypto_currency as Currency] ||
+                    CRYPTO_LOGOS["BTC"]
+                  }
+                  alt={invoice.crypto_currency}
+                  className="size-full object-contain"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Address Input */}

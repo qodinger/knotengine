@@ -49,10 +49,13 @@ export interface NetworkInfo {
   id: Currency;
   label: string;
   networkName: string;
+  networkSymbol: string;
   merchantField: "btcXpub" | "ethAddress";
   type: string;
   iconColor: string;
   iconUrl: string;
+  estimatedTime?: string;
+  networkFee?: string;
 }
 
 /**
@@ -64,10 +67,13 @@ export const NETWORK_CONFIG: Record<string, NetworkInfo[]> = {
       id: "BTC",
       label: "Bitcoin Network",
       networkName: "Bitcoin",
+      networkSymbol: "BTC",
       merchantField: "btcXpub",
       type: "HD Wallet (xPub)",
       iconColor: "bg-amber-500",
       iconUrl: CRYPTO_LOGOS.BTC,
+      estimatedTime: "≈ 10 mins",
+      networkFee: "0.00001 BTC (≈ $0.45)",
     },
   ],
   LTC: [
@@ -75,10 +81,13 @@ export const NETWORK_CONFIG: Record<string, NetworkInfo[]> = {
       id: "LTC",
       label: "Litecoin Network",
       networkName: "Litecoin",
+      networkSymbol: "LTC",
       merchantField: "btcXpub",
       type: "HD Wallet (xPub)",
       iconColor: "bg-blue-600",
       iconUrl: CRYPTO_LOGOS.LTC,
+      estimatedTime: "≈ 2.5 mins",
+      networkFee: "0.0005 LTC (≈ $0.03)",
     },
   ],
   ETH: [
@@ -86,10 +95,13 @@ export const NETWORK_CONFIG: Record<string, NetworkInfo[]> = {
       id: "ETH",
       label: "Ethereum (ERC20)",
       networkName: "Ethereum (ERC20)",
+      networkSymbol: "ETH",
       merchantField: "ethAddress",
       type: "Static Address",
       iconColor: "bg-indigo-500",
       iconUrl: CRYPTO_LOGOS.ETH,
+      estimatedTime: "≈ 2 mins",
+      networkFee: "0.00002 ETH (≈ $0.05)",
     },
   ],
   USDT: [
@@ -97,19 +109,25 @@ export const NETWORK_CONFIG: Record<string, NetworkInfo[]> = {
       id: "USDT_ERC20",
       label: "Ethereum (ERC20)",
       networkName: "Ethereum (ERC20)",
+      networkSymbol: "ETH",
       merchantField: "ethAddress",
       type: "Static Address",
       iconColor: "bg-emerald-500",
       iconUrl: CRYPTO_LOGOS.USDT_ERC20,
+      estimatedTime: "≈ 2 mins",
+      networkFee: "0.05 USDT (≈ $0.05)",
     },
     {
       id: "USDT_POLYGON",
       label: "Polygon Network",
       networkName: "Polygon",
+      networkSymbol: "POLYGON",
       merchantField: "ethAddress",
       type: "Static Address",
       iconColor: "bg-emerald-600",
       iconUrl: CRYPTO_LOGOS.USDT_POLYGON,
+      estimatedTime: "≈ 1 mins",
+      networkFee: "0.01 USDT (≈ $0.01)",
     },
   ],
 };

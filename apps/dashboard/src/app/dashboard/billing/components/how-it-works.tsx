@@ -19,7 +19,7 @@ export function HowItWorks({ feeRate }: HowItWorksProps) {
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <Sparkles className="size-4 text-primary" />
-          <CardTitle className="text-sm font-semibold">
+          <CardTitle className="text-[10px] font-bold uppercase tracking-wider">
             How Billing Works
           </CardTitle>
         </div>
@@ -73,7 +73,9 @@ export function HowItWorks({ feeRate }: HowItWorksProps) {
                 </span>
                 <item.icon className={cn("size-3.5", item.color)} />
               </div>
-              <p className="text-sm font-semibold">{item.title}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-foreground">
+                {item.title}
+              </p>
               <p className="text-[11px] text-muted-foreground leading-relaxed">
                 {item.description}
               </p>

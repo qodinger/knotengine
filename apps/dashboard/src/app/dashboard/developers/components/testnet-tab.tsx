@@ -112,69 +112,67 @@ export function TestnetTab() {
           </CardContent>
         </Card>
       ) : (
-        <Card className="border shadow-sm overflow-hidden mb-8">
-          <div className="divide-y divide-border/40">
-            {wallets.map((wallet) => (
-              <div
-                key={wallet.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-muted/10"
-              >
-                <div className="flex items-center gap-4 min-w-0">
-                  <Avatar className="size-10 bg-transparent p-0 shrink-0">
-                    <AvatarImage
-                      src={wallet.iconUrl}
-                      className="object-contain"
-                    />
-                    <AvatarFallback
-                      className={cn(
-                        "text-[10px] font-bold text-white",
-                        wallet.iconColor,
-                      )}
+        <div className="flex flex-col gap-2 mb-8">
+          {wallets.map((wallet) => (
+            <div
+              key={wallet.id}
+              className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3 bg-card border rounded-xl shadow-sm"
+            >
+              <div className="flex items-center gap-4 min-w-0">
+                <Avatar className="size-10 bg-transparent p-0 shrink-0">
+                  <AvatarImage
+                    src={wallet.iconUrl}
+                    className="object-contain"
+                  />
+                  <AvatarFallback
+                    className={cn(
+                      "text-[10px] font-bold text-white",
+                      wallet.iconColor,
+                    )}
+                  >
+                    {wallet.iconFallback}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-sm truncate">
+                      {wallet.label}
+                    </p>
+                    <Badge
+                      variant="secondary"
+                      className="text-[10px] font-medium"
                     >
-                      {wallet.iconFallback}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-sm truncate">
-                        {wallet.label}
-                      </p>
-                      <Badge
-                        variant="secondary"
-                        className="text-[10px] font-medium"
-                      >
-                        {wallet.type}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <p className="text-xs text-muted-foreground whitespace-nowrap">
-                        {wallet.currency}
-                      </p>
-                    </div>
+                      {wallet.type}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className="text-xs text-muted-foreground whitespace-nowrap">
+                      {wallet.currency}
+                    </p>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-2 shrink-0 bg-muted/30 p-2 rounded-lg border border-border/30 w-full sm:w-auto">
-                  <code className="text-xs font-mono text-muted-foreground truncate flex-1 sm:max-w-xs px-1">
-                    {truncate(wallet.address)}
-                  </code>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-7 shrink-0"
-                    onClick={() => copyToClipboard(wallet.address, wallet.id)}
-                  >
-                    {copied === wallet.id ? (
-                      <Check className="size-3.5 text-emerald-500" />
-                    ) : (
-                      <Copy className="size-3.5" />
-                    )}
-                  </Button>
-                </div>
               </div>
-            ))}
-          </div>
-        </Card>
+
+              <div className="flex items-center gap-2 shrink-0 bg-muted/30 p-2 rounded-lg border border-border/30 w-full sm:w-auto">
+                <code className="text-xs font-mono text-muted-foreground truncate flex-1 sm:max-w-xs px-1">
+                  {truncate(wallet.address)}
+                </code>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7 shrink-0"
+                  onClick={() => copyToClipboard(wallet.address, wallet.id)}
+                >
+                  {copied === wallet.id ? (
+                    <Check className="size-3.5 text-emerald-500" />
+                  ) : (
+                    <Copy className="size-3.5" />
+                  )}
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
 
       {/* Simulator Section */}
@@ -214,185 +212,207 @@ export function TestnetTab() {
         </div>
       </div>
 
-      <Card className="border shadow-sm overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-transparent border-border/30">
-              <TableHead className="w-[180px] text-xs font-medium pl-6">
-                Invoice
-              </TableHead>
-              <TableHead className="text-xs font-medium">Amount</TableHead>
-              <TableHead className="text-xs font-medium">Status</TableHead>
-              <TableHead className="text-xs font-medium">Address</TableHead>
-              <TableHead className="text-right text-xs font-medium pr-6">
-                Actions
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {testnetLoading && invoices.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="h-32 text-center">
-                  <div className="flex flex-col items-center gap-2">
-                    <RefreshCw className="size-6 text-muted-foreground/20 animate-spin" />
-                    <p className="text-xs text-muted-foreground/60 font-medium">
-                      Loading testnet invoices...
-                    </p>
-                  </div>
-                </TableCell>
+      <Card className="border shadow-sm overflow-hidden py-0 gap-0">
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader className="bg-muted/20">
+              <TableRow className="hover:bg-transparent border-border/30 h-12">
+                <TableHead className="w-[180px] text-[10px] font-bold uppercase tracking-wider pl-6">
+                  Invoice
+                </TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider">
+                  Amount
+                </TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider">
+                  Status
+                </TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider">
+                  Address
+                </TableHead>
+                <TableHead className="text-right text-[10px] font-bold uppercase tracking-wider pr-6">
+                  Actions
+                </TableHead>
               </TableRow>
-            ) : invoices.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="h-32 text-center">
-                  <div className="flex flex-col items-center gap-2">
-                    <FlaskConical className="size-6 text-muted-foreground/20" />
-                    <p className="text-xs text-muted-foreground/60 font-medium">
-                      No pending invoices. Create one to start testing.
-                    </p>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              invoices.map((inv) => (
-                <TableRow
-                  key={inv.invoice_id}
-                  className="group hover:bg-muted/5 border-border/20 transition-colors"
-                >
-                  <TableCell className="pl-6">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="font-mono text-xs font-medium">
-                        {inv.invoice_id}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {new Date(inv.created_at).toLocaleTimeString()}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col gap-0.5">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-sm">
-                          {inv.crypto_amount}
-                        </span>
-                        <Badge
-                          variant="secondary"
-                          className="text-[10px] h-4 px-1 py-0"
-                        >
-                          {inv.crypto_currency}
-                        </Badge>
+            </TableHeader>
+            <TableBody>
+              {testnetLoading && invoices.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-64 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="size-12 rounded-full bg-muted/30 flex items-center justify-center">
+                        <RefreshCw className="size-6 text-muted-foreground/20 animate-spin" />
                       </div>
-                      <span className="text-[10px] text-muted-foreground">
-                        ${inv.amount_usd.toFixed(2)} USD
-                      </span>
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold text-foreground">
+                          Loading...
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Loading testnet invoices...
+                        </p>
+                      </div>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1.5">
-                      <code className="text-[10px] font-mono text-muted-foreground max-w-[140px] truncate">
-                        {inv.pay_address}
-                      </code>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() =>
-                          copyToClipboard(
-                            inv.pay_address,
-                            `addr-${inv.invoice_id}`,
-                          )
-                        }
-                      >
-                        {copied === `addr-${inv.invoice_id}` ? (
-                          <Check className="size-3 text-emerald-500" />
-                        ) : (
-                          <Copy className="size-3" />
-                        )}
-                      </Button>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {(() => {
-                      const isSuccess = successId === inv.invoice_id;
-                      const isSimulating = simulating === inv.invoice_id;
-                      const s = isSuccess ? "confirmed" : inv.status;
-                      const stages: Record<
-                        string,
-                        { label: string; className: string }
-                      > = {
-                        pending: {
-                          label: "Pending",
-                          className:
-                            "bg-muted/50 text-muted-foreground border-border/50",
-                        },
-                        mempool_detected: {
-                          label: "Mempool",
-                          className:
-                            "bg-blue-500/10 text-blue-400 border-blue-500/20",
-                        },
-                        confirming: {
-                          label: "Confirming",
-                          className:
-                            "bg-amber-500/10 text-amber-400 border-amber-500/20",
-                        },
-                        confirmed: {
-                          label: "Settled ✓",
-                          className:
-                            "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-                        },
-                      };
-                      const stage = stages[s] || stages.pending;
-                      return (
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "text-[10px] font-bold h-5",
-                            stage.className,
-                            isSimulating && "animate-pulse",
-                          )}
-                        >
-                          {stage.label}
-                        </Badge>
-                      );
-                    })()}
-                  </TableCell>
-                  <TableCell className="text-right pr-6">
-                    <Button
-                      size="sm"
-                      disabled={
-                        simulating === inv.invoice_id ||
-                        successId === inv.invoice_id ||
-                        (inv.status !== "pending" &&
-                          simulating !== inv.invoice_id)
-                      }
-                      onClick={() => simulatePayment(inv)}
-                      className={cn(
-                        "h-7 text-[10px] font-bold uppercase tracking-wider transition-all w-28",
-                        successId === inv.invoice_id
-                          ? "bg-emerald-500 hover:bg-emerald-600 text-white"
-                          : "bg-amber-500 hover:bg-amber-600 text-black",
-                      )}
-                    >
-                      {simulating === inv.invoice_id ? (
-                        <>
-                          <RefreshCw className="size-3 animate-spin mr-1.5" />
-                          Simulating
-                        </>
-                      ) : successId === inv.invoice_id ? (
-                        <>
-                          <CheckCircle2 className="size-3 mr-1.5" /> Paid
-                        </>
-                      ) : (
-                        <>
-                          <Zap className="size-3 mr-1.5" /> Simulate
-                        </>
-                      )}
-                    </Button>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : invoices.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-64 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="size-12 rounded-full bg-muted/30 flex items-center justify-center">
+                        <FlaskConical className="size-6 text-muted-foreground/20" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold text-foreground">
+                          No pending invoices
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Create one to start testing.
+                        </p>
+                      </div>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                invoices.map((inv) => (
+                  <TableRow
+                    key={inv.invoice_id}
+                    className="group hover:bg-muted/5 border-border/20 transition-colors"
+                  >
+                    <TableCell className="pl-6">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-mono text-xs font-medium">
+                          {inv.invoice_id}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {new Date(inv.created_at).toLocaleTimeString()}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm">
+                            {inv.crypto_amount}
+                          </span>
+                          <Badge
+                            variant="secondary"
+                            className="text-[10px] h-4 px-1 py-0"
+                          >
+                            {inv.crypto_currency}
+                          </Badge>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground">
+                          ${inv.amount_usd.toFixed(2)} USD
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5">
+                        <code className="text-[10px] font-mono text-muted-foreground max-w-[140px] truncate">
+                          {inv.pay_address}
+                        </code>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() =>
+                            copyToClipboard(
+                              inv.pay_address,
+                              `addr-${inv.invoice_id}`,
+                            )
+                          }
+                        >
+                          {copied === `addr-${inv.invoice_id}` ? (
+                            <Check className="size-3 text-emerald-500" />
+                          ) : (
+                            <Copy className="size-3" />
+                          )}
+                        </Button>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const isSuccess = successId === inv.invoice_id;
+                        const isSimulating = simulating === inv.invoice_id;
+                        const s = isSuccess ? "confirmed" : inv.status;
+                        const stages: Record<
+                          string,
+                          { label: string; className: string }
+                        > = {
+                          pending: {
+                            label: "Pending",
+                            className:
+                              "bg-muted/50 text-muted-foreground border-border/50",
+                          },
+                          mempool_detected: {
+                            label: "Mempool",
+                            className:
+                              "bg-blue-500/10 text-blue-400 border-blue-500/20",
+                          },
+                          confirming: {
+                            label: "Confirming",
+                            className:
+                              "bg-amber-500/10 text-amber-400 border-amber-500/20",
+                          },
+                          confirmed: {
+                            label: "Settled ✓",
+                            className:
+                              "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+                          },
+                        };
+                        const stage = stages[s] || stages.pending;
+                        return (
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-[10px] font-bold h-5",
+                              stage.className,
+                              isSimulating && "animate-pulse",
+                            )}
+                          >
+                            {stage.label}
+                          </Badge>
+                        );
+                      })()}
+                    </TableCell>
+                    <TableCell className="text-right pr-6">
+                      <Button
+                        size="sm"
+                        disabled={
+                          simulating === inv.invoice_id ||
+                          successId === inv.invoice_id ||
+                          (inv.status !== "pending" &&
+                            simulating !== inv.invoice_id)
+                        }
+                        onClick={() => simulatePayment(inv)}
+                        className={cn(
+                          "h-7 text-[10px] font-bold uppercase tracking-wider transition-all w-28",
+                          successId === inv.invoice_id
+                            ? "bg-emerald-500 hover:bg-emerald-600 text-white"
+                            : "bg-amber-500 hover:bg-amber-600 text-black",
+                        )}
+                      >
+                        {simulating === inv.invoice_id ? (
+                          <>
+                            <RefreshCw className="size-3 animate-spin mr-1.5" />
+                            Simulating
+                          </>
+                        ) : successId === inv.invoice_id ? (
+                          <>
+                            <CheckCircle2 className="size-3 mr-1.5" /> Paid
+                          </>
+                        ) : (
+                          <>
+                            <Zap className="size-3 mr-1.5" /> Simulate
+                          </>
+                        )}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
       </Card>
 
       <div className="flex justify-center mt-4">

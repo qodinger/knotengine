@@ -15,6 +15,8 @@ export default function BillingPage() {
     copiedField,
     txHash,
     setTxHash,
+    selectedCoin,
+    setSelectedCoin,
     selectedCurrency,
     setSelectedCurrency,
     isClaiming,
@@ -72,6 +74,8 @@ export default function BillingPage() {
         setStep={setTopUpStep}
         usdAmount={usdAmount}
         setUsdAmount={setUsdAmount}
+        selectedCoin={selectedCoin}
+        setSelectedCoin={setSelectedCoin}
         selectedCurrency={selectedCurrency}
         setSelectedCurrency={setSelectedCurrency}
         isGenerating={isGenerating}

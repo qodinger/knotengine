@@ -1,12 +1,13 @@
 "use client";
 
+import { Suspense } from "react";
 import { usePayments } from "./hooks/use-payments";
 import { PaymentsHeader } from "./components/payments-header";
 import { PaymentsStats } from "./components/payments-stats";
 import { PaymentsTable } from "./components/payments-table";
 import { InvoiceDetailsSheet } from "./components/invoice-details-sheet";
 
-export default function PaymentsPage() {
+function PaymentsContent() {
   const {
     loading,
     searchTerm,
@@ -58,5 +59,13 @@ export default function PaymentsPage() {
         copyToClipboard={copyToClipboard}
       />
     </div>
+  );
+}
+
+export default function PaymentsPage() {
+  return (
+    <Suspense fallback={<div className="p-8">Loading payments...</div>}>
+      <PaymentsContent />
+    </Suspense>
   );
 }

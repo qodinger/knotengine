@@ -57,7 +57,7 @@ export function CreditBalanceCard({ stats, loading }: CreditBalanceCardProps) {
                       : "text-emerald-500",
                 )}
               />
-              <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                 Credit Balance
               </span>
               <Badge
@@ -68,7 +68,7 @@ export function CreditBalanceCard({ stats, loading }: CreditBalanceCardProps) {
                       ? "outline"
                       : "secondary"
                 }
-                className="text-[10px] font-bold ml-auto"
+                className="text-[9px] font-bold uppercase tracking-wider ml-auto h-5 px-2"
               >
                 {creditHealth === "critical"
                   ? "DEPLETED"
@@ -79,7 +79,7 @@ export function CreditBalanceCard({ stats, loading }: CreditBalanceCardProps) {
             </div>
 
             <div className="flex items-baseline gap-2">
-              <span className="text-5xl font-black tracking-tighter tabular-nums">
+              <span className="text-5xl font-bold tracking-tight tabular-nums">
                 {loading ? (
                   <span className="text-muted-foreground/20">—</span>
                 ) : (
@@ -93,9 +93,13 @@ export function CreditBalanceCard({ stats, loading }: CreditBalanceCardProps) {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Credit Usage</span>
-                <span className="font-mono">
-                  ${creditBalance.toFixed(2)} / $10.00
+                <span>Balance Level</span>
+                <span className="font-medium">
+                  {creditHealth === "critical"
+                    ? "Depleted"
+                    : creditHealth === "warning"
+                      ? "Running Low"
+                      : "Healthy"}
                 </span>
               </div>
               <Progress
@@ -132,31 +136,31 @@ export function CreditBalanceCard({ stats, loading }: CreditBalanceCardProps) {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1 p-4 rounded-xl bg-background/60 border border-border/40">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
                 Fee Rate
               </span>
               <span className="text-xl font-bold">
                 {loading ? "—" : `${(feeRate * 100).toFixed(1)}%`}
               </span>
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-[10px] text-muted-foreground font-medium">
                 Per confirmed invoice
               </span>
             </div>
 
             <div className="flex flex-col gap-1 p-4 rounded-xl bg-background/60 border border-border/40">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
                 Fees Paid
               </span>
               <span className="text-xl font-bold">
                 {loading ? "—" : `$${feesAccrued.toFixed(2)}`}
               </span>
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-[10px] text-muted-foreground font-medium">
                 Production usage
               </span>
             </div>
 
             <div className="flex flex-col gap-1 p-4 rounded-xl bg-background/60 border border-border/40">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
                 Production Volume
               </span>
               <span className="text-lg font-bold">
@@ -164,16 +168,16 @@ export function CreditBalanceCard({ stats, loading }: CreditBalanceCardProps) {
                   ? "—"
                   : `$${totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
               </span>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 mt-auto">
                 <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span className="text-[10px] text-muted-foreground">
+                <span className="text-[10px] text-muted-foreground font-medium">
                   Real settlements
                 </span>
               </div>
             </div>
 
             <div className="flex flex-col gap-1 p-4 rounded-xl bg-background/60 border border-border/40">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
                 Testnet Volume
               </span>
               <span className="text-lg font-bold">
@@ -181,9 +185,9 @@ export function CreditBalanceCard({ stats, loading }: CreditBalanceCardProps) {
                   ? "—"
                   : `$${(stats?.testnetVolume ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
               </span>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 mt-auto">
                 <span className="size-1.5 rounded-full bg-amber-500 shrink-0" />
-                <span className="text-[10px] text-muted-foreground uppercase">
+                <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
                   Simulation
                 </span>
               </div>

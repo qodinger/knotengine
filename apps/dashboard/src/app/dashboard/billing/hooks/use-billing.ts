@@ -11,6 +11,7 @@ export function useBilling() {
 
   // Claiming State
   const [txHash, setTxHash] = useState("");
+  const [selectedCoin, setSelectedCoin] = useState<string>("");
   const [selectedCurrency, setSelectedCurrency] = useState<Currency | "">("");
   const [isClaiming, setIsClaiming] = useState(false);
   const [claimStatus, setClaimStatus] = useState<{
@@ -21,7 +22,7 @@ export function useBilling() {
 
   // Top Up Modal State
   const [isTopUpOpen, setIsTopUpOpen] = useState(false);
-  const [topUpStep, setTopUpStep] = useState<1 | 2>(1);
+  const [topUpStep, setTopUpStep] = useState<1 | 2 | 3>(1);
   const [usdAmount, setUsdAmount] = useState<string>("10.00");
   const [cryptoAmount, setCryptoAmount] = useState<number | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -55,6 +56,7 @@ export function useBilling() {
     setTxHash("");
     setClaimStatus(null);
     setCryptoAmount(null);
+    setSelectedCoin("");
     setSelectedCurrency("");
     setUsdAmount("10.00");
   };
@@ -73,8 +75,8 @@ export function useBilling() {
   };
 
   const handleGeneratePayment = async () => {
-    if (!usdAmount || isNaN(Number(usdAmount)) || Number(usdAmount) <= 0) {
-      setGenerateError("Please enter a valid USD amount.");
+    if (!usdAmount || isNaN(Number(usdAmount)) || Number(usdAmount) < 5) {
+      setGenerateError("Minimum top-up amount is $5.00.");
       return;
     }
     if (!selectedCurrency) {
@@ -147,6 +149,8 @@ export function useBilling() {
     copiedField,
     txHash,
     setTxHash,
+    selectedCoin,
+    setSelectedCoin,
     selectedCurrency,
     setSelectedCurrency,
     isClaiming,

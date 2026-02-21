@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -109,89 +109,92 @@ export function EventsTab() {
         </Button>
       </div>
 
-      <Card className="bg-card/30 border-border/40 backdrop-blur-md shadow-sm overflow-hidden">
-        <Table>
-          <TableHeader className="bg-muted/20">
-            <TableRow className="hover:bg-transparent border-border/40">
-              <TableHead className="w-[200px] text-[10px] font-bold pl-6 uppercase tracking-wider">
-                Event Type
-              </TableHead>
-              <TableHead className="text-[10px] font-bold uppercase tracking-wider">
-                Description
-              </TableHead>
-              <TableHead className="w-[160px] text-right pr-6 text-[10px] font-bold uppercase tracking-wider">
-                Time
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {eventsLoading && notifications.length === 0 ? (
-              Array.from({ length: 8 }).map((_, i) => (
-                <TableRow key={i} className="border-border/10">
-                  <TableCell className="pl-6">
-                    <div className="flex items-center gap-2">
-                      <div className="size-7 bg-muted animate-pulse rounded-lg" />
-                      <div className="h-4 w-24 bg-muted animate-pulse rounded" />
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="h-4 w-full max-w-md bg-muted animate-pulse rounded" />
-                  </TableCell>
-                  <TableCell className="pr-6">
-                    <div className="h-4 w-20 ml-auto bg-muted animate-pulse rounded" />
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : notifications.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={3} className="h-64 text-center">
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="size-12 rounded-full bg-muted/30 flex items-center justify-center">
-                      <Bell className="size-6 text-muted-foreground/20" />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-semibold text-foreground">
-                        No activity yet
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Incoming merchant events will appear here in real-time.
-                      </p>
-                    </div>
-                  </div>
-                </TableCell>
+      <Card className="bg-card/30 border-border/40 backdrop-blur-md shadow-sm overflow-hidden py-0 gap-0">
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader className="bg-muted/20">
+              <TableRow className="hover:bg-transparent border-border/40 h-12">
+                <TableHead className="w-[200px] text-[10px] font-bold pl-6 uppercase tracking-wider">
+                  Event Type
+                </TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider">
+                  Description
+                </TableHead>
+                <TableHead className="w-[160px] text-right pr-6 text-[10px] font-bold uppercase tracking-wider">
+                  Time
+                </TableHead>
               </TableRow>
-            ) : (
-              notifications.map((n) => (
-                <TableRow
-                  key={n._id}
-                  className="group border-border/10 transition-all hover:bg-primary/2 cursor-pointer"
-                  onClick={() => setSelectedEvent(n)}
-                >
-                  <TableCell className="pl-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <EventIcon type={n.type} />
-                      <span className="text-xs font-bold text-foreground">
-                        {n.title}
-                      </span>
+            </TableHeader>
+            <TableBody>
+              {eventsLoading && notifications.length === 0 ? (
+                Array.from({ length: 8 }).map((_, i) => (
+                  <TableRow key={i} className="border-border/10">
+                    <TableCell className="pl-6">
+                      <div className="flex items-center gap-2">
+                        <div className="size-7 bg-muted animate-pulse rounded-lg" />
+                        <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="h-4 w-full max-w-md bg-muted animate-pulse rounded" />
+                    </TableCell>
+                    <TableCell className="pr-6">
+                      <div className="h-4 w-20 ml-auto bg-muted animate-pulse rounded" />
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : notifications.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={3} className="h-64 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="size-12 rounded-full bg-muted/30 flex items-center justify-center">
+                        <Bell className="size-6 text-muted-foreground/20" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold text-foreground">
+                          No activity yet
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Incoming merchant events will appear here in
+                          real-time.
+                        </p>
+                      </div>
                     </div>
                   </TableCell>
-                  <TableCell className="py-4">
-                    <p className="text-xs text-muted-foreground/80 font-medium line-clamp-1 group-hover:text-foreground transition-colors">
-                      {n.description}
-                    </p>
-                  </TableCell>
-                  <TableCell className="text-right pr-6 py-4">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider bg-muted/30 px-2 py-1 rounded-md">
-                      {formatDistanceToNow(new Date(n.createdAt), {
-                        addSuffix: true,
-                      })}
-                    </span>
-                  </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                notifications.map((n) => (
+                  <TableRow
+                    key={n._id}
+                    className="group border-border/10 transition-all hover:bg-primary/2 cursor-pointer"
+                    onClick={() => setSelectedEvent(n)}
+                  >
+                    <TableCell className="pl-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <EventIcon type={n.type} />
+                        <span className="text-xs font-bold text-foreground">
+                          {n.title}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-4">
+                      <p className="text-xs text-muted-foreground/80 font-medium line-clamp-1 group-hover:text-foreground transition-colors">
+                        {n.description}
+                      </p>
+                    </TableCell>
+                    <TableCell className="text-right pr-6 py-4">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider bg-muted/30 px-2 py-1 rounded-md">
+                        {formatDistanceToNow(new Date(n.createdAt), {
+                          addSuffix: true,
+                        })}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
       </Card>
 
       <Sheet

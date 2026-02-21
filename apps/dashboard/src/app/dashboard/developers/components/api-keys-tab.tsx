@@ -77,7 +77,7 @@ export function ApiKeysTab() {
             once upon creation.
           </CardDescription>
         </CardHeader>
-        <CardContent className="px-6 pb-6 pt-0">
+        <CardContent className="px-6 pt-0">
           <div className="grid gap-2 mb-6">
             <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
               Merchant ID
@@ -111,86 +111,97 @@ export function ApiKeysTab() {
             </p>
           </div>
 
-          <Table className="border rounded-md overflow-hidden">
-            <TableHeader>
-              <TableRow className="bg-muted/5 hover:bg-muted/5">
-                <TableHead className="w-[160px] pl-6 text-xs">Name</TableHead>
-                <TableHead className="text-xs">Token</TableHead>
-                <TableHead className="text-xs">Status</TableHead>
-                <TableHead className="text-right pr-6 text-xs">
-                  Actions
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow className="group">
-                <TableCell className="font-medium pl-6 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Key className="size-3.5 text-muted-foreground" />
-                    Secret key
-                  </div>
-                </TableCell>
-                <TableCell className="font-mono text-muted-foreground tracking-wider text-sm">
-                  <div className="flex items-center gap-2">
-                    <span>
-                      {session?.user?.apiKey
-                        ? `knot_sk_...${session.user.apiKey.slice(-4)}`
-                        : "knot_sk_********************"}
+          <div className="border border-border/40 rounded-lg overflow-hidden shadow-sm">
+            <Table>
+              <TableHeader className="bg-muted/20">
+                <TableRow className="hover:bg-transparent border-border/30 h-12">
+                  <TableHead className="w-[160px] pl-6 text-[10px] font-bold uppercase tracking-wider">
+                    Name
+                  </TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-wider">
+                    Token
+                  </TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-wider">
+                    Status
+                  </TableHead>
+                  <TableHead className="text-right pr-6 text-[10px] font-bold uppercase tracking-wider">
+                    Actions
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow className="group">
+                  <TableCell className="font-medium pl-6 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Key className="size-3.5 text-muted-foreground" />
+                      Secret key
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-mono text-muted-foreground tracking-wider text-sm">
+                    <div className="flex items-center gap-2">
+                      <span>
+                        {session?.user?.apiKey
+                          ? `knot_sk_...${session.user.apiKey.slice(-4)}`
+                          : "knot_sk_********************"}
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className="text-[9px] uppercase font-bold tracking-wide h-4 px-1"
+                      >
+                        Live
+                      </Badge>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <span className="inline-flex items-center gap-1.5 text-xs text-emerald-500 font-medium">
+                      <span className="size-1.5 rounded-full bg-emerald-500" />
+                      Active
                     </span>
-                    <Badge
-                      variant="outline"
-                      className="text-[9px] uppercase font-bold tracking-wide h-4 px-1"
-                    >
-                      Live
-                    </Badge>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <span className="inline-flex items-center gap-1.5 text-xs text-emerald-500 font-medium">
-                    <span className="size-1.5 rounded-full bg-emerald-500" />
-                    Active
-                  </span>
-                </TableCell>
-                <TableCell className="text-right pr-6">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-44">
-                      <DropdownMenuLabel className="text-xs">
-                        Actions
-                      </DropdownMenuLabel>
-                      {session?.user?.apiKey && (
+                  </TableCell>
+                  <TableCell className="text-right pr-6">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-44">
+                        <DropdownMenuLabel className="text-xs">
+                          Actions
+                        </DropdownMenuLabel>
+                        {session?.user?.apiKey && (
+                          <DropdownMenuItem
+                            className="text-xs"
+                            onClick={() =>
+                              copyToClipboard(
+                                session.user.apiKey as string,
+                                "sk",
+                              )
+                            }
+                          >
+                            <Copy className="mr-2 h-3.5 w-3.5" />
+                            Copy key
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
                           className="text-xs"
-                          onClick={() =>
-                            copyToClipboard(session.user.apiKey as string, "sk")
-                          }
+                          onClick={() => setIsRotateDialogOpen(true)}
                         >
-                          <Copy className="mr-2 h-3.5 w-3.5" />
-                          Copy key
+                          <RefreshCw className="mr-2 h-3.5 w-3.5" />
+                          Roll key...
                         </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem
-                        className="text-xs"
-                        onClick={() => setIsRotateDialogOpen(true)}
-                      >
-                        <RefreshCw className="mr-2 h-3.5 w-3.5" />
-                        Roll key...
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-xs text-destructive focus:text-destructive">
-                        <AlertTriangle className="mr-2 h-3.5 w-3.5" />
-                        Revoke key
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-xs text-destructive focus:text-destructive">
+                          <AlertTriangle className="mr-2 h-3.5 w-3.5" />
+                          Revoke key
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 

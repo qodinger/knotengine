@@ -131,7 +131,7 @@ export function WalletSection({
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="coin">Coin</Label>
                   <Select
@@ -143,11 +143,11 @@ export function WalletSection({
                   >
                     <SelectTrigger
                       id="coin"
-                      className="w-full h-10! bg-background/50 border-border/80"
+                      className="w-full h-11! bg-background/50 border-border/80 [&>span]:flex [&>span]:items-center [&>span]:gap-2 [&>span_img]:shrink-0"
                     >
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="[&_*[role=option]>span]:flex [&_*[role=option]>span]:items-center [&_*[role=option]>span]:gap-2">
                       {configAssets.map((asset) => {
                         const input = newWalletAddress.trim();
                         let isLocked = false;
@@ -172,16 +172,30 @@ export function WalletSection({
                             key={asset.id}
                             value={asset.id}
                             disabled={isLocked}
-                            className="h-10!"
+                            className="h-10"
                           >
+                            <Avatar className="size-5 bg-transparent p-0 h-6!">
+                              <AvatarImage
+                                src={asset.icon}
+                                className="object-contain"
+                              />
+                              <AvatarFallback className="text-[10px] text-white bg-slate-500">
+                                {asset.symbol}
+                              </AvatarFallback>
+                            </Avatar>
                             <div className="flex items-center gap-2">
-                              <span>{asset.label}</span>
-                              {isLocked && (
-                                <span className="text-[9px] text-muted-foreground ml-auto opacity-50">
-                                  (Incompatible)
-                                </span>
-                              )}
+                              <span className="font-bold text-sm text-foreground">
+                                {asset.symbol}
+                              </span>
+                              <span className="text-xs text-muted-foreground truncate font-normal">
+                                {asset.label}
+                              </span>
                             </div>
+                            {isLocked && (
+                              <span className="text-[9px] text-muted-foreground ml-auto opacity-50">
+                                (Incompatible)
+                              </span>
+                            )}
                           </SelectItem>
                         );
                       })}
@@ -198,7 +212,7 @@ export function WalletSection({
                   >
                     <SelectTrigger
                       id="network"
-                      className="w-full h-10! bg-background/50 border-border/80 disabled:opacity-40"
+                      className="w-full h-11! bg-background/50 border-border/80 disabled:opacity-40"
                     >
                       <SelectValue placeholder="Network" />
                     </SelectTrigger>
@@ -208,9 +222,16 @@ export function WalletSection({
                           <SelectItem
                             key={network.id}
                             value={network.id}
-                            className="h-10!"
+                            className="h-auto py-2 w-full"
                           >
-                            {network.networkName}
+                            <div className="w-full flex items-center gap-2">
+                              <span className="font-bold text-sm text-foreground">
+                                {network.networkSymbol}
+                              </span>
+                              <span className="text-[11px] text-muted-foreground truncate font-normal">
+                                {network.networkName}
+                              </span>
+                            </div>
                           </SelectItem>
                         ))}
                     </SelectContent>
@@ -219,29 +240,47 @@ export function WalletSection({
               </div>
 
               {(() => {
-                // Show a hint when the selected network shares the same address with another network
-                if (!newWalletNetwork || !newWalletCoin) return null;
+                if (
+                  !newWalletNetwork ||
+                  !newWalletCoin ||
+                  !merchant ||
+                  !newWalletAddress.trim()
+                )
+                  return null;
                 const selectedNet = configNetworks[newWalletCoin]?.find(
                   (n) => n.id === newWalletNetwork,
                 );
                 if (!selectedNet) return null;
 
-                // Find other networks that share the same merchantField
+                const currentSavedValue = (merchant as any)[
+                  selectedNet.merchantField
+                ];
+                const inputMatchesSaved =
+                  currentSavedValue &&
+                  currentSavedValue === newWalletAddress.trim();
+
+                // Only show smart match if they actually match the saved value
+                if (!inputMatchesSaved) return null;
+
                 const siblings = Object.values(configNetworks)
                   .flat()
                   .filter(
                     (n) =>
                       n.id !== selectedNet.id &&
-                      n.merchantField === selectedNet.merchantField,
+                      n.merchantField === selectedNet.merchantField &&
+                      merchant.enabledCurrencies.includes(n.id),
                   );
 
                 if (siblings.length === 0) return null;
+
+                const isXpub = selectedNet.merchantField === "btcXpub";
 
                 return (
                   <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10 flex items-start gap-3">
                     <ShieldCheck className="size-4 text-emerald-500 shrink-0 mt-0.5" />
                     <p className="text-[10.5px] text-emerald-600 font-medium leading-relaxed">
-                      Smart Match: This network shares the same address as your{" "}
+                      Smart Match: This network shares the same{" "}
+                      {isXpub ? "master key (xPub)" : "address"} as your{" "}
                       {siblings.map((s) => s.label).join(", ")} wallet.
                     </p>
                   </div>
@@ -333,77 +372,75 @@ export function WalletSection({
           </CardContent>
         </Card>
       ) : (
-        <Card className="border shadow-sm overflow-hidden">
-          <div className="divide-y divide-border/40">
-            {wallets.map((wallet) => (
-              <div
-                key={wallet.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4"
-              >
-                <div className="flex items-center gap-4 min-w-0">
-                  <Avatar className="size-10 bg-transparent p-0 shrink-0">
-                    <AvatarImage
-                      src={wallet.iconUrl}
-                      className="object-contain"
-                    />
-                    <AvatarFallback
-                      className={cn(
-                        "text-[10px] font-bold text-white",
-                        wallet.iconColor,
-                      )}
+        <div className="flex flex-col gap-2">
+          {wallets.map((wallet) => (
+            <div
+              key={wallet.id}
+              className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3 bg-card border rounded-xl shadow-sm"
+            >
+              <div className="flex items-center gap-4 min-w-0">
+                <Avatar className="size-10 bg-transparent p-0 shrink-0">
+                  <AvatarImage
+                    src={wallet.iconUrl}
+                    className="object-contain"
+                  />
+                  <AvatarFallback
+                    className={cn(
+                      "text-[10px] font-bold text-white",
+                      wallet.iconColor,
+                    )}
+                  >
+                    {wallet.iconFallback}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-sm truncate">
+                      {wallet.label}
+                    </p>
+                    <Badge
+                      variant="secondary"
+                      className="text-[10px] font-medium"
                     >
-                      {wallet.iconFallback}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-sm truncate">
-                        {wallet.label}
-                      </p>
-                      <Badge
-                        variant="secondary"
-                        className="text-[10px] font-medium"
-                      >
-                        {wallet.network}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <p className="text-xs text-muted-foreground whitespace-nowrap">
-                        {wallet.type}
-                      </p>
-                    </div>
+                      {wallet.network}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className="text-xs text-muted-foreground whitespace-nowrap">
+                      {wallet.type}
+                    </p>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-2 shrink-0 bg-muted/30 p-2 rounded-lg border border-border/30 w-full sm:w-auto">
-                  <code className="text-xs font-mono text-muted-foreground truncate flex-1 sm:max-w-xs px-1">
-                    {truncate(wallet.address)}
-                  </code>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-7 shrink-0"
-                    onClick={() => copyAddress(wallet.address, wallet.id)}
-                  >
-                    {copiedField === wallet.id ? (
-                      <Check className="size-3.5 text-emerald-500" />
-                    ) : (
-                      <Copy className="size-3.5" />
-                    )}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-7 shrink-0 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
-                    onClick={() => setWalletToRemove(wallet.id)}
-                  >
-                    <Trash2 className="size-3.5" />
-                  </Button>
-                </div>
               </div>
-            ))}
-          </div>
-        </Card>
+
+              <div className="flex items-center gap-2 shrink-0 bg-muted/30 p-2 rounded-lg border border-border/30 w-full sm:w-auto">
+                <code className="text-xs font-mono text-muted-foreground truncate flex-1 sm:max-w-xs px-1">
+                  {truncate(wallet.address)}
+                </code>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7 shrink-0"
+                  onClick={() => copyAddress(wallet.address, wallet.id)}
+                >
+                  {copiedField === wallet.id ? (
+                    <Check className="size-3.5 text-emerald-500" />
+                  ) : (
+                    <Copy className="size-3.5" />
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7 shrink-0 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+                  onClick={() => setWalletToRemove(wallet.id)}
+                >
+                  <Trash2 className="size-3.5" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
 
       <Dialog
