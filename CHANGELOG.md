@@ -9,20 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Automatic Cleanup** — Implemented 30-day Retention (TTL) Policy for `WebhookEvent` and `Notification` collections to prevent database bloat.
-- **Real-time Notifications** — Production-ready alerts for payments, expirations, and webhook failures via Socket.io.
-- **Organization Migration** — Relocated ecosystem to the `qodinger` GitHub Organization for enhanced trust and scalability.
+- **Two-Factor Authentication (2FA)** — Implemented complete TOTP-based security flow with backup codes and middleware enforcement.
+- **Professional Merchant IDs** — Introduced `mid_` prefixed identity system with unique generation retry logic for enhanced API professionalism.
 - **Blockchain Redundancy** — Implemented dual-provider support (Tatum + Alchemy) for EVM chains to ensure zero-downtime payment monitoring.
 - **Failover Logic** — Built a resilient `ProviderPool` that automatically rotates between Tatum and Alchemy if a subscription fails.
 - **Secure Webhooks** — Specialized Alchemy signature verification with automated test ping handling.
+- **Automatic Cleanup** — Implemented 30-day Retention (TTL) Policy for `WebhookEvent` and `Notification` collections to prevent database bloat.
+- **Real-time Notifications** — Production-ready alerts for payments, expirations, and webhook failures via Socket.io.
+- **Organization Migration** — Relocated ecosystem to the `qodinger` GitHub Organization for enhanced trust and scalability.
 
 ### Changed
 
-- **Unified Branding** — Consolidated all packages under the `@knotengine/` scope (e.g., `@knotengine/sdk`, `@knotengine/types`).
+- **Settings Architecture** — Relocated technical Merchant IDs to the Developers tab and simplified business settings.
+- **Unified Branding** — Consolidated all packages under the `qodinger` scope (e.g., `@qodinger/knot-database`, `@qodinger/knot-types`).
 - **Sidebar UX** — Reordered dashboard navigation to prioritize operations (Dashboard, Payments, Activity Log).
 - **Notification Logic** — Refined signal-to-noise ratio by deduplicating alerts and adding `[TEST]` labels for dev clarity.
-- **Improved Dev DX** — Replaced ngrok with `cloudflared` (Cloudflare Tunnel) for reliable, password-free local webhook testing.
-- **Model Enhancements** — Updated `Invoice` schema to support provider-specific metadata and tracking.
+- **Improved Dev DX** — Replaced ngrok with `cloudflared` (Cloudflare Tunnel) for reliable local webhook testing.
+- **Reset Utility** — Added a safe database reset script for development with environment guards.
 
 ## [0.2.1] - 2026-02-20
 
