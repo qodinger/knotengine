@@ -7,7 +7,7 @@ The professional command center for KnotEngine merchants.
 - **Analytics**: Track your volume and sales performance at a glance.
 - **Payment Management**: Real-time monitoring of all incoming invoices.
 - **Developer Tools**: Manage API keys, webhook secrets, and simulator settings.
-- **Activity Log**: High-fidelity audit trail of all store events.
+- **Activity Log**: High-fidelity audit trail of all merchant events.
 - **Glassmorphic UI**: Premium "Elevated Glass" design system for a superior UX.
 
 ## 🚀 Development

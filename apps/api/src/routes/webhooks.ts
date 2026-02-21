@@ -54,7 +54,10 @@ export async function webhookRoutes(app: FastifyInstance) {
     const body = request.body as AlchemyWebhookBody;
 
     // Handle Alchemy "Test Webhook" ping which might be empty or different
-    if (!body || (!body.event && (body as Record<string, unknown>).webhookId)) {
+    if (
+      !body ||
+      (!body.event && (body as unknown as Record<string, unknown>).webhookId)
+    ) {
       app.log.info("🧪 Alchemy test ping received.");
       return reply.code(200).send({ message: "Test received" });
     }

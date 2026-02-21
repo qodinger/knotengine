@@ -13,8 +13,42 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "KnotEngine | Secure Crypto Checkout",
-  description: "Non-custodial, ultra-secure crypto payment gateway.",
+  title: {
+    default: "KnotEngine | Secure Crypto Checkout",
+    template: "%s | KnotEngine Checkout",
+  },
+  description:
+    "Non-custodial, ultra-secure crypto payment gateway. Pay with BTC, LTC, ETH, and USDT directly to the merchant.",
+  keywords: [
+    "crypto checkout",
+    "bitcoin payment",
+    "ethereum payment",
+    "web3 payments",
+    "non-custodial",
+  ],
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://checkout.knotengine.com",
+    siteName: "KnotEngine Checkout",
+    title: "KnotEngine | Secure Crypto Checkout",
+    description: "Accept crypto payments directly into your own wallet.",
+    images: [
+      {
+        url: "/og-image-checkout.png",
+        width: 1200,
+        height: 630,
+        alt: "KnotEngine Secure Checkout",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "KnotEngine | Secure Crypto Checkout",
+    description: "Accept crypto payments directly into your own wallet.",
+    images: ["/og-image-checkout.png"],
+    creator: "@knotengine",
+  },
 };
 
 export default function RootLayout({

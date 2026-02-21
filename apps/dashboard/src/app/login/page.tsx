@@ -48,7 +48,7 @@ export default function LoginPage() {
             <Command className="h-6 w-6" />
           </div>
           <span className="font-bold tracking-tight text-xl">
-            KnotEngine Cloud
+            KnotEngine Dashboard
           </span>
         </div>
 

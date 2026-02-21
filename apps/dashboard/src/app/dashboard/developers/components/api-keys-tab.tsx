@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -92,8 +93,41 @@ export function ApiKeysTab() {
             once upon creation.
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-0">
-          <Table>
+        <CardContent className="px-6 pb-6 pt-0">
+          <div className="grid gap-2 mb-6">
+            <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
+              Merchant ID
+            </Label>
+            <div className="flex items-center gap-2">
+              <Input
+                readOnly
+                value={(session?.user as any)?.publicMerchantId || ""}
+                className="bg-muted/30 font-mono text-xs h-9"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 shrink-0"
+                onClick={() =>
+                  copyToClipboard(
+                    (session?.user as any)?.publicMerchantId || "",
+                    "merchantId",
+                  )
+                }
+              >
+                {copied === "merchantId" ? (
+                  <Check className="h-3.5 w-3.5" />
+                ) : (
+                  <Copy className="h-3.5 w-3.5" />
+                )}
+              </Button>
+            </div>
+            <p className="text-[10px] text-muted-foreground/60">
+              Your unique identifier for API requests and support.
+            </p>
+          </div>
+
+          <Table className="border rounded-md overflow-hidden">
             <TableHeader>
               <TableRow className="bg-muted/5 hover:bg-muted/5">
                 <TableHead className="w-[160px] pl-6 text-xs">Name</TableHead>
@@ -336,7 +370,7 @@ export function ApiKeysTab() {
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle className="text-sm">Save this key</AlertTitle>
             <AlertDescription className="text-xs">
-              Store this key in a secure location like a password manager or
+              Save this key in a secure location like a password manager or
               environment variable.
             </AlertDescription>
           </Alert>

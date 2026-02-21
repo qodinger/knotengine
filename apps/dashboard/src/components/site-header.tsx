@@ -210,7 +210,7 @@ export function SiteHeader() {
                           Clear for now
                         </p>
                         <p className="text-xs text-muted-foreground/60 leading-relaxed max-w-[180px]">
-                          We'll ping you here when your store has news.
+                          We'll ping you here when your merchant has news.
                         </p>
                       </div>
                     </div>
@@ -291,7 +291,7 @@ export function SiteHeader() {
               <DropdownMenuLabel className="font-normal p-4">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-bold leading-none">
-                    {user?.name || "Store Owner"}
+                    {user?.name || "Merchant Owner"}
                   </p>
                   <p className="text-xs leading-none text-muted-foreground">
                     {user?.email || "No email provided"}

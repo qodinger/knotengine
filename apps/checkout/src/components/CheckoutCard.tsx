@@ -19,7 +19,7 @@ interface CheckoutCardProps {
     metadata?: {
       isTestnet?: boolean;
     };
-    store?: {
+    merchant?: {
       name: string;
       logo_url?: string | null;
       return_url?: string | null;
@@ -88,24 +88,24 @@ export function CheckoutCard({ invoice }: CheckoutCardProps) {
       )}
 
       <div className="p-6">
-        {/* Store Branding */}
+        {/* Merchant Branding */}
         <div className="flex items-center gap-3 mb-8 pb-6 border-b border-border/50">
           <div className="size-10 rounded-lg bg-muted flex items-center justify-center overflow-hidden border border-border/50">
-            {invoice.store?.logo_url ? (
+            {invoice.merchant?.logo_url ? (
               <img
-                src={invoice.store.logo_url}
-                alt={invoice.store.name}
+                src={invoice.merchant.logo_url}
+                alt={invoice.merchant.name}
                 className="size-full object-cover"
               />
             ) : (
               <span className="text-xl font-bold text-muted-foreground uppercase">
-                {invoice.store?.name?.charAt(0) || "S"}
+                {invoice.merchant?.name?.charAt(0) || "M"}
               </span>
             )}
           </div>
           <div className="flex flex-col">
             <h1 className="text-sm font-bold tracking-tight text-foreground">
-              {invoice.store?.name || "Merchant Store"}
+              {invoice.merchant?.name || "Merchant"}
             </h1>
             <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium">
               Payment Request

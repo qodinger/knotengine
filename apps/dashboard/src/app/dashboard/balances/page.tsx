@@ -640,12 +640,12 @@ export default function BalancesPage() {
                   {(() => {
                     const isAlreadyEnabled =
                       merchant?.enabledCurrencies.includes(newWalletNetwork);
-                    const currentStored =
+                    const currentSaved =
                       newWalletNetwork === "BTC" || newWalletNetwork === "LTC"
                         ? merchant?.btcXpub
                         : merchant?.ethAddress;
                     const isSameAddress =
-                      currentStored === newWalletAddress.trim();
+                      currentSaved === newWalletAddress.trim();
 
                     if (isAlreadyEnabled && isSameAddress)
                       return "Already Configured";

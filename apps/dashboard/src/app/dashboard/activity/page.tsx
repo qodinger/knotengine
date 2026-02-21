@@ -8,8 +8,8 @@ export default function ActivityPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Activity Log</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          A real-time record of all system events, webhook attempts, and store
-          alerts.
+          A real-time record of all system events, webhook attempts, and
+          merchant alerts.
         </p>
       </div>
 

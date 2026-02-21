@@ -725,7 +725,7 @@ export default function BillingPage() {
                 step: "01",
                 title: "Welcome Credit",
                 description:
-                  "Every new store starts with $5.00 in free credit — enough to process your first $500 in sales.",
+                  "Every new merchant starts with $5.00 in free credit — enough to process your first $500 in sales.",
                 icon: Sparkles,
                 color: "text-emerald-500",
               },

@@ -136,7 +136,7 @@ export function EventsTab() {
             </span>
           </div>
           <p className="text-xs text-muted-foreground hidden sm:block">
-            Real-time activity log for your store
+            Real-time activity log for your merchant
           </p>
         </div>
         <Button
@@ -201,7 +201,7 @@ export function EventsTab() {
                         No activity yet
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Incoming store events will appear here in real-time.
+                        Incoming merchant events will appear here in real-time.
                       </p>
                     </div>
                   </div>

@@ -329,7 +329,7 @@ export default function ApiKeysPage() {
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Save this key</AlertTitle>
             <AlertDescription>
-              Store this key in a secure location like a password manager or
+              Save this key in a secure location like a password manager or
               environment variable.
             </AlertDescription>
           </Alert>

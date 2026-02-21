@@ -12,7 +12,7 @@
 
 ## 📌 Service Overview
 
-KnotEngine is a **non-custodial** payment gateway designed for modern developers and digital stores. Unlike traditional centralist gateways, KnotEngine never touches a merchant's private keys.
+KnotEngine is a **non-custodial** payment gateway designed for modern developers and digital merchants. Unlike traditional centralist gateways, KnotEngine never touches a merchant's private keys.
 
 By leveraging **HD Wallet Derivation (BIP44)**, the system generates unique, one-time addresses for every order. This ensures funds flow directly from the customer to the merchant’s cold storage or hardware wallet, eliminating middleman risk.
 
@@ -95,7 +95,7 @@ By leveraging **HD Wallet Derivation (BIP44)**, the system generates unique, one
 
 - [ ] **Enhanced Security:** Implement 2FA (Two-Factor Authentication) for session protection.
 - [ ] **Reporting & Accounting:** Generate monthly revenue reports and CSV/JSON exports for taxes.
-- [ ] **Mobile Optimization:** Progressive Web App (PWA) for managing stores on mobile devices.
+- [ ] **Mobile Optimization:** Progressive Web App (PWA) for managing merchants on mobile devices.
 - [ ] **Multi-Asset Support:** Expand to higher-layer networks (L2s) for even lower transaction fees.
 - [ ] **External Notifications:** Implement email and Telegram alerts for new payments, balance warnings, and security events.
 - [ ] **Audit Logs:** Personal audit trail to track account changes and security events.
@@ -118,7 +118,7 @@ To avoid conflict with other services, KnotEngine uses a unique port range:
 
 ### `merchants`
 
-Stores merchant settings and public derivation keys.
+Holds merchant settings and public derivation keys.
 
 ```javascript
 const MerchantSchema = new Schema({

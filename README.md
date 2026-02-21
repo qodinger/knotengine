@@ -60,18 +60,18 @@ Or run services individually:
 
 - **Run Unit Tests**: `pnpm test`
 
-## 🛒 Store Workflow
+## 🛒 Merchant Workflow
 
 KnotEngine is designed to be integrated into any application in under 5 minutes.
 
-### 1. Register a Store
+### 1. Register a Merchant
 
 Send a `POST` request to the API to get your unique credentials:
 
 ```bash
 curl -X POST http://localhost:5050/v1/merchants \
   -H "Content-Type: application/json" \
-  -d '{ "name": "My Store", "btcXpub": "[Your tpub/xpub]" }'
+  -d '{ "name": "My Merchant", "btcXpub": "[Your tpub/xpub]" }'
 ```
 
 Take note of your `apiKey`.
@@ -96,7 +96,7 @@ Redirect your user to the `checkout_url` provided. This page handles the QR code
 ### 4. Receive Funds & Notifications
 
 - **Funds**: Go directly to the wallet associated with your `xPub`. KnotEngine is non-custodial.
-- **Notifications**: Once confirmed on-chain, KnotEngine sends an HMAC-signed webhook to your `webhookUrl` (configurable in store settings).
+- **Notifications**: Once confirmed on-chain, KnotEngine sends an HMAC-signed webhook to your `webhookUrl` (configurable in merchant settings).
 
 ---
 

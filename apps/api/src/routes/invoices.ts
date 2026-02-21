@@ -339,7 +339,7 @@ export async function invoiceRoutes(app: FastifyInstance) {
         paid_at: invoice.paidAt?.toISOString() || null,
         created_at: invoice.createdAt.toISOString(),
         metadata: invoice.metadata,
-        store: {
+        merchant: {
           name: invoice.merchantId.name,
           logo_url: invoice.merchantId.logoUrl || null,
           return_url: invoice.merchantId.returnUrl || null,

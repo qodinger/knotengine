@@ -27,6 +27,8 @@
     "ethers": "^6.10.0",
     "fastify": "^4.26.0",
     "fastify-type-provider-zod": "^1.1.9",
+    "otplib": "^13.3.0",
+    "qrcode": "^1.5.4",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
     "tiny-secp256k1": "^2.2.4",
@@ -35,6 +37,7 @@
   "devDependencies": {
     "@types/bip39": "^3.0.4",
     "@types/node": "^20.11.16",
+    "@types/qrcode": "^1.5.6",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3"
   }

@@ -137,7 +137,7 @@ export default function DashboardOverview() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Monitor your store's performance and recent activity.
+          Monitor your merchant's performance and recent activity.
         </p>
       </div>
 

@@ -39,7 +39,7 @@ const isValid = knot.verifyWebhook(rawBody, signature, webhookSecret);
 
 ## 🛡️ Trust & Security
 
-KnotEngine is strictly **non-custodial**. This SDK interacts with the KnotEngine API to manage invoices and store configurations, but never handles your private keys or seed phrases. All funds are derived using your public `xPub` and deposited directly into your wallet.
+KnotEngine is strictly **non-custodial**. This SDK interacts with the KnotEngine API to manage invoices and merchant configurations, but never handles your private keys or seed phrases. All funds are derived using your public `xPub` and deposited directly into your wallet.
 
 ## 📄 License
 

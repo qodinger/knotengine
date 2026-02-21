@@ -21,6 +21,29 @@ import { WebhookDispatcher } from "../infra/webhook-dispatcher";
 
 const bip32 = BIP32Factory(ecc);
 
+/**
+ * 🆔 Generate a professional, short, prefixed public ID for merchants
+ * e.g. mid_5kR9pWx2nL4v
+ */
+const generateMerchantId = async (): Promise<string> => {
+  const chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+  let attempts = 0;
+
+  while (attempts < 10) {
+    const mid =
+      "mid_" +
+      Array.from(crypto.randomBytes(12))
+        .map((b) => chars[b % chars.length])
+        .join("");
+
+    const exists = await Merchant.exists({ merchantId: mid });
+    if (!exists) return mid;
+    attempts++;
+  }
+
+  throw new Error("Failed to generate a unique merchant ID");
+};
+
 export async function merchantRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>();
 
@@ -73,7 +96,7 @@ export async function merchantRoutes(app: FastifyInstance) {
         apiKeyHash = crypto.createHash("sha256").update(apiKey).digest("hex");
       }
 
-      // Append timestamp to invoke uniqueness for multi-store support
+      // Append timestamp to invoke uniqueness for multi-merchant support
       const uniqueOauthId = oauthId ? `${oauthId}:${Date.now()}` : undefined;
 
       const welcomeCredit = parseFloat(
@@ -97,6 +120,7 @@ export async function merchantRoutes(app: FastifyInstance) {
       }
 
       const newMerchant = await Merchant.create({
+        merchantId: await generateMerchantId(),
         name,
         email,
         apiKeyHash,
@@ -113,7 +137,8 @@ export async function merchantRoutes(app: FastifyInstance) {
       server.log.info(`Merchant created: ${newMerchant.id}`);
 
       return reply.code(201).send({
-        id: newMerchant.id,
+        id: newMerchant._id.toString(),
+        merchantId: newMerchant.merchantId,
         name: newMerchant.name,
         email: newMerchant.email,
         webhookSecret,
@@ -136,7 +161,7 @@ export async function merchantRoutes(app: FastifyInstance) {
       }
 
       const { oauthId } = request.params;
-      // Query using regex to find all stores matching this base oauthId prefix
+      // Query using regex to find all merchants matching this base oauthId prefix
       const merchants = await Merchant.find({
         oauthId: { $regex: new RegExp(`^${oauthId}(:|$)`) },
         isActive: true,
@@ -152,6 +177,20 @@ export async function merchantRoutes(app: FastifyInstance) {
 
       for (let merchant of merchants) {
         let apiKey: string | undefined;
+
+        // Ensure every merchant has a public merchantId (mid_...)
+        if (!merchant.merchantId) {
+          const mid = await generateMerchantId();
+          const updatedMerchant = await Merchant.findByIdAndUpdate(
+            merchant._id,
+            { $set: { merchantId: mid } },
+            { new: true },
+          );
+          if (updatedMerchant) merchant = updatedMerchant;
+          server.log.info(
+            `🆔 Auto-assigned public ID for merchant: ${merchant._id} -> ${mid}`,
+          );
+        }
 
         // Ensure every merchant has an API key
         if (!merchant.apiKeyHash) {
@@ -176,10 +215,12 @@ export async function merchantRoutes(app: FastifyInstance) {
 
         results.push({
           id: merchant._id.toString(),
+          merchantId: merchant.merchantId,
           name: merchant.name,
           email: merchant.email,
           apiKey: apiKey ?? null, // Will only be returned once if generated just now
           hasApiKey: true,
+          twoFactorEnabled: merchant.twoFactorEnabled || false,
         });
       }
 
@@ -268,6 +309,7 @@ export async function merchantRoutes(app: FastifyInstance) {
 
       return {
         id: merchant._id.toString(),
+        merchantId: merchant.merchantId,
         name: merchant.name,
         btcXpub: merchant.btcXpub,
         btcXpubTestnet: merchant.btcXpubTestnet,
@@ -284,6 +326,7 @@ export async function merchantRoutes(app: FastifyInstance) {
           "invoice.failed",
         ],
         confirmationPolicy: merchant.confirmationPolicy,
+        twoFactorEnabled: merchant.twoFactorEnabled || false,
         feesAccrued: merchant.feesAccrued,
         creditBalance: merchant.creditBalance,
         createdAt: merchant.createdAt,
@@ -309,7 +352,7 @@ export async function merchantRoutes(app: FastifyInstance) {
 
       return {
         success: true,
-        message: "Store deleted successfully",
+        message: "Merchant deleted successfully",
       };
     },
   );

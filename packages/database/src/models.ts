@@ -2,10 +2,12 @@ import mongoose, { Schema, Document } from "mongoose";
 
 // ============================================================
 // 🏪 MERCHANT MODEL
-// Stores merchant settings, public derivation keys, and API auth.
+// Holds merchant settings, public derivation keys, and API auth.
 // ============================================================
 
 export interface IMerchant extends Document {
+  /** Public-facing ID e.g. 'mid_abc123' */
+  merchantId: string;
   name: string;
   apiKeyHash?: string;
   /** OAuth identity string e.g. 'google:1234567890' */
@@ -23,6 +25,10 @@ export interface IMerchant extends Document {
   logoUrl?: string;
   returnUrl?: string;
   enabledCurrencies: string[];
+  /** TOTP Two-Factor Authentication */
+  twoFactorEnabled: boolean;
+  twoFactorSecret?: string;
+  twoFactorBackupCodes?: string[];
   /** Current derivation index for unique address generation */
   derivationIndex: number;
   /** Required confirmations per currency */
@@ -48,6 +54,7 @@ export interface IMerchant extends Document {
 
 const MerchantSchema: Schema = new Schema(
   {
+    merchantId: { type: String, unique: true, sparse: true },
     name: { type: String, default: "" },
     apiKeyHash: { type: String, sparse: true, unique: true },
     oauthId: { type: String, sparse: true },
@@ -63,6 +70,9 @@ const MerchantSchema: Schema = new Schema(
     logoUrl: { type: String },
     returnUrl: { type: String },
     enabledCurrencies: { type: [String], default: [] },
+    twoFactorEnabled: { type: Boolean, default: false },
+    twoFactorSecret: { type: String },
+    twoFactorBackupCodes: { type: [String], default: [] },
     webhookEvents: {
       type: [String],
       default: [

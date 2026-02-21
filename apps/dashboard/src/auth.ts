@@ -27,7 +27,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     /**
      * Called after a successful OAuth sign-in.
-     * On first login, creates a Merchant account via the API and stores
+     * On first login, creates a Merchant account via the API and saves
      * the generated API key in the JWT so all dashboard requests can use it.
      */
     async jwt({ token, account, profile, trigger, session }) {
@@ -56,16 +56,32 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (merchants.length === 0) {
           console.log(
-            `[Auth] No merchants found. User must create first store manually.`,
+            `[Auth] No merchants found. User must create first merchant manually.`,
           );
         }
 
-        token.merchants = merchants.map((m: { id: string; name?: string }) => ({
-          id: m.id,
-          name: m.name || "Untitled Store",
-        }));
+        token.merchants = merchants.map(
+          (m: {
+            id: string;
+            merchantId: string;
+            name?: string;
+            twoFactorEnabled?: boolean;
+          }) => ({
+            id: m.id,
+            merchantId: m.merchantId,
+            name: m.name || "Untitled Merchant",
+          }),
+        );
         if (merchants.length > 0) {
           if (!token.merchantId) token.merchantId = merchants[0].id;
+          if (!token.publicMerchantId)
+            token.publicMerchantId = merchants[0].merchantId;
+          // Track if the active merchant requires 2FA
+          const activeMerchant =
+            merchants.find((m: { id: string }) => m.id === token.merchantId) ||
+            merchants[0];
+          token.twoFactorRequired = activeMerchant.twoFactorEnabled || false;
+          token.twoFactorVerified = false; // Needs verification on fresh login
         }
       }
 
@@ -75,7 +91,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const merchants = await fetchMerchants(token.oauthId as string);
         token.merchants = merchants.map((m: { id: string; name?: string }) => ({
           id: m.id,
-          name: m.name || "Untitled Store",
+          name: m.name || "Untitled Merchant",
         }));
 
         // Switch active ID if requested and valid
@@ -85,20 +101,38 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           );
           if (isValid) token.merchantId = session.merchantId;
         } else {
-          // No specific switch requested — check if current active store still exists
+          // No specific switch requested — check if current active merchant still exists
           const currentStillExists = merchants.find(
             (m: { id: string }) => m.id === token.merchantId,
           );
           if (!currentStillExists && merchants.length > 0) {
-            // Active store was deleted — fall back to first remaining store
+            // Active merchant was deleted — fall back to first remaining merchant
             token.merchantId = merchants[0].id;
+            token.publicMerchantId = merchants[0].merchantId;
+          } else if (currentStillExists) {
+            token.publicMerchantId = currentStillExists.merchantId;
           } else if (merchants.length === 0) {
             token.merchantId = undefined;
+            token.publicMerchantId = undefined;
           }
         }
 
         if (session?.apiKey) {
           token.apiKey = session.apiKey;
+        }
+
+        // Handle 2FA verification flag from client
+        if (session?.twoFactorVerified === true) {
+          token.twoFactorVerified = true;
+        }
+
+        // Refresh 2FA status from merchant data
+        if (token.merchantId) {
+          const activeMerchant = merchants.find(
+            (m: { id: string; twoFactorEnabled?: boolean }) =>
+              m.id === token.merchantId,
+          );
+          token.twoFactorRequired = activeMerchant?.twoFactorEnabled || false;
         }
       }
 
@@ -108,10 +142,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     /** Expose merchant data to the client session */
     async session({ session, token }) {
       session.user.merchantId = token.merchantId as string;
+      // @ts-expect-error - Custom public ID field
+      session.user.publicMerchantId = token.publicMerchantId as string;
       session.user.oauthId = token.oauthId as string;
       // @ts-expect-error - NextAuth session user type doesn't include merchants by default
       session.user.merchants = token.merchants || [];
       session.user.apiKey = token.apiKey as string;
+      // @ts-expect-error - 2FA fields
+      session.user.twoFactorRequired = token.twoFactorRequired || false;
+      // @ts-expect-error - 2FA fields
+      session.user.twoFactorVerified = token.twoFactorVerified || false;
       return session;
     },
   },
