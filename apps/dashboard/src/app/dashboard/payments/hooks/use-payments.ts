@@ -1,0 +1,110 @@
+"use client";
+
+import { useState, useCallback, useEffect, useMemo } from "react";
+import { api } from "@/lib/api";
+import { Invoice, TimelineEvent } from "../types";
+
+export function usePayments() {
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState("all");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
+  const [loadingTimeline, setLoadingTimeline] = useState(false);
+
+  const fetchInvoices = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params: Record<string, string> = { limit: "100" };
+      if (activeTab === "testnet") {
+        params.include_testnet = "true";
+        params.only_testnet = "true";
+      } else {
+        if (activeTab !== "all") params.status = activeTab;
+      }
+      const res = await api.get("/v1/invoices", { params });
+      setInvoices(res.data.data);
+    } catch (err) {
+      console.error("Failed to fetch invoices", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    fetchInvoices();
+  }, [fetchInvoices]);
+
+  const copyToClipboard = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const fetchTimeline = async (invoiceId: string) => {
+    setLoadingTimeline(true);
+    try {
+      const res = await api.get("/v1/merchants/me/notifications", {
+        params: { invoiceId, limit: 50 },
+      });
+      setTimeline(res.data.data);
+    } catch (err) {
+      console.error("Failed to fetch timeline", err);
+    } finally {
+      setLoadingTimeline(false);
+    }
+  };
+
+  const openInvoiceDetails = (invoice: Invoice) => {
+    setSelectedInvoice(invoice);
+    fetchTimeline(invoice.invoice_id);
+  };
+
+  const filteredInvoices = useMemo(() => {
+    return invoices.filter(
+      (inv) =>
+        inv.invoice_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        inv.crypto_currency.toLowerCase().includes(searchTerm.toLowerCase()),
+    );
+  }, [invoices, searchTerm]);
+
+  const stats = useMemo(() => {
+    const totalVolume = invoices
+      .filter((inv) => inv.status === "confirmed")
+      .reduce((sum, inv) => sum + inv.amount_usd, 0);
+    const confirmedCount = invoices.filter(
+      (inv) => inv.status === "confirmed",
+    ).length;
+    const pendingCount = invoices.filter(
+      (inv) => inv.status === "pending",
+    ).length;
+
+    return {
+      totalVolume,
+      confirmedCount,
+      pendingCount,
+      totalCount: invoices.length,
+    };
+  }, [invoices]);
+
+  return {
+    invoices,
+    loading,
+    searchTerm,
+    setSearchTerm,
+    activeTab,
+    setActiveTab,
+    copiedId,
+    selectedInvoice,
+    setSelectedInvoice,
+    timeline,
+    loadingTimeline,
+    copyToClipboard,
+    openInvoiceDetails,
+    filteredInvoices,
+    stats,
+    fetchInvoices,
+  };
+}
