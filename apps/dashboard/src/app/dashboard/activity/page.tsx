@@ -1,6 +1,6 @@
 "use client";
 
-import { EventsTab } from "../developers/components/events-tab";
+import { EventsTab } from "./components/events-tab";
 
 export default function ActivityPage() {
   return (
