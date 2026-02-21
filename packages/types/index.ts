@@ -1,5 +1,5 @@
 // ============================================================
-// @knotengine/types — Shared type definitions for KnotEngine
+// @qodinger/knot-types — Shared type definitions for KnotEngine
 // ============================================================
 
 export const SUPPORTED_CURRENCIES = [

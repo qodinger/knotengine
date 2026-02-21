@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { Currency } from "@knotengine/types";
+import { Currency } from "@qodinger/knot-types";
 
 export class TxVerifier {
   // Transfer(address,address,uint256)

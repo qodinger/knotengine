@@ -3,11 +3,11 @@ import {
   IInvoice,
   Merchant,
   WebhookEvent,
-} from "@knotengine/database";
+} from "@qodinger/knot-database";
 import { SocketService } from "../infra/socket-service";
 import { WebhookDispatcher } from "../infra/webhook-dispatcher";
 import { TatumProvider } from "../infra/tatum-provider";
-import { DEFAULT_CONFIRMATIONS, EVM_CURRENCIES } from "@knotengine/types";
+import { DEFAULT_CONFIRMATIONS, EVM_CURRENCIES } from "@qodinger/knot-types";
 import { NotificationService } from "../infra/notification-service";
 
 /**
@@ -141,13 +141,14 @@ export class ConfirmationEngine {
       WebhookDispatcher.dispatch(invoice.invoiceId, "invoice.mempool_detected");
 
       // Notify Merchant
+      const isTestnet = invoice.metadata?.isTestnet === true;
       NotificationService.create({
         merchantId: invoice.merchantId.toString(),
-        title: "New Transaction",
+        title: isTestnet ? "[TEST] New Transaction" : "New Transaction",
         description: `Detected ${event.amount} ${event.asset} for invoice ${invoice.invoiceId} (mempool).`,
         type: "info",
         link: `/dashboard/payments`,
-        meta: { invoiceId: invoice.invoiceId, txHash: event.txHash },
+        meta: { invoiceId: invoice.invoiceId, txHash: event.txHash, isTestnet },
       });
     }
 
@@ -173,10 +174,12 @@ export class ConfirmationEngine {
         });
 
         // Notify Merchant
+        const isTestnet = invoice.metadata?.isTestnet === true;
         NotificationService.notifyPaymentConfirmed(
           invoice.merchantId.toString(),
           invoice.invoiceId,
           invoice.amountUsd,
+          isTestnet,
         );
 
         // Check if credit balance is getting low
@@ -187,13 +190,6 @@ export class ConfirmationEngine {
             updatedMerchant.creditBalance,
           );
         }
-      } else if (!invoice.paidAt && isTestnet) {
-        // Testnet: still notify the merchant about the simulated payment, but no billing impact
-        NotificationService.notifyPaymentConfirmed(
-          invoice.merchantId.toString(),
-          invoice.invoiceId,
-          invoice.amountUsd,
-        );
       }
     }
 
@@ -260,6 +256,7 @@ export class ConfirmationEngine {
     if (staleInvoices.length === 0) return 0;
 
     for (const invoice of staleInvoices) {
+      const prevStatus = invoice.status;
       await Invoice.findByIdAndUpdate(invoice._id, {
         $set: { status: "expired" },
       });
@@ -269,14 +266,18 @@ export class ConfirmationEngine {
         TatumProvider.deleteSubscription(invoice.tatumSubscriptionId);
       }
 
-      NotificationService.create({
-        merchantId: invoice.merchantId.toString(),
-        title: "Invoice Expired",
-        description: `Invoice ${invoice.invoiceId} has expired without receiving payment.`,
-        type: "error",
-        link: "/dashboard/payments",
-        meta: { invoiceId: invoice.invoiceId },
-      });
+      // Only notify if there was some activity (avoid spamming abandoned 'pending' invoices)
+      if (prevStatus !== "pending") {
+        const isTestnet = invoice.metadata?.isTestnet === true;
+        NotificationService.create({
+          merchantId: invoice.merchantId.toString(),
+          title: isTestnet ? "[TEST] Invoice Expired" : "Invoice Expired",
+          description: `Invoice ${invoice.invoiceId} has expired after receiving partial or unconfirmed funds.`,
+          type: "error",
+          link: "/dashboard/payments",
+          meta: { invoiceId: invoice.invoiceId, isTestnet },
+        });
+      }
 
       console.log(`⏰ Invoice ${invoice.invoiceId} expired.`);
     }

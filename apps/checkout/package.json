@@ -3,7 +3,7 @@
   "author": "tyecode",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tyecode/knotengine.git"
+    "url": "https://github.com/qodinger/knotengine.git"
   },
   "version": "0.2.1",
   "private": true,
@@ -23,7 +23,7 @@
     "react-dom": "19.2.3",
     "socket.io-client": "^4.8.3",
     "tailwind-merge": "^3.4.1",
-    "@knotengine/types": "workspace:*"
+    "@qodinger/knot-types": "workspace:*"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

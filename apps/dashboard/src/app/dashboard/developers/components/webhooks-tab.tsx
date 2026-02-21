@@ -449,7 +449,7 @@ export function WebhooksTab() {
                 code={
                   selectedLanguage === "nodejs-sdk"
                     ? dedent`
-                        import { KnotEngine } from '@tyecode/knotengine-sdk';
+                        import { KnotEngine } from '@qodinger/knot-sdk';
 
                         const knot = new KnotEngine({
                           apiKey: process.env.KNOT_API_KEY,

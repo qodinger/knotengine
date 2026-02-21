@@ -1,11 +1,11 @@
 import { FastifyInstance } from "fastify";
 import { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
-import { Invoice, Merchant } from "@knotengine/database";
-import { Derivator } from "@knotengine/crypto";
+import { Invoice, Merchant } from "@qodinger/knot-database";
+import { Derivator } from "@qodinger/knot-crypto";
 import { PriceOracle } from "../infra/price-feed";
 import { ConfirmationEngine } from "../core/confirmation-engine";
-import { Currency, SUPPORTED_CURRENCIES } from "@knotengine/types";
+import { Currency, SUPPORTED_CURRENCIES } from "@qodinger/knot-types";
 import { TatumProvider } from "../infra/tatum-provider";
 import * as crypto from "crypto";
 

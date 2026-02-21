@@ -58,7 +58,11 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
-import { CRYPTO_LOGOS, CRYPTO_LABELS, EVM_CURRENCIES } from "@knotengine/types";
+import {
+  CRYPTO_LOGOS,
+  CRYPTO_LABELS,
+  EVM_CURRENCIES,
+} from "@qodinger/knot-types";
 
 interface MerchantProfile {
   id: string;

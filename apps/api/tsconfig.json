@@ -10,7 +10,7 @@
     "baseUrl": ".",
     "resolveJsonModule": true,
     "paths": {
-      "@knotengine/*": ["../../packages/*"],
+      "@qodinger/knot-*": ["../../packages/*"],
       "ethers": ["./node_modules/ethers/lib.commonjs/index.d.ts"]
     }
   },

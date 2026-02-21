@@ -257,7 +257,7 @@ export function ApiKeysTab() {
                       language="typescript"
                       className="w-full"
                       code={dedent`
-                        import { KnotEngine } from '@tyecode/knotengine-sdk';
+                        import { KnotEngine } from '@qodinger/knot-sdk';
 
                         const knot = new KnotEngine({ apiKey: 'YOUR_KEY' });
 

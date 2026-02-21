@@ -10,8 +10,8 @@ import { webhookRoutes } from "./routes/webhooks";
 import { PriceOracle } from "./infra/price-feed";
 import { ConfirmationEngine } from "./core/confirmation-engine";
 import { WebhookDispatcher } from "./infra/webhook-dispatcher";
-import { Currency } from "@knotengine/types";
-import { connectToDatabase } from "@knotengine/database";
+import { Currency } from "@qodinger/knot-types";
+import { connectToDatabase } from "@qodinger/knot-database";
 import { SocketService } from "./infra/socket-service";
 
 import dotenv from "dotenv";

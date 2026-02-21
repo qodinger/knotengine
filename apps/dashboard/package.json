@@ -3,7 +3,7 @@
   "author": "tyecode",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tyecode/knotengine.git"
+    "url": "https://github.com/qodinger/knotengine.git"
   },
   "version": "0.2.1",
   "private": true,
@@ -14,7 +14,7 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@knotengine/types": "workspace:^",
+    "@qodinger/knot-types": "workspace:^",
     "axios": "^1.13.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

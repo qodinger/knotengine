@@ -36,6 +36,12 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface DashboardStats {
   totalVolume: number;
@@ -60,11 +66,12 @@ export default function DashboardOverview() {
   const [data, setData] = useState<DashboardStats | null>(null);
   const [recentInvoices, setRecentInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState<"24h" | "7d" | "30d">("7d");
 
   const fetchData = useCallback(async () => {
     try {
       const [statsRes, invoicesRes] = await Promise.all([
-        api.get("/v1/merchants/me/stats"),
+        api.get("/v1/merchants/me/stats", { params: { period } }),
         api.get("/v1/invoices", { params: { limit: 5 } }),
       ]);
       setData(statsRes.data);
@@ -74,7 +81,7 @@ export default function DashboardOverview() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [period]);
 
   const [mounted, setMounted] = useState(false);
 
@@ -126,12 +133,19 @@ export default function DashboardOverview() {
   ];
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          Monitor your store's performance and recent activity.
+        </p>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
           <Card
             key={stat.label}
-            className="border-none shadow-none bg-background/50 border"
+            className="bg-card/40 border-border/50 backdrop-blur-md shadow-sm transition-all hover:bg-card/60 hover:border-primary/30 group"
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-tight">
@@ -158,7 +172,7 @@ export default function DashboardOverview() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="lg:col-span-4 border-none shadow-none bg-background/50 border">
+        <Card className="lg:col-span-4 bg-card/40 border-border/50 backdrop-blur-md shadow-sm">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -167,10 +181,33 @@ export default function DashboardOverview() {
                   Confirmed settlement volume over time.
                 </CardDescription>
               </div>
-              <Button variant="outline" size="sm">
-                Weekly
-                <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5 px-3"
+                  >
+                    {period === "24h"
+                      ? "24 Hours"
+                      : period === "7d"
+                        ? "Last 7 Days"
+                        : "Last 30 Days"}
+                    <ChevronRight className="h-3 w-3 rotate-90" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
+                  <DropdownMenuItem onClick={() => setPeriod("24h")}>
+                    24 Hours
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setPeriod("7d")}>
+                    Last 7 Days
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setPeriod("30d")}>
+                    Last 30 Days
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </CardHeader>
           <CardContent className="h-[350px] pl-2">
@@ -248,16 +285,16 @@ export default function DashboardOverview() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-3 border-none shadow-none bg-background/50 border">
+        <Card className="lg:col-span-3 bg-card/40 border-border/50 backdrop-blur-md shadow-sm flex flex-col">
           <CardHeader>
             <CardTitle>Recent Invoices</CardTitle>
             <CardDescription>
               Latest invoices from your account.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 flex flex-col">
             {recentInvoices.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
+              <div className="flex-1 flex flex-col items-center justify-center py-8 text-center">
                 <Receipt className="size-10 text-muted-foreground/20 mb-3" />
                 <p className="text-sm font-medium text-muted-foreground/60">
                   No invoices yet

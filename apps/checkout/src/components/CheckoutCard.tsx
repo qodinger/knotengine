@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Copy, Check, Clock, AlertCircle, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CRYPTO_LOGOS, Currency } from "@knotengine/types";
+import { CRYPTO_LOGOS, Currency } from "@qodinger/knot-types";
 
 interface CheckoutCardProps {
   invoice: {

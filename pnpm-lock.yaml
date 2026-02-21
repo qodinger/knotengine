@@ -62,13 +62,13 @@ importers:
       '@fastify/swagger-ui':
         specifier: ^3.0.0
         version: 3.1.0
-      '@knotengine/crypto':
+      '@qodinger/knot-crypto':
         specifier: workspace:*
         version: link:../../packages/crypto
-      '@knotengine/database':
+      '@qodinger/knot-database':
         specifier: workspace:*
         version: link:../../packages/database
-      '@knotengine/types':
+      '@qodinger/knot-types':
         specifier: workspace:*
         version: link:../../packages/types
       axios:
@@ -123,7 +123,7 @@ importers:
 
   apps/checkout:
     dependencies:
-      '@knotengine/types':
+      '@qodinger/knot-types':
         specifier: workspace:*
         version: link:../../packages/types
       clsx:
@@ -171,7 +171,7 @@ importers:
         version: 9.39.2(jiti@2.6.1)
       eslint-config-next:
         specifier: 16.1.6
-        version: 16.1.6(@typescript-eslint/parser@8.56.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3)
+        version: 16.1.6(@typescript-eslint/parser@8.56.0(eslint@8.57.1)(typescript@5.9.3))(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3)
       tailwindcss:
         specifier: ^4
         version: 4.1.18
@@ -181,7 +181,7 @@ importers:
 
   apps/dashboard:
     dependencies:
-      '@knotengine/types':
+      '@qodinger/knot-types':
         specifier: workspace:^
         version: link:../../packages/types
       axios:
@@ -250,7 +250,7 @@ importers:
         version: 9.39.2(jiti@2.6.1)
       eslint-config-next:
         specifier: 16.1.6
-        version: 16.1.6(@typescript-eslint/parser@8.56.0(eslint@8.57.1)(typescript@5.9.3))(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3)
+        version: 16.1.6(@typescript-eslint/parser@8.56.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3)
       shadcn:
         specifier: ^3.8.5
         version: 3.8.5(@types/node@20.19.33)(typescript@5.9.3)
@@ -317,7 +317,7 @@ importers:
         specifier: ^1.6.7
         version: 1.13.5
     devDependencies:
-      '@knotengine/types':
+      '@qodinger/knot-types':
         specifier: workspace:*
         version: link:../types
       '@types/node':

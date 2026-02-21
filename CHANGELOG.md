@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Automatic Cleanup** — Implemented 30-day Retention (TTL) Policy for `WebhookEvent` and `Notification` collections to prevent database bloat.
+- **Real-time Notifications** — Production-ready alerts for payments, expirations, and webhook failures via Socket.io.
+- **Organization Migration** — Relocated ecosystem to the `qodinger` GitHub Organization for enhanced trust and scalability.
+
+### Changed
+
+- **Unified Branding** — Consolidated all packages under the `@knotengine/` scope (e.g., `@knotengine/sdk`, `@knotengine/types`).
+- **Sidebar UX** — Reordered dashboard navigation to prioritize operations (Dashboard, Payments, Activity Log).
+- **Notification Logic** — Refined signal-to-noise ratio by deduplicating alerts and adding `[TEST]` labels for dev clarity.
+
 ## [0.2.1] - 2026-02-20
 
 ### Added
@@ -41,5 +55,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **API Engine** — Improved error handling and performance optimizations for the core Knot server.
 - **Webhooks** — Enhanced payload security with HMAC signatures and unique event IDs (`evt_...`).
 
-[0.2.1]: https://github.com/tyecode/knotengine/releases/tag/v0.2.1
-[0.2.0]: https://github.com/tyecode/knotengine/releases/tag/v0.2.0
+[Unreleased]: https://github.com/qodinger/knotengine/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/qodinger/knotengine/releases/tag/v0.2.1
+[0.2.0]: https://github.com/qodinger/knotengine/releases/tag/v0.2.0

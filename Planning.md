@@ -82,11 +82,12 @@ By leveraging **HD Wallet Derivation (BIP44)**, the system generates unique, one
 - [x] **Testnet Beta:** Launch public testnet for developer feedback with free faucet coins.
 - [ ] **Legal Framework:** Register under KnotEngine IT Services.
 - [x] **Monetization:** Implement the 1.0% "KnotEngine Fee" via auto-accrual logic with designated platform collection wallets (BTC, LTC, EVM).
-- [x] **Ecosystem:** Launch documentation portal and official `@tyecode/knotengine-sdk` NPM package (Automated via GitHub Actions).
-- [ ] **Live Dashboard Notifications:** Replace mocked notification data with real-time events via Socket.io.
-  - [ ] **Payments:** New Transaction (Mempool), Confirmed (Settlement), and Expiration alerts.
-  - [ ] **Billing:** Low Credit Balance warnings (< $3.00) and Top-up Success confirmations.
-  - [ ] **Operations:** Webhook failure/retry alerts for developers.
+- [x] **Ecosystem:** Launch documentation portal and official `@knotengine/sdk` npm package.
+- [x] **Live Dashboard Notifications:** Implement real-time events via Socket.io.
+  - [x] **Payments:** New Transaction (Mempool), Confirmed (Settlement), and Expiration alerts.
+  - [x] **Billing:** Low Credit Balance warnings (< $3.00) top-up alerts.
+  - [x] **Operations:** Webhook failure/retry alerts for developers.
+- [x] **Database Optimization:** Implemented 30-day TTL indexes for `WebhookEvent` and `Notification` collections to handle automatic log cleanup.
 
 ### Phase 5: Growth & Advanced Tools (Future) 🔮
 

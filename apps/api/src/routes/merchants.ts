@@ -6,7 +6,7 @@ import {
   Invoice,
   TopUpClaim,
   Notification,
-} from "@knotengine/database";
+} from "@qodinger/knot-database";
 
 import * as crypto from "crypto";
 import { TatumProvider } from "../infra/tatum-provider";
@@ -17,7 +17,7 @@ import { BIP32Factory } from "bip32";
 import * as ecc from "tiny-secp256k1";
 import * as bitcoin from "bitcoinjs-lib";
 import { ethers } from "ethers";
-import { SUPPORTED_CURRENCIES } from "@knotengine/types";
+import { SUPPORTED_CURRENCIES } from "@qodinger/knot-types";
 import { WebhookDispatcher } from "../infra/webhook-dispatcher";
 
 const bip32 = BIP32Factory(ecc);
@@ -519,10 +519,17 @@ export async function merchantRoutes(app: FastifyInstance) {
     "/v1/merchants/me/stats",
     {
       preHandler: requireAuth,
+      schema: {
+        querystring: z.object({
+          period: z.enum(["24h", "7d", "30d"]).default("7d"),
+        }),
+      },
     },
     async (request, reply) => {
       const merchant = request.merchant;
       if (!merchant) return reply.code(401).send({ error: "Unauthorized" });
+
+      const { period } = request.query as { period: string };
 
       const [totalInvoices, confirmedInvoicesResult, testnetInvoicesResult] =
         await Promise.all([
@@ -579,19 +586,77 @@ export async function merchantRoutes(app: FastifyInstance) {
           ? ((confirmedInvoicesCount / totalInvoices) * 100).toFixed(1)
           : "0";
 
+      // ──────────────────────────────────────────────
+      // Chart Data Aggregation
+      // ──────────────────────────────────────────────
+      const now = new Date();
+      let startTime: Date;
+      let groupBy: any;
+      let format: (date: Date) => string;
+
+      if (period === "24h") {
+        startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        groupBy = {
+          $dateToString: { format: "%Y-%m-%d %H:00", date: "$createdAt" },
+        };
+        format = (d) =>
+          d.toLocaleTimeString([], { hour: "2-digit", hour12: false }) + ":00";
+      } else if (period === "30d") {
+        startTime = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        groupBy = { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } };
+        format = (d) =>
+          d.toLocaleDateString([], { month: "short", day: "numeric" });
+      } else {
+        // default 7d
+        startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        groupBy = { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } };
+        format = (d) => d.toLocaleDateString([], { weekday: "short" });
+      }
+
+      const rawChartData = await Invoice.aggregate([
+        {
+          $match: {
+            merchantId: merchant._id,
+            status: "confirmed",
+            "metadata.isTestnet": { $ne: true },
+            createdAt: { $gte: startTime },
+          },
+        },
+        {
+          $group: {
+            _id: groupBy,
+            volume: { $sum: "$amountUsd" },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]);
+
+      // Fill in zeros for missing periods to ensure smooth chart
+      const chartData: { name: string; volume: number }[] = [];
+      const steps = period === "24h" ? 24 : period === "30d" ? 30 : 7;
+      const stepMs = period === "24h" ? 3600000 : 86400000;
+
+      for (let i = 0; i < steps; i++) {
+        const d = new Date(startTime.getTime() + i * stepMs);
+        const key =
+          period === "24h"
+            ? d.toISOString().slice(0, 13) + ":00"
+            : d.toISOString().slice(0, 10);
+
+        const match = rawChartData.find((r) => r._id === key);
+        chartData.push({
+          name: format(d),
+          volume: match ? parseFloat(match.volume.toFixed(2)) : 0,
+        });
+      }
+
       return {
         totalVolume,
         testnetVolume,
         testnetInvoicesCount,
         activeInvoices: totalInvoices,
         successRate: `${successRate}%`,
-        chartData: [
-          { name: "Mon", volume: 0 },
-          { name: "Tue", volume: 0 },
-          { name: "Wed", volume: totalVolume },
-          { name: "Thu", volume: 0 },
-          { name: "Fri", volume: 0 },
-        ],
+        chartData,
         feesAccrued: merchant.feesAccrued || { usd: 0 },
         creditBalance: merchant.creditBalance ?? 5.0,
         currentFeeRate: parseFloat(process.env.PLATFORM_FEE_RATE || "0.01"),

@@ -1,4 +1,4 @@
-import { Currency } from "@knotengine/types";
+import { Currency } from "@qodinger/knot-types";
 
 interface PriceData {
   [currency: string]: {

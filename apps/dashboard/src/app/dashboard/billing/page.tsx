@@ -44,7 +44,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { QRCodeSVG } from "qrcode.react";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
-import { Currency, CRYPTO_LOGOS } from "@knotengine/types";
+import { Currency, CRYPTO_LOGOS } from "@qodinger/knot-types";
 
 interface StatsData {
   totalVolume: number;

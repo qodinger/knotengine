@@ -1,13 +1,12 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { Key, FlaskConical, Webhook, Activity } from "lucide-react";
+import { Key, FlaskConical, Webhook } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { ApiKeysTab } from "./components/api-keys-tab";
 import { TestnetTab } from "./components/testnet-tab";
 import { WebhooksTab } from "./components/webhooks-tab";
-import { EventsTab } from "./components/events-tab";
 
 export default function DevelopersPage() {
   const searchParams = useSearchParams();
@@ -46,13 +45,6 @@ export default function DevelopersPage() {
             <Webhook className="size-3" />
             Webhooks
           </TabsTrigger>
-          <TabsTrigger
-            value="events"
-            className="text-xs font-medium gap-1.5 px-3"
-          >
-            <Activity className="size-3" />
-            Events
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="api-keys" className="mt-6 space-y-6">
@@ -65,10 +57,6 @@ export default function DevelopersPage() {
 
         <TabsContent value="webhooks" className="mt-6 space-y-6">
           <WebhooksTab />
-        </TabsContent>
-
-        <TabsContent value="events" className="mt-6 space-y-4">
-          <EventsTab />
         </TabsContent>
       </Tabs>
     </div>

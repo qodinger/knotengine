@@ -167,7 +167,7 @@ export async function webhookRoutes(app: FastifyInstance) {
 
     // 1. If invoiceId is provided, look up the payAddress
     if (body.invoiceId && !targetAddress) {
-      const { Invoice } = await import("@knotengine/database");
+      const { Invoice } = await import("@qodinger/knot-database");
       const invoice = await Invoice.findOne({ invoiceId: body.invoiceId });
       if (!invoice) {
         return reply.code(404).send({ error: "Invoice not found" });

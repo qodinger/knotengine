@@ -244,6 +244,11 @@ const WebhookEventSchema: Schema = new Schema(
 WebhookEventSchema.index({ toAddress: 1 });
 WebhookEventSchema.index({ txHash: 1 });
 WebhookEventSchema.index({ processed: 1 });
+// 30-day Retention: MongoDB will auto-delete events older than 30 days
+WebhookEventSchema.index(
+  { createdAt: 1 },
+  { expireAfterSeconds: 60 * 60 * 24 * 30 },
+);
 
 export const WebhookEvent = mongoose.model<IWebhookEvent>(
   "WebhookEvent",
@@ -330,7 +335,11 @@ const NotificationSchema: Schema = new Schema(
 );
 
 NotificationSchema.index({ merchantId: 1, isRead: 1 });
-NotificationSchema.index({ createdAt: -1 });
+// 30-day Retention: MongoDB will auto-delete notifications older than 30 days
+NotificationSchema.index(
+  { createdAt: 1 },
+  { expireAfterSeconds: 60 * 60 * 24 * 30 },
+);
 
 export const Notification = mongoose.model<INotification>(
   "Notification",

@@ -20,7 +20,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CRYPTO_LOGOS } from "@knotengine/types";
+import { CRYPTO_LOGOS } from "@qodinger/knot-types";
 import {
   Table,
   TableBody,

@@ -1,4 +1,4 @@
-import { Notification } from "@knotengine/database";
+import { Notification } from "@qodinger/knot-database";
 import { SocketService } from "./socket-service";
 
 /**
@@ -52,6 +52,15 @@ export class NotificationService {
    * Helper for Low Credit alerts
    */
   public static async notifyLowBalance(merchantId: string, balance: number) {
+    // Avoid spamming: Check if there's already an unread Low Balance notification
+    const existing = await Notification.findOne({
+      merchantId,
+      title: "Low Credit Balance",
+      isRead: false,
+    });
+
+    if (existing) return null;
+
     return this.create({
       merchantId,
       title: "Low Credit Balance",
@@ -68,14 +77,16 @@ export class NotificationService {
     merchantId: string,
     invoiceId: string,
     amountUsd: number,
+    isTestnet: boolean = false,
   ) {
+    const title = isTestnet ? "[TEST] Payment Received" : "Payment Received";
     return this.create({
       merchantId,
-      title: "Payment Received",
+      title,
       description: `Invoice ${invoiceId} has been fully confirmed ($${amountUsd.toFixed(2)}).`,
       type: "success",
-      link: `/dashboard/payments`, // Replace with actual payments page if needed
-      meta: { invoiceId },
+      link: `/dashboard/payments`,
+      meta: { invoiceId, isTestnet },
     });
   }
 
