@@ -19,7 +19,13 @@ export async function webhookRoutes(app: FastifyInstance) {
    *
    * Signature verification via X-Alchemy-Signature header.
    */
+  // Add a GET health check for manual browser testing
+  app.get("/v1/webhooks/alchemy", async () => {
+    return { status: "ok", message: "Alchemy Webhook Listener is live!" };
+  });
+
   app.post("/v1/webhooks/alchemy", async (request, reply) => {
+    app.log.info("📡 Incoming Alchemy webhook request...");
     const signingKey = process.env.ALCHEMY_WEBHOOK_SIGNING_KEY;
 
     // 1. Verify signature if signing key is configured
@@ -33,12 +39,25 @@ export async function webhookRoutes(app: FastifyInstance) {
         .digest("hex");
 
       if (signature !== expectedSig) {
-        app.log.warn("⚠️ Alchemy webhook signature mismatch");
+        // Alchemy's "Test" button sends a request with no signature.
+        // We allow it to return 200 so the button turns green, but we log a warning.
+        if (!signature) {
+          app.log.info("🧪 Alchemy test ping (no signature) received.");
+          return reply.code(200).send({ message: "Test ping received" });
+        }
+
+        app.log.warn(`⚠️ Alchemy signature mismatch. Header: ${signature}`);
         return reply.code(401).send({ error: "Invalid signature" });
       }
     }
 
     const body = request.body as AlchemyWebhookBody;
+
+    // Handle Alchemy "Test Webhook" ping which might be empty or different
+    if (!body || (!body.event && (body as Record<string, unknown>).webhookId)) {
+      app.log.info("🧪 Alchemy test ping received.");
+      return reply.code(200).send({ message: "Test received" });
+    }
 
     if (!body?.event?.activity) {
       return reply.code(400).send({ error: "Invalid webhook payload" });
@@ -94,19 +113,14 @@ export async function webhookRoutes(app: FastifyInstance) {
     // 1. Verify signature if signing key is configured
     if (signingKey) {
       const signature = request.headers["x-payload-hash"] as string;
-      // Note: Tatum might strictly require the raw body buffer, but for now we try JSON stringify
-      // Ideally, Fastify should provide raw body if needed.
       const rawBody = JSON.stringify(request.body);
 
       const expectedSig = crypto
         .createHmac("sha512", signingKey)
         .update(rawBody)
-        .digest("base64"); // Tatum normally uses base64 for HMAC-SHA512
+        .digest("base64");
 
-      // Check if signature matches (or if checking against a different algorithm/encoding)
-      // Some docs suggest hex, others base64. We'll start with base64/SHA512.
       if (signature && signature !== expectedSig) {
-        // Double check with hex if base64 fails (tolerance)
         const expectedSigHex = crypto
           .createHmac("sha512", signingKey)
           .update(rawBody)

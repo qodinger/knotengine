@@ -1,18 +1,18 @@
+import { IBlockchainProvider } from "./provider-interface";
+
 /**
  * 🛰️ Tatum Blockchain Provider
  *
  * Handles automated subscription management for merchants.
- * In a SaaS model, this service creates "Account" subscriptions
- * on Tatum so the platform is notified of every incoming transaction.
  */
-export class TatumProvider {
-  private static readonly API_URL = "https://api.tatum.io/v3/subscription";
+export class TatumProvider implements IBlockchainProvider {
+  public readonly name = "tatum";
+  private readonly API_URL = "https://api.tatum.io/v3/subscription";
 
   /**
    * Subscribes to transaction notifications for a specific blockchain address.
-   * This is used for granular invoice-level monitoring.
    */
-  public static async subscribeAddress(
+  public async subscribeAddress(
     address: string,
     chain: string,
     webhookUrl: string,
@@ -69,7 +69,7 @@ export class TatumProvider {
   /**
    * Deletes a subscription when no longer needed (e.g. invoice confirmed or expired).
    */
-  public static async deleteSubscription(subscriptionId: string) {
+  public async deleteSubscription(subscriptionId: string) {
     const apiKey = process.env.TATUM_API_KEY;
     if (!apiKey || !subscriptionId) return;
 
@@ -86,13 +86,9 @@ export class TatumProvider {
   }
 
   /**
-   * LEGACY/Alternative: Automatically subscribes a merchant's xPub via Virtual Account.
-   * Note: This requires a Tatum Ledger account which is a different workflow.
+   * Automatically subscribes a merchant's xPub via Virtual Account.
    */
-  public static async subscribeMerchantXpub(
-    _xpub: string,
-    _webhookUrl: string,
-  ) {
+  public async subscribeMerchantXpub(_xpub: string, _webhookUrl: string) {
     // For now, we prefer address-level monitoring as it is more non-custodial
     // and doesn't require creating Tatum Ledger accounts for merchants.
     console.log(

@@ -6,7 +6,7 @@ import { Derivator } from "@qodinger/knot-crypto";
 import { PriceOracle } from "../infra/price-feed";
 import { ConfirmationEngine } from "../core/confirmation-engine";
 import { Currency, SUPPORTED_CURRENCIES } from "@qodinger/knot-types";
-import { TatumProvider } from "../infra/tatum-provider";
+import { BlockchainProviderPool } from "../infra/provider-pool";
 import * as crypto from "crypto";
 
 /**
@@ -249,22 +249,6 @@ export async function invoiceRoutes(app: FastifyInstance) {
         derivationIndex: nextIndex,
       });
 
-      // 7. SaaS Automation: Subscribe to the derived address in Tatum
-      if (process.env.PUBLIC_URL) {
-        const tatumWebhookUrl = `${process.env.PUBLIC_URL}/v1/webhooks/tatum`;
-        const subId = await TatumProvider.subscribeAddress(
-          payAddress,
-          currency,
-          tatumWebhookUrl,
-        );
-
-        if (subId) {
-          await Invoice.findByIdAndUpdate(invoice._id, {
-            $set: { tatumSubscriptionId: subId },
-          });
-        }
-      }
-
       server.log.info(`🧾 Invoice created: ${invoiceId} for $${amount_usd}`);
 
       return reply.code(201).send({
@@ -299,6 +283,44 @@ export async function invoiceRoutes(app: FastifyInstance) {
 
       if (!invoice) {
         return reply.code(404).send({ error: "Invoice not found" });
+      }
+
+      // ON-DEMAND MONITORING: Only subscribe if the invoice is being viewed and is still pending
+      const now = new Date();
+      const cooldownMs = 5 * 60 * 1000; // 5 minutes
+      const isCoolingDown =
+        invoice.lastMonitoringAttempt &&
+        now.getTime() - invoice.lastMonitoringAttempt.getTime() < cooldownMs;
+
+      if (
+        invoice.status === "pending" &&
+        !invoice.tatumSubscriptionId &&
+        !isCoolingDown &&
+        process.env.PUBLIC_URL
+      ) {
+        // Atomic update to mark attempt and prevent race conditions
+        Invoice.findByIdAndUpdate(invoice._id, {
+          $set: { lastMonitoringAttempt: now },
+          $inc: { monitoringAttempts: 1 },
+        }).exec();
+
+        const tatumWebhookUrl = `${process.env.PUBLIC_URL}/v1/webhooks/tatum`;
+        BlockchainProviderPool.getInstance()
+          .subscribeAddress(
+            invoice.payAddress,
+            invoice.cryptoCurrency,
+            tatumWebhookUrl,
+          )
+          .then((result) => {
+            if (result) {
+              Invoice.findByIdAndUpdate(invoice._id, {
+                $set: {
+                  tatumSubscriptionId: result.subscriptionId,
+                  providerName: result.providerName,
+                },
+              }).exec();
+            }
+          });
       }
 
       return {

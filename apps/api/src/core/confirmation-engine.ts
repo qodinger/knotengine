@@ -6,8 +6,8 @@ import {
 } from "@qodinger/knot-database";
 import { SocketService } from "../infra/socket-service";
 import { WebhookDispatcher } from "../infra/webhook-dispatcher";
-import { TatumProvider } from "../infra/tatum-provider";
 import { DEFAULT_CONFIRMATIONS, EVM_CURRENCIES } from "@qodinger/knot-types";
+import { BlockchainProviderPool } from "../infra/provider-pool";
 import { NotificationService } from "../infra/notification-service";
 
 /**
@@ -157,8 +157,11 @@ export class ConfirmationEngine {
       WebhookDispatcher.dispatch(invoice.invoiceId, "invoice.confirmed");
 
       // 7. Cleanup Tatum monitoring
-      if (invoice.tatumSubscriptionId) {
-        TatumProvider.deleteSubscription(invoice.tatumSubscriptionId);
+      if (invoice.tatumSubscriptionId && invoice.providerName) {
+        BlockchainProviderPool.getInstance().deleteSubscription(
+          invoice.providerName,
+          invoice.tatumSubscriptionId,
+        );
       }
 
       // 8. Deduct from Credit Balance & Accrue Fees (KnotEngine Fee)
@@ -261,9 +264,12 @@ export class ConfirmationEngine {
         $set: { status: "expired" },
       });
 
-      // Cleanup Tatum monitoring
-      if (invoice.tatumSubscriptionId) {
-        TatumProvider.deleteSubscription(invoice.tatumSubscriptionId);
+      // Cleanup monitoring
+      if (invoice.tatumSubscriptionId && invoice.providerName) {
+        BlockchainProviderPool.getInstance().deleteSubscription(
+          invoice.providerName,
+          invoice.tatumSubscriptionId,
+        );
       }
 
       // Only notify if there was some activity (avoid spamming abandoned 'pending' invoices)

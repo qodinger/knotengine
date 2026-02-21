@@ -9,7 +9,6 @@ import {
 } from "@qodinger/knot-database";
 
 import * as crypto from "crypto";
-import { TatumProvider } from "../infra/tatum-provider";
 import { TxVerifier } from "../infra/tx-verifier";
 import { PriceOracle } from "../infra/price-feed";
 import * as bip39 from "bip39";
@@ -112,11 +111,6 @@ export async function merchantRoutes(app: FastifyInstance) {
       });
 
       server.log.info(`Merchant created: ${newMerchant.id}`);
-
-      if (btcXpub && process.env.PUBLIC_URL) {
-        const tatumWebhookUrl = `${process.env.PUBLIC_URL}/v1/webhooks/tatum`;
-        await TatumProvider.subscribeMerchantXpub(btcXpub, tatumWebhookUrl);
-      }
 
       return reply.code(201).send({
         id: newMerchant.id,
@@ -591,7 +585,7 @@ export async function merchantRoutes(app: FastifyInstance) {
       // ──────────────────────────────────────────────
       const now = new Date();
       let startTime: Date;
-      let groupBy: any;
+      let groupBy: Record<string, unknown>;
       let format: (date: Date) => string;
 
       if (period === "24h") {

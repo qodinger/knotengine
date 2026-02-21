@@ -138,6 +138,11 @@ export interface IInvoice extends Document {
   lastWebhookAttempt?: Date;
   /** Tatum Notification Subscription ID */
   tatumSubscriptionId?: string;
+  /** Name of the provider used for monitoring (e.g. 'tatum') */
+  providerName?: string;
+  /** Tracking for On-Demand monitoring attempts */
+  lastMonitoringAttempt?: Date;
+  monitoringAttempts: number;
   /** Arbitrary metadata from merchant */
   metadata?: Record<string, unknown>;
   paidAt?: Date;
@@ -181,6 +186,9 @@ const InvoiceSchema: Schema = new Schema(
     webhookAttempts: { type: Number, default: 0 },
     lastWebhookAttempt: { type: Date },
     tatumSubscriptionId: { type: String },
+    providerName: { type: String },
+    lastMonitoringAttempt: { type: Date },
+    monitoringAttempts: { type: Number, default: 0 },
     metadata: { type: Schema.Types.Mixed },
     paidAt: { type: Date },
   },
