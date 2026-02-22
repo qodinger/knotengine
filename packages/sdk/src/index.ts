@@ -1,7 +1,7 @@
 import axios, { AxiosInstance } from "axios";
 import * as crypto from "crypto";
 
-export interface KnotEngineConfig {
+export interface KnotClientConfig {
   apiKey: string;
   baseUrl?: string;
   webhookSecret?: string;
@@ -21,17 +21,19 @@ export interface InvoiceResponse {
   crypto_currency: string;
   pay_address: string;
   status: string;
+  checkout_url: string;
   expires_at: string;
   created_at: string;
+  is_testnet: boolean;
 }
 
-export class KnotEngine {
+export class KnotClient {
   private client: AxiosInstance;
   private webhookSecret?: string;
 
-  constructor(config: KnotEngineConfig) {
+  constructor(config: KnotClientConfig) {
     this.client = axios.create({
-      baseURL: config.baseUrl || "https://api.knotengine.com",
+      baseURL: config.baseUrl || "http://localhost:5050",
       headers: {
         "x-api-key": config.apiKey,
         "Content-Type": "application/json",
@@ -59,13 +61,16 @@ export class KnotEngine {
   /**
    * Verify a webhook signature (HMAC-SHA256)
    */
-  verifyWebhook(payload: string, signature: string): boolean {
-    if (!this.webhookSecret) {
-      throw new Error("Webhook secret not configured in SDK.");
+  verifyWebhook(payload: string, signature: string, secret?: string): boolean {
+    const verifSecret = secret || this.webhookSecret;
+    if (!verifSecret) {
+      throw new Error(
+        "Webhook secret not provided. Pass it to verifyWebhook() or set it in the constructor.",
+      );
     }
 
     const expectedSignature = crypto
-      .createHmac("sha256", this.webhookSecret)
+      .createHmac("sha256", verifSecret)
       .update(payload)
       .digest("hex");
 

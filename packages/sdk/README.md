@@ -3,7 +3,7 @@
 The official Node.js SDK for [KnotEngine](https://github.com/qodinger/knotengine) — a minimalist, non-custodial crypto payment gateway.
 
 [![npm version](https://img.shields.io/npm/v/@qodinger/knot-sdk)](https://www.npmjs.com/package/@qodinger/knot-sdk)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](../../LICENSE)
+[![License](https://img.shields.io/badge/license-AGPL--3.0-green.svg)](../../LICENSE)
 
 ## 🚀 Installation
 
@@ -22,8 +22,10 @@ import { KnotClient } from "@qodinger/knot-sdk";
 
 const knot = new KnotClient({
   apiKey: "knot_sk_your_api_key",
-  // Optional: override the API endpoint (default: localhost:5050 in dev)
-  // endpoint: 'https://api.knotengine.com',
+  // Optional: override the API base URL (default: http://localhost:5050 in dev)
+  baseUrl: "http://localhost:5050",
+  // Optional: set the webhook secret for signature verification
+  webhookSecret: "knot_wh_your_webhook_secret",
 });
 ```
 
@@ -45,7 +47,10 @@ console.log(`Checkout: ${invoice.checkout_url}`);
 ### Verify a Webhook Signature
 
 ```javascript
-const isValid = knot.verifyWebhook(rawBody, signature, webhookSecret);
+const isValid = knot.verifyWebhook(rawBody, signature);
+
+// Or pass the secret manually
+const isValidManual = knot.verifyWebhook(rawBody, signature, "knot_wh_secret");
 
 if (!isValid) {
   return res.status(401).send("Unauthorized");
@@ -64,4 +69,4 @@ KnotEngine is strictly **non-custodial**. This SDK interacts with the KnotEngine
 
 ## 📄 License
 
-MIT — see [LICENSE](../../LICENSE) for details.
+AGPL-3.0 — see [LICENSE](../../LICENSE) for details.

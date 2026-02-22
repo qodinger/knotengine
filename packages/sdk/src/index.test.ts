@@ -1,22 +1,22 @@
 import { describe, it, expect, vi } from "vitest";
-import { KnotEngine } from "./index";
+import { KnotClient } from "./index";
 import * as crypto from "crypto";
 
 vi.mock("axios");
 
-describe("KnotEngine SDK", () => {
+describe("KnotClient SDK", () => {
   const config = {
     apiKey: "knot_test_123",
     webhookSecret: "whsec_test_123",
   };
 
   it("should initialize with correct config", () => {
-    const sdk = new KnotEngine(config);
+    const sdk = new KnotClient(config);
     expect(sdk).toBeDefined();
   });
 
   it("should verify a valid webhook signature", () => {
-    const sdk = new KnotEngine(config);
+    const sdk = new KnotClient(config);
     const payload = JSON.stringify({ event: "invoice.confirmed" });
 
     // Calculate expected signature manually to verify SDK logic
@@ -29,16 +29,16 @@ describe("KnotEngine SDK", () => {
   });
 
   it("should reject an invalid webhook signature", () => {
-    const sdk = new KnotEngine(config);
+    const sdk = new KnotClient(config);
     const payload = JSON.stringify({ event: "invoice.confirmed" });
     const isValid = sdk.verifyWebhook(payload, "invalid_signature");
     expect(isValid).toBe(false);
   });
 
   it("should throw error if webhookSecret is missing during verification", () => {
-    const sdk = new KnotEngine({ apiKey: "test" });
+    const sdk = new KnotClient({ apiKey: "test" });
     expect(() => sdk.verifyWebhook("{}", "sig")).toThrow(
-      "Webhook secret not configured in SDK.",
+      "Webhook secret not provided",
     );
   });
 });

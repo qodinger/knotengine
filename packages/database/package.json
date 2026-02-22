@@ -5,6 +5,7 @@
     "type": "git",
     "url": "https://github.com/qodinger/knotengine.git"
   },
+  "license": "AGPL-3.0",
   "version": "0.2.1",
   "private": true,
   "main": "./src/index.ts",

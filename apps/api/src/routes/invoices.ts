@@ -278,6 +278,10 @@ export async function invoiceRoutes(app: FastifyInstance) {
           `[Invoice] Created ${invoiceId} for ${merchant.name} (Address: ${payAddress})`,
         );
 
+        const checkoutBaseUrl =
+          process.env.CHECKOUT_BASE_URL || "http://localhost:5051";
+        const checkoutUrl = `${checkoutBaseUrl}/checkout/${invoice.invoiceId}`;
+
         return reply.code(201).send({
           invoice_id: invoice.invoiceId,
           amount_usd: invoice.amountUsd,
@@ -286,6 +290,7 @@ export async function invoiceRoutes(app: FastifyInstance) {
           pay_address: invoice.payAddress,
           expires_at: invoice.expiresAt,
           status: invoice.status,
+          checkout_url: checkoutUrl,
           is_testnet: isTestnet,
         });
       } catch (err: unknown) {
@@ -376,6 +381,7 @@ export async function invoiceRoutes(app: FastifyInstance) {
         created_at: invoice.createdAt.toISOString(),
         metadata: invoice.metadata,
         description: invoice.description || null,
+        checkout_url: `${process.env.CHECKOUT_BASE_URL || "http://localhost:5051"}/checkout/${invoice.invoiceId}`,
         merchant: {
           name: invoice.merchantId.name,
           logo_url: invoice.merchantId.logoUrl || null,

@@ -3,7 +3,7 @@
 **Minimalist, Non-Custodial Crypto Payment Infrastructure for Humans.**
 
 [![Version](https://img.shields.io/badge/version-0.2.1-blue.svg)](https://github.com/qodinger/knotengine/releases)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-AGPL--3.0-green.svg)](LICENSE)
 [![pnpm](https://img.shields.io/badge/pnpm-9.0.0-orange.svg)](https://pnpm.io)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
 
@@ -63,7 +63,7 @@ Open `.env` and set at minimum:
 pnpm docker:up
 ```
 
-This starts **MongoDB** and **Redis** via Docker Compose.
+This starts **MongoDB** and **Redis** via plain Docker containers (no Compose required).
 
 ### 4. Launch All Services
 
@@ -116,7 +116,7 @@ import { KnotClient } from "@qodinger/knot-sdk";
 
 const knot = new KnotClient({
   apiKey: "knot_sk_your_api_key",
-  endpoint: "https://api.knotengine.com", // or http://localhost:5050 for dev
+  baseUrl: "http://localhost:5050", // default for dev
 });
 
 const invoice = await knot.createInvoice({
@@ -132,7 +132,7 @@ console.log(invoice.checkout_url);
 ### 4. Verify Webhooks
 
 ```javascript
-const isValid = knot.verifyWebhook(rawBody, signature, webhookSecret);
+const isValid = knot.verifyWebhook(rawBody, signature);
 if (!isValid) return res.status(401).send("Invalid signature");
 ```
 
@@ -190,4 +190,4 @@ Open a Pull Request to the `main` branch.
 
 ## 📄 License
 
-KnotEngine is licensed under the [MIT License](LICENSE).
+KnotEngine is licensed under the [GNU Affero General Public License v3.0](LICENSE).

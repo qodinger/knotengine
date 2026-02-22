@@ -56,6 +56,29 @@ const server = Fastify({
 server.setValidatorCompiler(validatorCompiler);
 server.setSerializerCompiler(serializerCompiler);
 
+// Swagger Documentation
+server.register(require("@fastify/swagger"), {
+  swagger: {
+    info: {
+      title: "KnotEngine API",
+      description: "Non-custodial crypto payment infrastructure API",
+      version: packageJson.version,
+    },
+    host: "localhost:5050",
+    schemes: ["http"],
+    consumes: ["application/json"],
+    produces: ["application/json"],
+  },
+});
+
+server.register(require("@fastify/swagger-ui"), {
+  routePrefix: "/docs",
+  uiConfig: {
+    docExpansion: "list",
+    deepLinking: false,
+  },
+});
+
 server.register(cors, {
   origin: "*",
 });
@@ -70,7 +93,7 @@ server.get("/health", async () => {
   return {
     status: "ok",
     engine: `Knot v${packageJson.version}`,
-    phase: "Phase 2 — Monitoring & Persistence",
+    phase: "Phase 4 — Scaling & Compliance",
     timestamp: new Date().toISOString(),
   };
 });

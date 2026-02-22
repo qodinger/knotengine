@@ -7,6 +7,7 @@
   },
   "version": "0.2.1",
   "description": "Standard Node.js SDK for KnotEngine — The Non-Custodial Payment Gateway.",
+  "license": "AGPL-3.0",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",

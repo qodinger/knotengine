@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dashboard Real-time Alerts** — Production-ready toasts for payments, expirations, and webhook failures via Socket.io.
 - **Deduplication Indexing** — Implemented compound database indexing on `Notification` models to maintain high-performance lookups as history grows.
 - **Manual Event Metadata** — Enhanced manual resolution logs with consistent metadata linking for better traceability.
+- **AGPL-3.0 License** — Adopted the GNU Affero General Public License for enhanced community cooperation and server-side source availability.
 - **Organization Migration** — Relocated ecosystem to the `qodinger` GitHub Organization for enhanced trust and scalability.
 
 ### Fixed
