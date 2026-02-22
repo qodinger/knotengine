@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { useSession } from "next-auth/react";
 import {
   Copy,
   Check,
@@ -12,7 +10,6 @@ import {
   ExternalLink,
   Key,
 } from "lucide-react";
-import { api } from "@/lib/api";
 import { cn, dedent } from "@/lib/utils";
 import { CodeBlock } from "@/components/ui/code-block";
 import {
@@ -24,6 +21,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -50,37 +48,32 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useApiKeys } from "../hooks/use-api-keys";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5050";
 
 export function ApiKeysTab() {
-  const { data: session, update: updateSession } = useSession();
-  const [copied, setCopied] = useState<string | null>(null);
-  const [rotating, setRotating] = useState(false);
-  const [isRotateDialogOpen, setIsRotateDialogOpen] = useState(false);
-  const [newKey, setNewKey] = useState<string | null>(null);
-  const [selectedIntegrationLanguage, setSelectedIntegrationLanguage] =
-    useState("nodejs");
+  const {
+    session,
+    copied,
+    rotating,
+    isRotateDialogOpen,
+    setIsRotateDialogOpen,
+    newKey,
+    setNewKey,
+    selectedIntegrationLanguage,
+    setSelectedIntegrationLanguage,
+    copyToClipboard,
+    handleRotateKey,
+  } = useApiKeys();
 
-  const copyToClipboard = (text: string, id?: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(id || "generic");
-    setTimeout(() => setCopied(null), 2000);
-  };
-
-  const handleRotateKey = async () => {
-    setRotating(true);
-    try {
-      const res = await api.post("/v1/merchants/me/keys");
-      await updateSession({ apiKey: res.data.apiKey });
-      setNewKey(res.data.apiKey);
-      setIsRotateDialogOpen(false);
-    } catch (err) {
-      console.error("Failed to rotate key:", err);
-    } finally {
-      setRotating(false);
-    }
-  };
+  const merchants = (session?.user as any)?.merchants || [];
+  const activeMerchantId = session?.user?.merchantId;
+  const merchantIdFromList = merchants.find(
+    (m: any) => m.id === activeMerchantId,
+  )?.merchantId;
+  const displayMerchantId =
+    (session?.user as any)?.publicMerchantId || merchantIdFromList || "";
 
   return (
     <div className="space-y-6">
@@ -92,87 +85,126 @@ export function ApiKeysTab() {
             once upon creation.
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/5 hover:bg-muted/5">
-                <TableHead className="w-[160px] pl-6 text-xs">Name</TableHead>
-                <TableHead className="text-xs">Token</TableHead>
-                <TableHead className="text-xs">Status</TableHead>
-                <TableHead className="text-right pr-6 text-xs">
-                  Actions
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow className="group">
-                <TableCell className="font-medium pl-6 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Key className="size-3.5 text-muted-foreground" />
-                    Secret key
-                  </div>
-                </TableCell>
-                <TableCell className="font-mono text-muted-foreground tracking-wider text-sm">
-                  <div className="flex items-center gap-2">
-                    <span>
-                      {session?.user?.apiKey
-                        ? `knot_sk_...${session.user.apiKey.slice(-4)}`
-                        : "knot_sk_********************"}
+        <CardContent className="px-6 pt-0">
+          <div className="grid gap-2 mb-6">
+            <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
+              Merchant ID
+            </Label>
+            <div className="flex items-center gap-2">
+              <Input
+                readOnly
+                value={displayMerchantId}
+                className="bg-muted/30 font-mono text-xs h-9"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 shrink-0"
+                onClick={() => copyToClipboard(displayMerchantId, "merchantId")}
+              >
+                {copied === "merchantId" ? (
+                  <Check className="h-3.5 w-3.5" />
+                ) : (
+                  <Copy className="h-3.5 w-3.5" />
+                )}
+              </Button>
+            </div>
+            <p className="text-[10px] text-muted-foreground/60">
+              Your unique identifier for API requests and support.
+            </p>
+          </div>
+
+          <div className="border border-border/40 rounded-lg overflow-hidden shadow-sm">
+            <Table>
+              <TableHeader className="bg-muted/20">
+                <TableRow className="hover:bg-transparent border-border/30 h-12">
+                  <TableHead className="w-[160px] pl-6 text-[10px] font-bold uppercase tracking-wider">
+                    Name
+                  </TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-wider">
+                    Token
+                  </TableHead>
+                  <TableHead className="text-[10px] font-bold uppercase tracking-wider">
+                    Status
+                  </TableHead>
+                  <TableHead className="text-right pr-6 text-[10px] font-bold uppercase tracking-wider">
+                    Actions
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow className="group">
+                  <TableCell className="font-medium pl-6 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Key className="size-3.5 text-muted-foreground" />
+                      Secret key
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-mono text-muted-foreground tracking-wider text-sm">
+                    <div className="flex items-center gap-2">
+                      <span>
+                        {session?.user?.apiKey
+                          ? `knot_sk_...${session.user.apiKey.slice(-4)}`
+                          : "knot_sk_********************"}
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className="text-[9px] uppercase font-bold tracking-wide h-4 px-1"
+                      >
+                        Live
+                      </Badge>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <span className="inline-flex items-center gap-1.5 text-xs text-emerald-500 font-medium">
+                      <span className="size-1.5 rounded-full bg-emerald-500" />
+                      Active
                     </span>
-                    <Badge
-                      variant="outline"
-                      className="text-[9px] uppercase font-bold tracking-wide h-4 px-1"
-                    >
-                      Live
-                    </Badge>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <span className="inline-flex items-center gap-1.5 text-xs text-emerald-500 font-medium">
-                    <span className="size-1.5 rounded-full bg-emerald-500" />
-                    Active
-                  </span>
-                </TableCell>
-                <TableCell className="text-right pr-6">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-44">
-                      <DropdownMenuLabel className="text-xs">
-                        Actions
-                      </DropdownMenuLabel>
-                      {session?.user?.apiKey && (
+                  </TableCell>
+                  <TableCell className="text-right pr-6">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-44">
+                        <DropdownMenuLabel className="text-xs">
+                          Actions
+                        </DropdownMenuLabel>
+                        {session?.user?.apiKey && (
+                          <DropdownMenuItem
+                            className="text-xs"
+                            onClick={() =>
+                              copyToClipboard(
+                                session.user.apiKey as string,
+                                "sk",
+                              )
+                            }
+                          >
+                            <Copy className="mr-2 h-3.5 w-3.5" />
+                            Copy key
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
                           className="text-xs"
-                          onClick={() =>
-                            copyToClipboard(session.user.apiKey as string, "sk")
-                          }
+                          onClick={() => setIsRotateDialogOpen(true)}
                         >
-                          <Copy className="mr-2 h-3.5 w-3.5" />
-                          Copy key
+                          <RefreshCw className="mr-2 h-3.5 w-3.5" />
+                          Roll key...
                         </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem
-                        className="text-xs"
-                        onClick={() => setIsRotateDialogOpen(true)}
-                      >
-                        <RefreshCw className="mr-2 h-3.5 w-3.5" />
-                        Roll key...
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-xs text-destructive focus:text-destructive">
-                        <AlertTriangle className="mr-2 h-3.5 w-3.5" />
-                        Revoke key
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-xs text-destructive focus:text-destructive">
+                          <AlertTriangle className="mr-2 h-3.5 w-3.5" />
+                          Revoke key
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -257,7 +289,7 @@ export function ApiKeysTab() {
                       language="typescript"
                       className="w-full"
                       code={dedent`
-                        import { KnotEngine } from '@tyecode/knotengine-sdk';
+                        import { KnotEngine } from '@qodinger/knot-sdk';
 
                         const knot = new KnotEngine({ apiKey: 'YOUR_KEY' });
 
@@ -336,7 +368,7 @@ export function ApiKeysTab() {
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle className="text-sm">Save this key</AlertTitle>
             <AlertDescription className="text-xs">
-              Store this key in a secure location like a password manager or
+              Save this key in a secure location like a password manager or
               environment variable.
             </AlertDescription>
           </Alert>

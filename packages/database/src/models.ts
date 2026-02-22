@@ -2,10 +2,12 @@ import mongoose, { Schema, Document } from "mongoose";
 
 // ============================================================
 // 🏪 MERCHANT MODEL
-// Stores merchant settings, public derivation keys, and API auth.
+// Holds merchant settings, public derivation keys, and API auth.
 // ============================================================
 
 export interface IMerchant extends Document {
+  /** Public-facing ID e.g. 'mid_abc123' */
+  merchantId: string;
   name: string;
   apiKeyHash?: string;
   /** OAuth identity string e.g. 'google:1234567890' */
@@ -15,9 +17,18 @@ export interface IMerchant extends Document {
   btcXpubTestnet?: string;
   ethAddress?: string;
   ethAddressTestnet?: string;
+  ethXpub?: string;
+  ethXpubTestnet?: string;
   webhookUrl?: string;
   webhookSecret?: string;
   webhookEvents?: string[];
+  logoUrl?: string;
+  returnUrl?: string;
+  enabledCurrencies: string[];
+  /** TOTP Two-Factor Authentication */
+  twoFactorEnabled: boolean;
+  twoFactorSecret?: string;
+  twoFactorBackupCodes?: string[];
   /** Current derivation index for unique address generation */
   derivationIndex: number;
   /** Required confirmations per currency */
@@ -36,6 +47,11 @@ export interface IMerchant extends Document {
   };
   /** Prepaid credit balance (USD) — deducted per confirmed invoice */
   creditBalance: number;
+  /** Payment Configuration */
+  feeResponsibility: "merchant" | "client";
+  invoiceExpirationMinutes: number;
+  underpaymentTolerancePercentage: number;
+  bip21Enabled: boolean;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -43,6 +59,7 @@ export interface IMerchant extends Document {
 
 const MerchantSchema: Schema = new Schema(
   {
+    merchantId: { type: String, unique: true, sparse: true },
     name: { type: String, default: "" },
     apiKeyHash: { type: String, sparse: true, unique: true },
     oauthId: { type: String, sparse: true },
@@ -51,13 +68,24 @@ const MerchantSchema: Schema = new Schema(
     btcXpubTestnet: { type: String },
     ethAddress: { type: String },
     ethAddressTestnet: { type: String },
+    ethXpub: { type: String },
+    ethXpubTestnet: { type: String },
     webhookUrl: { type: String },
     webhookSecret: { type: String },
+    logoUrl: { type: String },
+    returnUrl: { type: String },
+    enabledCurrencies: { type: [String], default: [] },
+    twoFactorEnabled: { type: Boolean, default: false },
+    twoFactorSecret: { type: String },
+    twoFactorBackupCodes: { type: [String], default: [] },
     webhookEvents: {
       type: [String],
       default: [
         "invoice.confirmed",
         "invoice.mempool_detected",
+        "invoice.partially_paid",
+        "invoice.overpaid",
+        "invoice.expired",
         "invoice.failed",
       ],
     },
@@ -79,6 +107,14 @@ const MerchantSchema: Schema = new Schema(
       USDT_POLYGON: { type: Number, default: 0 },
     },
     creditBalance: { type: Number, default: 5.0 },
+    feeResponsibility: {
+      type: String,
+      enum: ["merchant", "client"],
+      default: "merchant",
+    },
+    invoiceExpirationMinutes: { type: Number, default: 30 },
+    underpaymentTolerancePercentage: { type: Number, default: 1 },
+    bip21Enabled: { type: Boolean, default: true },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true },
@@ -99,7 +135,9 @@ export type InvoiceStatus =
   | "confirming"
   | "confirmed"
   | "expired"
-  | "failed";
+  | "failed"
+  | "partially_paid"
+  | "overpaid";
 
 export interface IInvoice extends Document {
   merchantId: mongoose.Types.ObjectId;
@@ -107,6 +145,7 @@ export interface IInvoice extends Document {
   invoiceId: string;
   amountUsd: number;
   cryptoAmount: number;
+  cryptoAmountReceived: number;
   cryptoCurrency: string;
   payAddress: string;
   /** KnotEngine Fee (Platform Fee) */
@@ -128,8 +167,15 @@ export interface IInvoice extends Document {
   lastWebhookAttempt?: Date;
   /** Tatum Notification Subscription ID */
   tatumSubscriptionId?: string;
+  /** Name of the provider used for monitoring (e.g. 'tatum') */
+  providerName?: string;
+  /** Tracking for On-Demand monitoring attempts */
+  lastMonitoringAttempt?: Date;
+  monitoringAttempts: number;
   /** Arbitrary metadata from merchant */
   metadata?: Record<string, unknown>;
+  /** Optional description/memo for the invoice */
+  description?: string;
   paidAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -145,8 +191,9 @@ const InvoiceSchema: Schema = new Schema(
     invoiceId: { type: String, required: true, unique: true },
     amountUsd: { type: Number, required: true },
     cryptoAmount: { type: Number, required: true },
+    cryptoAmountReceived: { type: Number, default: 0 },
     cryptoCurrency: { type: String, required: true },
-    payAddress: { type: String, required: true, unique: true },
+    payAddress: { type: String, required: true },
     feeUsd: { type: Number, required: true, default: 0 },
     feeCrypto: { type: Number, required: true, default: 0 },
     derivationIndex: { type: Number, required: true },
@@ -159,6 +206,8 @@ const InvoiceSchema: Schema = new Schema(
         "confirmed",
         "expired",
         "failed",
+        "partially_paid",
+        "overpaid",
       ],
       default: "pending",
     },
@@ -171,7 +220,11 @@ const InvoiceSchema: Schema = new Schema(
     webhookAttempts: { type: Number, default: 0 },
     lastWebhookAttempt: { type: Date },
     tatumSubscriptionId: { type: String },
+    providerName: { type: String },
+    lastMonitoringAttempt: { type: Date },
+    monitoringAttempts: { type: Number, default: 0 },
     metadata: { type: Schema.Types.Mixed },
+    description: { type: String },
     paidAt: { type: Date },
   },
   { timestamps: true },
@@ -234,6 +287,11 @@ const WebhookEventSchema: Schema = new Schema(
 WebhookEventSchema.index({ toAddress: 1 });
 WebhookEventSchema.index({ txHash: 1 });
 WebhookEventSchema.index({ processed: 1 });
+// 30-day Retention: MongoDB will auto-delete events older than 30 days
+WebhookEventSchema.index(
+  { createdAt: 1 },
+  { expireAfterSeconds: 60 * 60 * 24 * 30 },
+);
 
 export const WebhookEvent = mongoose.model<IWebhookEvent>(
   "WebhookEvent",
@@ -320,7 +378,12 @@ const NotificationSchema: Schema = new Schema(
 );
 
 NotificationSchema.index({ merchantId: 1, isRead: 1 });
-NotificationSchema.index({ createdAt: -1 });
+NotificationSchema.index({ merchantId: 1, "meta.invoiceId": 1, isRead: 1 });
+// 30-day Retention: MongoDB will auto-delete notifications older than 30 days
+NotificationSchema.index(
+  { createdAt: 1 },
+  { expireAfterSeconds: 60 * 60 * 24 * 30 },
+);
 
 export const Notification = mongoose.model<INotification>(
   "Notification",

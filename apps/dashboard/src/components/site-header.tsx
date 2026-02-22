@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 import {
   Search,
@@ -13,6 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
 import {
@@ -42,10 +44,10 @@ type Notification = {
 };
 
 export function SiteHeader() {
+  const router = useRouter();
   const { data: session } = useSession();
   const user = session?.user;
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [initialLoaded, setInitialLoaded] = useState(false);
 
   // Fetch initial notifications
   useEffect(() => {
@@ -55,7 +57,7 @@ export function SiteHeader() {
       try {
         const res = await api.get("/v1/merchants/me/notifications");
         setNotifications(
-          res.data.data.map((n: any) => ({
+          res.data.data.map((n: Notification & { _id: string }) => ({
             id: n._id,
             title: n.title,
             description: n.description,
@@ -65,7 +67,6 @@ export function SiteHeader() {
             link: n.link,
           })),
         );
-        setInitialLoaded(true);
       } catch (err) {
         console.error("Failed to fetch notifications", err);
       }
@@ -87,21 +88,44 @@ export function SiteHeader() {
       socket.emit("join_merchant", user.merchantId);
     });
 
-    socket.on("notification", (newNotification: any) => {
-      console.log("🔔 New notification received:", newNotification);
-      setNotifications((prev) => [
-        {
-          id: newNotification.id,
-          title: newNotification.title,
-          description: newNotification.description,
-          createdAt: newNotification.createdAt,
-          isRead: newNotification.isRead,
-          type: newNotification.type,
-          link: newNotification.link,
-        },
-        ...prev,
-      ]);
-    });
+    socket.on(
+      "notification",
+      (newNotification: Notification & { id: string }) => {
+        console.log("🔔 New notification received:", newNotification);
+        setNotifications((prev) => [
+          {
+            id: newNotification.id,
+            title: newNotification.title,
+            description: newNotification.description,
+            createdAt: newNotification.createdAt,
+            isRead: newNotification.isRead,
+            type: newNotification.type,
+            link: newNotification.link,
+          },
+          ...prev,
+        ]);
+      },
+    );
+
+    socket.on(
+      "notification_updated",
+      (updatedNotification: Notification & { id: string }) => {
+        console.log("🔄 Notification updated:", updatedNotification);
+        setNotifications((prev) =>
+          prev.map((n) =>
+            n.id === updatedNotification.id
+              ? {
+                  ...n,
+                  title: updatedNotification.title,
+                  description: updatedNotification.description,
+                  type: updatedNotification.type,
+                  isRead: updatedNotification.isRead,
+                }
+              : n,
+          ),
+        );
+      },
+    );
 
     return () => {
       socket.disconnect();
@@ -165,73 +189,87 @@ export function SiteHeader() {
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
-              className="w-[380px] p-0 overflow-hidden shadow-2xl"
+              className="w-[380px] p-0 overflow-hidden bg-background/80 backdrop-blur-xl border border-border/40 shadow-2xl rounded-2xl"
             >
-              <div className="flex items-center justify-between px-4 py-3 bg-muted/30">
-                <DropdownMenuLabel className="p-0 font-bold text-sm">
-                  Notifications
-                </DropdownMenuLabel>
+              <div className="flex items-center justify-between px-5 py-4 bg-muted/20">
+                <div className="flex items-center gap-2">
+                  <DropdownMenuLabel className="p-0 font-bold text-sm tracking-tight text-foreground/90">
+                    Notifications
+                  </DropdownMenuLabel>
+                  {unreadCount > 0 && (
+                    <Badge
+                      variant="secondary"
+                      className="h-4 px-1.5 text-[9px] font-bold bg-primary/10 text-primary border-none"
+                    >
+                      {unreadCount} NEW
+                    </Badge>
+                  )}
+                </div>
                 {unreadCount > 0 && (
                   <button
                     onClick={(e) => {
                       e.preventDefault();
                       markAllAsRead();
                     }}
-                    className="text-[10px] uppercase tracking-wider font-bold text-primary hover:text-primary/80 transition-colors"
+                    className="text-[9px] uppercase tracking-[0.15em] font-bold text-muted-foreground hover:text-primary transition-colors"
                   >
-                    Mark all as read
+                    Mark read
                   </button>
                 )}
               </div>
               <DropdownMenuSeparator className="m-0" />
-              <ScrollArea className="h-[400px]">
-                <div className="flex flex-col">
+              <ScrollArea className="h-[420px]">
+                <div className="flex flex-col border-t border-border/20">
                   {notifications.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center p-8 text-center space-y-2">
-                      <div className="size-12 rounded-full bg-muted flex items-center justify-center">
-                        <Bell className="size-6 text-muted-foreground/40" />
+                    <div className="flex flex-col items-center justify-center p-12 text-center space-y-3">
+                      <div className="size-14 rounded-2xl bg-muted/30 flex items-center justify-center">
+                        <Bell className="size-6 text-muted-foreground/30" />
                       </div>
-                      <p className="text-sm font-medium">
-                        No notifications yet
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        We&apos;ll notify you when something happens.
-                      </p>
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold tracking-tight">
+                          Clear for now
+                        </p>
+                        <p className="text-xs text-muted-foreground/60 leading-relaxed max-w-[180px]">
+                          We&apos;ll ping you here when your merchant has news.
+                        </p>
+                      </div>
                     </div>
                   ) : (
                     notifications.map((n) => (
                       <DropdownMenuItem
                         key={n.id}
                         className={cn(
-                          "flex items-start gap-4 p-4 cursor-pointer focus:bg-muted/50 border-b border-border/40 last:border-0",
-                          !n.isRead && "bg-primary/5 focus:bg-primary/10",
+                          "flex items-start gap-4 p-5 cursor-pointer focus:bg-muted/30 border-b border-border/10 last:border-0 transition-all group",
+                          !n.isRead &&
+                            "bg-primary/5 border-l-2 border-l-primary focus:bg-primary/10",
                         )}
                         onClick={() => {
                           if (!n.isRead) markAsRead(n.id);
-                          if (n.link) window.location.href = n.link;
+                          if (n.link) router.push(n.link);
                         }}
                       >
                         <NotificationIcon type={n.type} />
 
-                        <div className="flex-1 space-y-1">
-                          <div className="flex items-center justify-between gap-2">
+                        <div className="flex-1 space-y-1.5">
+                          <div className="flex items-center justify-between gap-3">
                             <p
                               className={cn(
-                                "text-xs font-bold leading-none",
+                                "text-[12px] font-bold leading-none tracking-tight transition-colors",
                                 !n.isRead
                                   ? "text-foreground"
                                   : "text-muted-foreground",
+                                "group-hover:text-foreground",
                               )}
                             >
                               {n.title}
                             </p>
-                            <span className="text-[10px] text-muted-foreground font-medium">
+                            <span className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest whitespace-nowrap">
                               {formatDistanceToNow(new Date(n.createdAt), {
                                 addSuffix: true,
                               })}
                             </span>
                           </div>
-                          <p className="text-[11px] leading-relaxed text-muted-foreground/80 line-clamp-2">
+                          <p className="text-[11px] leading-normal text-muted-foreground/70 font-medium line-clamp-2 pr-2 group-hover:text-muted-foreground transition-colors">
                             {n.description}
                           </p>
                         </div>
@@ -240,14 +278,14 @@ export function SiteHeader() {
                   )}
                 </div>
               </ScrollArea>
-              <div className="p-2 bg-muted/20 border-t border-border/50">
+              <div className="p-3 bg-muted/10 border-t border-border/20 backdrop-blur-sm">
                 <Button
                   variant="ghost"
-                  className="w-full group h-9 text-[11px] font-bold uppercase tracking-widest text-muted-foreground transition-all hover:bg-primary/5 hover:text-primary border-none shadow-none"
+                  className="w-full group h-10 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground transition-all hover:bg-primary/5 hover:text-primary border border-border/20 rounded-xl"
                   asChild
                 >
-                  <Link href="/dashboard/developers?tab=events">
-                    View Activity Log
+                  <Link href="/dashboard/activity">
+                    Full Activity Log
                     <ExternalLink className="ml-2 size-3 transition-transform group-hover:translate-x-0.5" />
                   </Link>
                 </Button>
@@ -273,7 +311,7 @@ export function SiteHeader() {
               <DropdownMenuLabel className="font-normal p-4">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-bold leading-none">
-                    {user?.name || "Store Owner"}
+                    {user?.name || "Merchant Owner"}
                   </p>
                   <p className="text-xs leading-none text-muted-foreground">
                     {user?.email || "No email provided"}
@@ -338,7 +376,7 @@ function NotificationIcon({ type }: { type: Notification["type"] }) {
   return (
     <div
       className={cn(
-        "size-8 shrink-0 rounded-xl border flex items-center justify-center",
+        "size-9 shrink-0 rounded-xl border flex items-center justify-center transition-transform group-hover:scale-110",
         config.class,
       )}
     >

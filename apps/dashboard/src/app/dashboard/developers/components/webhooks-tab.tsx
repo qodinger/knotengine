@@ -1,6 +1,6 @@
-"use client";
-
-import { useState, useCallback, useEffect } from "react";
+import { useRef, useEffect } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Loader2,
   Send,
@@ -8,13 +8,8 @@ import {
   Copy,
   Check,
   ShieldCheck,
-  RefreshCcw,
-  Zap,
-  Webhook,
-  Code2,
   ExternalLink,
 } from "lucide-react";
-import { api } from "@/lib/api";
 import { cn, dedent } from "@/lib/utils";
 import {
   Card,
@@ -28,92 +23,55 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CodeBlock } from "@/components/ui/code-block";
+import { useWebhooks } from "../hooks/use-webhooks";
+import { webhookSchema, WebhookFormData } from "../../settings/types";
 
 export function WebhooksTab() {
-  const [copied, setCopied] = useState<string | null>(null);
-  const [savingWebhooks, setSavingWebhooks] = useState(false);
-  const [webhookSuccess, setWebhookSuccess] = useState(false);
-  const [testingWebhook, setTestingWebhook] = useState(false);
-  const [showWebhookSecret, setShowWebhookSecret] = useState(false);
-  const [rotatingWebhookSecret, setRotatingWebhookSecret] = useState(false);
-  const [webhookData, setWebhookData] = useState({
-    webhookUrl: "",
-    webhookSecret: "",
-    webhookEvents: [] as string[],
+  const {
+    webhookData,
+    copied,
+    savingWebhooks,
+    webhookSuccess,
+    testingWebhook,
+    showWebhookSecret,
+    setShowWebhookSecret,
+    rotatingWebhookSecret,
+    selectedLanguage,
+    setSelectedLanguage,
+    copyToClipboard,
+    handleSaveWebhooks,
+    handleRotateWebhookSecret,
+    handleTestWebhook,
+    fetchMerchantConfig,
+  } = useWebhooks();
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    setValue,
+    reset,
+    formState: { errors, isValid },
+  } = useForm<WebhookFormData>({
+    resolver: zodResolver(webhookSchema),
+    defaultValues: {
+      webhookUrl: webhookData.webhookUrl,
+      webhookEvents: webhookData.webhookEvents,
+    },
+    mode: "onChange",
   });
-  const [selectedLanguage, setSelectedLanguage] = useState("nodejs-sdk");
-
-  const copyToClipboard = (text: string, id?: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(id || "generic");
-    setTimeout(() => setCopied(null), 2000);
-  };
-
-  const fetchMerchantConfig = useCallback(async () => {
-    try {
-      const res = await api.get("/v1/merchants/me");
-      const m = res.data;
-      setWebhookData({
-        webhookUrl: m.webhookUrl || "",
-        webhookSecret: m.webhookSecret || "",
-        webhookEvents: m.webhookEvents || [
-          "invoice.confirmed",
-          "invoice.mempool_detected",
-          "invoice.failed",
-        ],
-      });
-    } catch (err) {
-      console.error("Failed to load merchant config", err);
-    }
-  }, []);
 
   useEffect(() => {
-    fetchMerchantConfig();
-  }, [fetchMerchantConfig]);
+    reset({
+      webhookUrl: webhookData.webhookUrl,
+      webhookEvents: webhookData.webhookEvents,
+    });
+  }, [webhookData, reset]);
 
-  const handleSaveWebhooks = async () => {
-    setSavingWebhooks(true);
-    setWebhookSuccess(false);
-    try {
-      await api.patch("/v1/merchants/me", {
-        webhookUrl: webhookData.webhookUrl,
-        webhookEvents: webhookData.webhookEvents,
-      });
-      setWebhookSuccess(true);
-      setTimeout(() => setWebhookSuccess(false), 3000);
-    } catch (err) {
-      console.error("Failed to save settings", err);
-    } finally {
-      setSavingWebhooks(false);
-    }
-  };
-
-  const handleRotateWebhookSecret = async () => {
-    setRotatingWebhookSecret(true);
-    try {
-      const res = await api.post("/v1/merchants/me/keys/webhook", {});
-      setWebhookData((prev) => ({
-        ...prev,
-        webhookSecret: res.data.webhookSecret,
-      }));
-      setWebhookSuccess(true);
-      setTimeout(() => setWebhookSuccess(false), 3000);
-    } catch (err) {
-      console.error("Failed to rotate webhook secret", err);
-    } finally {
-      setRotatingWebhookSecret(false);
-    }
-  };
-
-  const handleTestWebhook = async () => {
-    setTestingWebhook(true);
-    try {
-      await api.post("/v1/merchants/me/webhooks/test", {});
-    } catch (err) {
-      console.error("Failed to test webhook", err);
-    } finally {
-      setTestingWebhook(false);
-    }
+  const onSave = async (data: WebhookFormData) => {
+    // We need to manually call the save handler with current form data
+    // since the hook doesn't know about RHF state yet
+    await handleSaveWebhooks(data);
   };
 
   return (
@@ -144,8 +102,8 @@ export function WebhooksTab() {
           <Button
             size="sm"
             className="h-8 text-[10px] font-bold uppercase tracking-wider gap-1.5"
-            onClick={handleSaveWebhooks}
-            disabled={savingWebhooks}
+            onClick={handleSubmit(onSave)}
+            disabled={savingWebhooks || !isValid}
           >
             {savingWebhooks ? (
               <Loader2 className="size-3 animate-spin" />
@@ -168,16 +126,34 @@ export function WebhooksTab() {
             </Label>
             <Input
               id="webhookUrl"
-              value={webhookData.webhookUrl}
-              onChange={(e) =>
-                setWebhookData({
-                  ...webhookData,
-                  webhookUrl: e.target.value,
-                })
-              }
+              {...register("webhookUrl", {
+                onBlur: (e) => {
+                  const val = e.target.value.trim();
+                  if (
+                    val &&
+                    !val.startsWith("http://") &&
+                    !val.startsWith("https://") &&
+                    !val.startsWith("/")
+                  ) {
+                    setValue("webhookUrl", `https://${val}`, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    });
+                  }
+                },
+              })}
               placeholder="https://api.myapp.com/webhooks"
-              className="bg-background/50 font-mono text-xs focus-visible:ring-emerald-500/30"
+              className={cn(
+                "bg-background/50 font-mono text-xs focus-visible:ring-emerald-500/30",
+                errors.webhookUrl &&
+                  "border-destructive focus-visible:ring-destructive",
+              )}
             />
+            {errors.webhookUrl && (
+              <p className="text-[10px] font-medium text-destructive">
+                {errors.webhookUrl.message}
+              </p>
+            )}
           </div>
 
           <div className="grid gap-2">
@@ -264,118 +240,112 @@ export function WebhooksTab() {
           </CardDescription>
         </CardHeader>
         <CardContent className="px-6 pb-6 pt-0">
-          <div className="grid grid-cols-1 gap-1.5 mt-2">
-            {[
-              {
-                id: "e-confirmed",
-                key: "invoice.confirmed",
-                desc: "Fired when an invoice reaches required confirmations.",
-              },
-              {
-                id: "e-mempool",
-                key: "invoice.mempool_detected",
-                desc: "Fired immediately when a transaction is seen in mempool.",
-              },
-              {
-                id: "e-failed",
-                key: "invoice.failed",
-                desc: "Fired when an invoice expires or remains unpaid.",
-              },
-            ].map((item) => (
-              <div
-                key={item.id}
-                className="flex items-start gap-3 p-2.5 rounded-lg border border-transparent hover:border-border/50 hover:bg-muted/30 transition-all group"
-              >
-                <Checkbox
-                  id={item.id}
-                  checked={webhookData.webhookEvents.includes(item.key)}
-                  onCheckedChange={(checked) => {
-                    const events = webhookData.webhookEvents;
-                    if (checked) {
-                      setWebhookData({
-                        ...webhookData,
-                        webhookEvents: [...events, item.key],
-                      });
-                    } else {
-                      setWebhookData({
-                        ...webhookData,
-                        webhookEvents: events.filter((e) => e !== item.key),
-                      });
-                    }
-                  }}
-                  className="mt-0.5"
-                />
-                <div className="grid gap-0.5 leading-none">
-                  <Label
-                    htmlFor={item.id}
-                    className="text-xs font-bold cursor-pointer group-hover:text-primary transition-colors"
+          <Controller
+            name="webhookEvents"
+            control={control}
+            render={({ field }) => (
+              <div className="grid grid-cols-1 gap-1.5 mt-2">
+                {[
+                  {
+                    id: "e-confirmed",
+                    key: "invoice.confirmed",
+                    desc: "Fired when an invoice reaches required confirmations.",
+                  },
+                  {
+                    id: "e-mempool",
+                    key: "invoice.mempool_detected",
+                    desc: "Fired immediately when a transaction is seen in mempool.",
+                  },
+                  {
+                    id: "e-failed",
+                    key: "invoice.failed",
+                    desc: "Fired when an invoice expires or remains unpaid.",
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-start gap-3 p-2.5 rounded-lg border border-transparent hover:border-border/50 hover:bg-muted/30 transition-all group"
                   >
-                    {item.key}
-                  </Label>
-                  <p className="text-[10px] text-muted-foreground font-medium">
-                    {item.desc}
-                  </p>
-                </div>
+                    <Checkbox
+                      id={item.id}
+                      checked={field.value.includes(item.key)}
+                      onCheckedChange={(checked) => {
+                        const events = field.value;
+                        if (checked) {
+                          field.onChange([...events, item.key]);
+                        } else {
+                          field.onChange(events.filter((e) => e !== item.key));
+                        }
+                      }}
+                      className="mt-0.5"
+                    />
+                    <div className="grid gap-0.5 leading-none">
+                      <Label
+                        htmlFor={item.id}
+                        className="text-xs font-bold cursor-pointer group-hover:text-primary transition-colors"
+                      >
+                        {item.key}
+                      </Label>
+                      <p className="text-[10px] text-muted-foreground font-medium">
+                        {item.desc}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
+          />
+        </CardContent>
+      </Card>
+
+      <Card className="border shadow-sm bg-[#0c0c0c] text-slate-50 relative overflow-hidden w-full">
+        <CardContent className="p-8">
+          <div className="flex flex-col gap-6">
+            <div className="space-y-2">
+              <h3 className="text-sm font-bold text-slate-50">
+                Payload preview
+              </h3>
+              <p className="text-xs text-slate-400">
+                Sample HTTP request structure sent to your server.
+              </p>
+            </div>
+            <CodeBlock
+              language="json"
+              className="w-full h-[400px]"
+              code={dedent`
+                POST /webhooks HTTP/1.1
+                x-knot-signature: 8f...2a
+                x-knot-event: invoice.confirmed
+                Content-Type: application/json
+
+                {
+                  "id": "evt_test_1234567890",
+                  "event": "invoice.confirmed",
+                  "created": 1700000000,
+                  "invoice_id": "inv_test_1234567890",
+                  "status": "confirmed",
+                  "amount": {
+                    "usd": 100.0,
+                    "crypto": 0.0015,
+                    "currency": "BTC",
+                    "fee_usd": 1.0
+                  },
+                  "payment": {
+                    "address": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
+                    "tx_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                    "confirmations": 2,
+                    "paid_at": "2024-02-21T01:52:45.000Z"
+                  },
+                  "metadata": {
+                    "is_test": true
+                  }
+                }
+              `}
+            />
           </div>
         </CardContent>
       </Card>
 
-      {/* Developer Documentation Section */}
-      <div className="flex flex-col gap-6 mt-6 items-start w-full">
-        {/* Payload Preview */}
-        <Card className="border shadow-sm bg-[#0c0c0c] text-slate-50 relative overflow-hidden w-full">
-          <CardContent className="p-8">
-            <div className="flex flex-col gap-6">
-              <div className="space-y-2">
-                <h3 className="text-sm font-bold text-slate-50">
-                  Payload preview
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Sample HTTP request structure sent to your server.
-                </p>
-              </div>
-              <CodeBlock
-                language="json"
-                className="w-full h-[400px]"
-                code={dedent`
-                  POST /webhooks HTTP/1.1
-                  x-knot-signature: 8f...2a
-                  x-knot-event: invoice.confirmed
-                  Content-Type: application/json
-
-                  {
-                    "id": "evt_test_1234567890",
-                    "event": "invoice.confirmed",
-                    "created": 1700000000,
-                    "invoice_id": "inv_test_1234567890",
-                    "status": "confirmed",
-                    "amount": {
-                      "usd": 100.0,
-                      "crypto": 0.0015,
-                      "currency": "BTC",
-                      "fee_usd": 1.0
-                    },
-                    "payment": {
-                      "address": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
-                      "tx_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-                      "confirmations": 2,
-                      "paid_at": "2024-02-21T01:52:45.000Z"
-                    },
-                    "metadata": {
-                      "is_test": true
-                    }
-                  }
-                `}
-              />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Implementation Guide */}
-      {/* Implementation Guide */}
       <Card className="border shadow-sm mt-6 bg-[#0c0c0c] text-slate-50 relative overflow-hidden">
         <CardContent className="p-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -453,7 +423,7 @@ export function WebhooksTab() {
                 code={
                   selectedLanguage === "nodejs-sdk"
                     ? dedent`
-                        import { KnotEngine } from '@tyecode/knotengine-sdk';
+                        import { KnotEngine } from '@qodinger/knot-sdk';
 
                         const knot = new KnotEngine({
                           apiKey: process.env.KNOT_API_KEY,

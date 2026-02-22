@@ -1,9 +1,9 @@
 {
-  "name": "@knotengine/database",
+  "name": "@qodinger/knot-database",
   "author": "tyecode",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tyecode/knotengine.git"
+    "url": "https://github.com/qodinger/knotengine.git"
   },
   "version": "0.2.1",
   "private": true,

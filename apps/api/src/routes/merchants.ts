@@ -6,10 +6,9 @@ import {
   Invoice,
   TopUpClaim,
   Notification,
-} from "@knotengine/database";
+} from "@qodinger/knot-database";
 
 import * as crypto from "crypto";
-import { TatumProvider } from "../infra/tatum-provider";
 import { TxVerifier } from "../infra/tx-verifier";
 import { PriceOracle } from "../infra/price-feed";
 import * as bip39 from "bip39";
@@ -17,10 +16,33 @@ import { BIP32Factory } from "bip32";
 import * as ecc from "tiny-secp256k1";
 import * as bitcoin from "bitcoinjs-lib";
 import { ethers } from "ethers";
-import { SUPPORTED_CURRENCIES } from "@knotengine/types";
+import { SUPPORTED_CURRENCIES } from "@qodinger/knot-types";
 import { WebhookDispatcher } from "../infra/webhook-dispatcher";
 
 const bip32 = BIP32Factory(ecc);
+
+/**
+ * 🆔 Generate a professional, short, prefixed public ID for merchants
+ * e.g. mid_5kR9pWx2nL4v
+ */
+const generateMerchantId = async (): Promise<string> => {
+  const chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+  let attempts = 0;
+
+  while (attempts < 10) {
+    const mid =
+      "mid_" +
+      Array.from(crypto.randomBytes(12))
+        .map((b) => chars[b % chars.length])
+        .join("");
+
+    const exists = await Merchant.exists({ merchantId: mid });
+    if (!exists) return mid;
+    attempts++;
+  }
+
+  throw new Error("Failed to generate a unique merchant ID");
+};
 
 export async function merchantRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>();
@@ -36,7 +58,7 @@ export async function merchantRoutes(app: FastifyInstance) {
           btcXpubTestnet: z.string().optional(),
           ethAddress: z.string().optional(),
           ethAddressTestnet: z.string().optional(),
-          webhookUrl: z.string().url().optional(),
+          webhookUrl: z.string().optional(),
           oauthId: z.string().optional(), // OAuth identity e.g. 'google:12345'
         }),
       },
@@ -74,22 +96,39 @@ export async function merchantRoutes(app: FastifyInstance) {
         apiKeyHash = crypto.createHash("sha256").update(apiKey).digest("hex");
       }
 
-      // Append timestamp to invoke uniqueness for multi-store support
+      // Append timestamp to invoke uniqueness for multi-merchant support
       const uniqueOauthId = oauthId ? `${oauthId}:${Date.now()}` : undefined;
 
       const welcomeCredit = parseFloat(
         process.env.WELCOME_CREDIT_AMOUNT || "5.00",
       );
 
+      let finalBtcXpubTestnet = btcXpubTestnet;
+      let finalEthAddressTestnet = ethAddressTestnet;
+
+      if (!finalBtcXpubTestnet || !finalEthAddressTestnet) {
+        const mnemonic = bip39.generateMnemonic();
+        const seed = await bip39.mnemonicToSeed(mnemonic);
+
+        const root = bip32.fromSeed(seed, bitcoin.networks.testnet);
+        const btcNode = root.derivePath("m/84'/1'/0'");
+        finalBtcXpubTestnet =
+          finalBtcXpubTestnet || btcNode.neutered().toBase58();
+
+        const ethWallet = ethers.Wallet.fromPhrase(mnemonic);
+        finalEthAddressTestnet = finalEthAddressTestnet || ethWallet.address;
+      }
+
       const newMerchant = await Merchant.create({
+        merchantId: await generateMerchantId(),
         name,
         email,
         apiKeyHash,
         oauthId: uniqueOauthId,
         btcXpub,
-        btcXpubTestnet,
+        btcXpubTestnet: finalBtcXpubTestnet,
         ethAddress,
-        ethAddressTestnet,
+        ethAddressTestnet: finalEthAddressTestnet,
         webhookUrl,
         webhookSecret,
         creditBalance: welcomeCredit,
@@ -97,13 +136,9 @@ export async function merchantRoutes(app: FastifyInstance) {
 
       server.log.info(`Merchant created: ${newMerchant.id}`);
 
-      if (btcXpub && process.env.PUBLIC_URL) {
-        const tatumWebhookUrl = `${process.env.PUBLIC_URL}/v1/webhooks/tatum`;
-        await TatumProvider.subscribeMerchantXpub(btcXpub, tatumWebhookUrl);
-      }
-
       return reply.code(201).send({
-        id: newMerchant.id,
+        id: newMerchant._id.toString(),
+        merchantId: newMerchant.merchantId,
         name: newMerchant.name,
         email: newMerchant.email,
         webhookSecret,
@@ -126,7 +161,7 @@ export async function merchantRoutes(app: FastifyInstance) {
       }
 
       const { oauthId } = request.params;
-      // Query using regex to find all stores matching this base oauthId prefix
+      // Query using regex to find all merchants matching this base oauthId prefix
       const merchants = await Merchant.find({
         oauthId: { $regex: new RegExp(`^${oauthId}(:|$)`) },
         isActive: true,
@@ -142,6 +177,20 @@ export async function merchantRoutes(app: FastifyInstance) {
 
       for (let merchant of merchants) {
         let apiKey: string | undefined;
+
+        // Ensure every merchant has a public merchantId (mid_...)
+        if (!merchant.merchantId) {
+          const mid = await generateMerchantId();
+          const updatedMerchant = await Merchant.findByIdAndUpdate(
+            merchant._id,
+            { $set: { merchantId: mid } },
+            { new: true },
+          );
+          if (updatedMerchant) merchant = updatedMerchant;
+          server.log.info(
+            `🆔 Auto-assigned public ID for merchant: ${merchant._id} -> ${mid}`,
+          );
+        }
 
         // Ensure every merchant has an API key
         if (!merchant.apiKeyHash) {
@@ -166,10 +215,12 @@ export async function merchantRoutes(app: FastifyInstance) {
 
         results.push({
           id: merchant._id.toString(),
+          merchantId: merchant.merchantId,
           name: merchant.name,
           email: merchant.email,
           apiKey: apiKey ?? null, // Will only be returned once if generated just now
           hasApiKey: true,
+          twoFactorEnabled: merchant.twoFactorEnabled || false,
         });
       }
 
@@ -256,24 +307,89 @@ export async function merchantRoutes(app: FastifyInstance) {
       const merchant = request.merchant;
       if (!merchant) return reply.code(500).send({ error: "Auth failed" });
 
+      const sanitizeXpub = (val?: string) =>
+        val && (val.startsWith("mid_") || val.startsWith("knot_")) ? null : val;
+
+      const needsFix =
+        !merchant.btcXpubTestnet ||
+        !merchant.ethAddressTestnet ||
+        merchant.btcXpubTestnet?.startsWith("mid_") ||
+        merchant.ethAddressTestnet?.startsWith("mid_");
+
+      let finalBtcXpubTestnet = sanitizeXpub(merchant.btcXpubTestnet);
+      let finalEthAddressTestnet = sanitizeXpub(merchant.ethAddressTestnet);
+
+      if (needsFix) {
+        const mnemonic = bip39.generateMnemonic();
+        const seed = await bip39.mnemonicToSeed(mnemonic);
+
+        const root = bip32.fromSeed(seed, bitcoin.networks.testnet);
+        const btcNode = root.derivePath("m/84'/1'/0'");
+        finalBtcXpubTestnet =
+          finalBtcXpubTestnet || btcNode.neutered().toBase58();
+
+        const ethWallet = ethers.Wallet.fromPhrase(mnemonic);
+        finalEthAddressTestnet = finalEthAddressTestnet || ethWallet.address;
+
+        await Merchant.findByIdAndUpdate(merchant._id, {
+          $set: {
+            btcXpubTestnet: finalBtcXpubTestnet,
+            ethAddressTestnet: finalEthAddressTestnet,
+          },
+        });
+      }
+
       return {
         id: merchant._id.toString(),
+        merchantId: merchant.merchantId,
         name: merchant.name,
         btcXpub: merchant.btcXpub,
-        btcXpubTestnet: merchant.btcXpubTestnet,
+        btcXpubTestnet: finalBtcXpubTestnet,
         ethAddress: merchant.ethAddress,
-        ethAddressTestnet: merchant.ethAddressTestnet,
+        ethAddressTestnet: finalEthAddressTestnet,
         webhookUrl: merchant.webhookUrl,
         webhookSecret: merchant.webhookSecret,
+        logoUrl: merchant.logoUrl,
+        returnUrl: merchant.returnUrl,
+        feeResponsibility: merchant.feeResponsibility || "merchant",
+        invoiceExpirationMinutes: merchant.invoiceExpirationMinutes || 60,
+        underpaymentTolerancePercentage:
+          merchant.underpaymentTolerancePercentage ?? 1,
+        bip21Enabled: merchant.bip21Enabled ?? true,
+        enabledCurrencies: merchant.enabledCurrencies || [],
         webhookEvents: merchant.webhookEvents || [
           "invoice.confirmed",
           "invoice.mempool_detected",
           "invoice.failed",
         ],
         confirmationPolicy: merchant.confirmationPolicy,
+        twoFactorEnabled: merchant.twoFactorEnabled || false,
         feesAccrued: merchant.feesAccrued,
         creditBalance: merchant.creditBalance,
         createdAt: merchant.createdAt,
+      };
+    },
+  );
+
+  // ──────────────────────────────────────────────
+  // DELETE /v1/merchants/me — Delete Profile
+  // ──────────────────────────────────────────────
+  server.delete(
+    "/v1/merchants/me",
+    {
+      preHandler: requireAuth,
+    },
+    async (request, reply) => {
+      const merchant = request.merchant;
+      if (!merchant) return reply.code(500).send({ error: "Auth failed" });
+
+      await Merchant.findByIdAndDelete(merchant._id);
+
+      server.log.info(`[Settings] Deleted merchant: '${merchant._id}'`);
+
+      return {
+        success: true,
+        message: "Merchant deleted successfully",
       };
     },
   );
@@ -288,12 +404,19 @@ export async function merchantRoutes(app: FastifyInstance) {
       schema: {
         body: z.object({
           name: z.string().min(0).optional(),
-          btcXpub: z.string().optional(),
-          btcXpubTestnet: z.string().optional(),
-          ethAddress: z.string().optional(),
-          ethAddressTestnet: z.string().optional(),
-          webhookUrl: z.string().url().optional(),
+          email: z.string().email().optional().or(z.literal("")),
+          btcXpub: z.string().nullable().optional(),
+          btcXpubTestnet: z.string().nullable().optional(),
+          ethAddress: z.string().nullable().optional(),
+          ethAddressTestnet: z.string().nullable().optional(),
+          webhookUrl: z.string().nullable().optional().or(z.literal("")),
           webhookEvents: z.array(z.string()).optional(),
+          logoUrl: z.string().nullable().optional().or(z.literal("")),
+          returnUrl: z.string().nullable().optional().or(z.literal("")),
+          feeResponsibility: z.enum(["merchant", "client"]).optional(),
+          invoiceExpirationMinutes: z.number().min(15).max(43200).optional(),
+          underpaymentTolerancePercentage: z.number().min(0).max(10).optional(),
+          bip21Enabled: z.boolean().optional(),
           confirmationPolicy: z
             .object({
               BTC: z.number().int().min(0),
@@ -301,6 +424,7 @@ export async function merchantRoutes(app: FastifyInstance) {
               ETH: z.number().int().min(0),
             })
             .optional(),
+          enabledCurrencies: z.array(z.string()).optional(),
         }),
       },
     },
@@ -335,6 +459,14 @@ export async function merchantRoutes(app: FastifyInstance) {
         ethAddressTestnet: updated.ethAddressTestnet,
         webhookUrl: updated.webhookUrl,
         webhookSecret: updated.webhookSecret,
+        feeResponsibility: updated.feeResponsibility,
+        invoiceExpirationMinutes: updated.invoiceExpirationMinutes,
+        underpaymentTolerancePercentage:
+          updated.underpaymentTolerancePercentage,
+        bip21Enabled: updated.bip21Enabled,
+        enabledCurrencies: updated.enabledCurrencies,
+        logoUrl: updated.logoUrl,
+        returnUrl: updated.returnUrl,
         webhookEvents: updated.webhookEvents || [
           "invoice.confirmed",
           "invoice.mempool_detected",
@@ -471,28 +603,66 @@ export async function merchantRoutes(app: FastifyInstance) {
     "/v1/merchants/me/stats",
     {
       preHandler: requireAuth,
+      schema: {
+        querystring: z.object({
+          period: z.enum(["24h", "7d", "30d"]).default("7d"),
+        }),
+      },
     },
     async (request, reply) => {
       const merchant = request.merchant;
       if (!merchant) return reply.code(401).send({ error: "Unauthorized" });
 
-      const [totalInvoices, confirmedInvoicesResult] = await Promise.all([
-        Invoice.countDocuments({
-          merchantId: merchant._id,
-        }) as unknown as number,
-        Invoice.aggregate<{ _id: null; total: number }>([
-          { $match: { merchantId: merchant._id, status: "confirmed" } },
-          { $group: { _id: null, total: { $sum: "$amountUsd" } } },
-        ]),
-      ]);
+      const { period } = request.query as { period: string };
+
+      const [totalInvoices, confirmedInvoicesResult, testnetInvoicesResult] =
+        await Promise.all([
+          Invoice.countDocuments({
+            merchantId: merchant._id,
+            "metadata.isTestnet": { $ne: true },
+          }) as unknown as number,
+          Invoice.aggregate<{ _id: null; total: number }>([
+            {
+              $match: {
+                merchantId: merchant._id,
+                status: "confirmed",
+                "metadata.isTestnet": { $ne: true },
+              },
+            },
+            { $group: { _id: null, total: { $sum: "$amountUsd" } } },
+          ]),
+          Invoice.aggregate<{ _id: null; total: number; count: number }>([
+            {
+              $match: {
+                merchantId: merchant._id,
+                status: "confirmed",
+                "metadata.isTestnet": true,
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                total: { $sum: "$amountUsd" },
+                count: { $sum: 1 },
+              },
+            },
+          ]),
+        ]);
 
       const totalVolume =
         confirmedInvoicesResult.length > 0
           ? confirmedInvoicesResult[0].total
           : 0;
+
+      const testnetVolume =
+        testnetInvoicesResult.length > 0 ? testnetInvoicesResult[0].total : 0;
+      const testnetInvoicesCount =
+        testnetInvoicesResult.length > 0 ? testnetInvoicesResult[0].count : 0;
+
       const confirmedInvoicesCount = await Invoice.countDocuments({
         merchantId: merchant._id,
         status: "confirmed",
+        "metadata.isTestnet": { $ne: true },
       });
 
       const successRate =
@@ -500,17 +670,77 @@ export async function merchantRoutes(app: FastifyInstance) {
           ? ((confirmedInvoicesCount / totalInvoices) * 100).toFixed(1)
           : "0";
 
+      // ──────────────────────────────────────────────
+      // Chart Data Aggregation
+      // ──────────────────────────────────────────────
+      const now = new Date();
+      let startTime: Date;
+      let groupBy: Record<string, unknown>;
+      let format: (date: Date) => string;
+
+      if (period === "24h") {
+        startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        groupBy = {
+          $dateToString: { format: "%Y-%m-%d %H:00", date: "$createdAt" },
+        };
+        format = (d) =>
+          d.toLocaleTimeString([], { hour: "2-digit", hour12: false }) + ":00";
+      } else if (period === "30d") {
+        startTime = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        groupBy = { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } };
+        format = (d) =>
+          d.toLocaleDateString([], { month: "short", day: "numeric" });
+      } else {
+        // default 7d
+        startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        groupBy = { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } };
+        format = (d) => d.toLocaleDateString([], { weekday: "short" });
+      }
+
+      const rawChartData = await Invoice.aggregate([
+        {
+          $match: {
+            merchantId: merchant._id,
+            status: "confirmed",
+            "metadata.isTestnet": { $ne: true },
+            createdAt: { $gte: startTime },
+          },
+        },
+        {
+          $group: {
+            _id: groupBy,
+            volume: { $sum: "$amountUsd" },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]);
+
+      // Fill in zeros for missing periods to ensure smooth chart
+      const chartData: { name: string; volume: number }[] = [];
+      const steps = period === "24h" ? 24 : period === "30d" ? 30 : 7;
+      const stepMs = period === "24h" ? 3600000 : 86400000;
+
+      for (let i = 0; i < steps; i++) {
+        const d = new Date(startTime.getTime() + i * stepMs);
+        const key =
+          period === "24h"
+            ? d.toISOString().slice(0, 13) + ":00"
+            : d.toISOString().slice(0, 10);
+
+        const match = rawChartData.find((r) => r._id === key);
+        chartData.push({
+          name: format(d),
+          volume: match ? parseFloat(match.volume.toFixed(2)) : 0,
+        });
+      }
+
       return {
         totalVolume,
+        testnetVolume,
+        testnetInvoicesCount,
         activeInvoices: totalInvoices,
         successRate: `${successRate}%`,
-        chartData: [
-          { name: "Mon", volume: 0 },
-          { name: "Tue", volume: 0 },
-          { name: "Wed", volume: totalVolume },
-          { name: "Thu", volume: 0 },
-          { name: "Fri", volume: 0 },
-        ],
+        chartData,
         feesAccrued: merchant.feesAccrued || { usd: 0 },
         creditBalance: merchant.creditBalance ?? 5.0,
         currentFeeRate: parseFloat(process.env.PLATFORM_FEE_RATE || "0.01"),
@@ -645,7 +875,7 @@ export async function merchantRoutes(app: FastifyInstance) {
 
       const { limit, offset, invoiceId } = request.query;
 
-      const query: any = {
+      const query: Record<string, unknown> = {
         merchantId: merchant._id,
       };
 

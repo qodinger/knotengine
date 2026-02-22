@@ -13,8 +13,6 @@ export default auth((req) => {
   // Protected routes — require session
   if (!req.auth) {
     const loginUrl = new URL("/login", req.url);
-    // Preserve the original URL to redirect back after login
-    // loginUrl.searchParams.set("callbackUrl", req.nextUrl.toString()); // Optional
     return NextResponse.redirect(loginUrl);
   }
 
@@ -24,15 +22,42 @@ export default auth((req) => {
   // @ts-expect-error - Next-auth types
   const merchants = req.auth.user?.merchants || [];
   const isOnboardingPage = pathname === "/dashboard/onboarding";
-  const hasStores = merchants.length > 0;
+  const hasMerchants = merchants.length > 0;
 
-  // 1. User has NO stores -> Force them to /dashboard/onboarding
-  if (!hasStores && !isOnboardingPage && pathname.startsWith("/dashboard")) {
+  // 1. User has NO merchants -> Force them to /dashboard/onboarding
+  if (!hasMerchants && !isOnboardingPage && pathname.startsWith("/dashboard")) {
     return NextResponse.redirect(new URL("/dashboard/onboarding", req.url));
   }
 
-  // 2. User HAS stores -> Prevent them from visiting /dashboard/onboarding (redirect to main dashboard)
-  if (hasStores && isOnboardingPage) {
+  // 2. User HAS merchants -> Prevent them from visiting /dashboard/onboarding (redirect to main dashboard)
+  if (hasMerchants && isOnboardingPage) {
+    return NextResponse.redirect(new URL("/dashboard", req.url));
+  }
+
+  // ──────────────────────────────────────────────
+  // Two-Factor Authentication Challenge
+  // ──────────────────────────────────────────────
+  const is2FAPage = pathname === "/dashboard/2fa";
+  // @ts-expect-error - 2FA fields
+  const twoFactorRequired = req.auth.user?.twoFactorRequired || false;
+  // @ts-expect-error - 2FA fields
+  const twoFactorVerified = req.auth.user?.twoFactorVerified || false;
+
+  // 3. Merchant requires 2FA but hasn't verified yet -> Redirect to 2FA challenge
+  if (
+    hasMerchants &&
+    twoFactorRequired &&
+    !twoFactorVerified &&
+    !is2FAPage &&
+    pathname.startsWith("/dashboard") &&
+    // Allow API proxy requests to pass through (needed for 2FA validation endpoint)
+    !pathname.startsWith("/api")
+  ) {
+    return NextResponse.redirect(new URL("/dashboard/2fa", req.url));
+  }
+
+  // 4. Merchant has verified 2FA (or doesn't need it) -> Prevent visiting /dashboard/2fa
+  if (is2FAPage && (!twoFactorRequired || twoFactorVerified)) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 

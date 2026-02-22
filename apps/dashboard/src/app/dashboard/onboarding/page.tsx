@@ -19,24 +19,24 @@ import { createMerchant } from "@/actions/merchant";
 
 export default function OnboardingPage() {
   const { update } = useSession();
-  const [storeName, setStoreName] = useState("");
+  const [merchantName, setMerchantName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleCreate = async () => {
-    if (!storeName.trim()) return;
+    if (!merchantName.trim()) return;
 
     setIsLoading(true);
     try {
-      // 1. Create the store via Server Action
-      const newMerchant = await createMerchant(storeName);
+      // 1. Create the merchant via Server Action
+      const newMerchant = await createMerchant(merchantName);
 
-      // 2. Update session to set this as the active store
+      // 2. Update session to set this as the active merchant
       await update({ merchantId: newMerchant.id });
 
       // 3. Redirect to dashboard
       window.location.href = "/dashboard";
     } catch (error) {
-      console.error("Failed to create store:", error);
+      console.error("Failed to create merchant:", error);
     } finally {
       setIsLoading(false);
     }
@@ -46,20 +46,20 @@ export default function OnboardingPage() {
     <div className="flex items-center justify-center min-h-[60vh]">
       <Card className="w-full max-w-md border-none shadow-lg bg-background/50 border">
         <CardHeader>
-          <CardTitle className="text-xl">Create your first store</CardTitle>
+          <CardTitle className="text-xl">Create your first merchant</CardTitle>
           <CardDescription>
-            Welcome to KnotEngine. To get started, please create a store to
+            Welcome to KnotEngine. To get started, please create a merchant to
             manage your payments.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="store">Store Name</Label>
+            <Label htmlFor="merchant">Merchant Name</Label>
             <Input
-              id="store"
-              placeholder="My Awesome Store"
-              value={storeName}
-              onChange={(e) => setStoreName(e.target.value)}
+              id="merchant"
+              placeholder="My Awesome Merchant"
+              value={merchantName}
+              onChange={(e) => setMerchantName(e.target.value)}
               disabled={isLoading}
               autoFocus
             />
@@ -68,7 +68,7 @@ export default function OnboardingPage() {
         <CardFooter className="flex justify-end">
           <Button
             onClick={handleCreate}
-            disabled={!storeName.trim() || isLoading}
+            disabled={!merchantName.trim() || isLoading}
           >
             {isLoading ? (
               <>
@@ -78,7 +78,7 @@ export default function OnboardingPage() {
             ) : (
               <>
                 <PlusCircle className="mr-2 h-4 w-4" />
-                Create Store
+                Create Merchant
               </>
             )}
           </Button>

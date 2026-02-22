@@ -1,13 +1,14 @@
 import {
   Invoice,
   IInvoice,
+  InvoiceStatus,
   Merchant,
   WebhookEvent,
-} from "@knotengine/database";
+} from "@qodinger/knot-database";
 import { SocketService } from "../infra/socket-service";
 import { WebhookDispatcher } from "../infra/webhook-dispatcher";
-import { TatumProvider } from "../infra/tatum-provider";
-import { DEFAULT_CONFIRMATIONS, EVM_CURRENCIES } from "@knotengine/types";
+import { DEFAULT_CONFIRMATIONS, EVM_CURRENCIES } from "@qodinger/knot-types";
+import { BlockchainProviderPool } from "../infra/provider-pool";
 import { NotificationService } from "../infra/notification-service";
 
 /**
@@ -41,162 +42,287 @@ export class ConfirmationEngine {
     invoiceId?: string;
     newStatus?: string;
   }> {
-    // 1. Find the matching invoice
-    // Priority: invoiceId (Simulation) > payAddress Exact > payAddress Case-Insensitive (EVM)
-    let invoice: IInvoice | null = null;
-    const statusFilter = {
-      $in: ["pending", "mempool_detected", "confirming"],
-    };
+    try {
+      // 1. Find the matching invoice
+      // Priority: invoiceId (Simulation) > payAddress Exact > payAddress Case-Insensitive (EVM)
+      let invoice: IInvoice | null = null;
+      const statusFilter = {
+        $in: [
+          "pending",
+          "mempool_detected",
+          "confirming",
+          "partially_paid",
+          "overpaid",
+        ],
+      };
 
-    if (event.invoiceId) {
-      invoice = await Invoice.findOne({
-        invoiceId: event.invoiceId,
-        status: statusFilter,
-      });
-    }
-
-    if (!invoice) {
-      // Try strict match
-      invoice = await Invoice.findOne({
-        payAddress: event.toAddress,
-        status: statusFilter,
-      });
-    }
-
-    if (!invoice) {
-      // Try case-insensitive match (Important for EVM checksum addresses)
-      // We use a regex for this.
-      const candidate = await Invoice.findOne({
-        payAddress: { $regex: new RegExp(`^${event.toAddress}$`, "i") },
-        status: statusFilter,
-      });
-
-      // Validation: If we matched loosely, ensure it's safe (EVM) or verify strictness (BTC)
-      if (candidate) {
-        const isEVM = (EVM_CURRENCIES as string[]).includes(
-          candidate.cryptoCurrency,
-        );
-        // If it's EVM, case doesn't matter (0xAbC == 0xabc).
-        // If it's BTC/LTC, case MATTERS (Base58), so we must reject if not exact.
-        if (isEVM || candidate.payAddress === event.toAddress) {
-          invoice = candidate;
-        }
-      }
-    }
-
-    if (!invoice) {
-      // Log the event anyway for audit
-      await WebhookEvent.create({
-        ...event,
-        eventType: "unmatched_tx",
-        processed: false,
-        rawPayload: event.rawPayload,
-      });
-      return { matched: false };
-    }
-
-    // 2. Record the webhook event
-    await WebhookEvent.create({
-      source: event.source,
-      eventType: "address_activity",
-      toAddress: event.toAddress,
-      txHash: event.txHash,
-      amount: event.amount,
-      asset: event.asset,
-      blockNumber: event.blockNumber,
-      confirmations: event.confirmations,
-      processed: true,
-      invoiceId: invoice._id,
-      rawPayload: event.rawPayload,
-    });
-
-    // 3. Determine new status based on confirmation depth
-    const newStatus = this.determineStatus(invoice, event.confirmations);
-
-    // 4. Update the invoice
-    const updateData: Partial<Record<string, unknown>> = {
-      txHash: event.txHash,
-      confirmations: event.confirmations,
-      status: newStatus,
-    };
-
-    if (event.blockNumber > 0) {
-      updateData.blockNumber = event.blockNumber;
-    }
-
-    if (newStatus === "confirmed" && !invoice.paidAt) {
-      updateData.paidAt = new Date();
-    }
-
-    await Invoice.findByIdAndUpdate(invoice._id, { $set: updateData });
-
-    // 5. Emit real-time update
-    SocketService.emitStatusUpdate(invoice.invoiceId, newStatus, {
-      confirmations: event.confirmations,
-      requiredConfirmations: invoice.requiredConfirmations,
-      txHash: event.txHash,
-    });
-
-    if (newStatus === "mempool_detected" && invoice.status === "pending") {
-      WebhookDispatcher.dispatch(invoice.invoiceId, "invoice.mempool_detected");
-
-      // Notify Merchant
-      NotificationService.create({
-        merchantId: invoice.merchantId.toString(),
-        title: "New Transaction",
-        description: `Detected ${event.amount} ${event.asset} for invoice ${invoice.invoiceId} (mempool).`,
-        type: "info",
-        link: `/dashboard/payments`,
-        meta: { invoiceId: invoice.invoiceId, txHash: event.txHash },
-      });
-    }
-
-    // 6. Trigger outbound webhook if confirmed
-    if (newStatus === "confirmed") {
-      WebhookDispatcher.dispatch(invoice.invoiceId, "invoice.confirmed");
-
-      // 7. Cleanup Tatum monitoring
-      if (invoice.tatumSubscriptionId) {
-        TatumProvider.deleteSubscription(invoice.tatumSubscriptionId);
+      if (event.invoiceId) {
+        invoice = await Invoice.findOne({
+          invoiceId: event.invoiceId,
+          status: statusFilter,
+        });
       }
 
-      // 8. Deduct from Credit Balance & Accrue Fees (KnotEngine Fee)
-      if (!invoice.paidAt) {
-        await Merchant.findByIdAndUpdate(invoice.merchantId, {
-          $inc: {
-            "feesAccrued.usd": invoice.feeUsd,
-            [`feesAccrued.${invoice.cryptoCurrency}`]: invoice.feeCrypto,
-            creditBalance: -invoice.feeUsd, // Deduct from prepaid credits
-          },
+      if (!invoice) {
+        // Try strict match
+        invoice = await Invoice.findOne({
+          payAddress: event.toAddress,
+          status: statusFilter,
+        });
+      }
+
+      if (!invoice) {
+        // Try case-insensitive match (Important for EVM checksum addresses)
+        const candidate = await Invoice.findOne({
+          payAddress: { $regex: new RegExp(`^${event.toAddress}$`, "i") },
+          status: statusFilter,
         });
 
-        // Notify Merchant
-        NotificationService.notifyPaymentConfirmed(
-          invoice.merchantId.toString(),
-          invoice.invoiceId,
-          invoice.amountUsd,
-        );
-
-        // Check if credit balance is getting low
-        const updatedMerchant = await Merchant.findById(invoice.merchantId);
-        if (updatedMerchant && updatedMerchant.creditBalance < 3.0) {
-          NotificationService.notifyLowBalance(
-            invoice.merchantId.toString(),
-            updatedMerchant.creditBalance,
+        if (candidate) {
+          const isEVM = (EVM_CURRENCIES as string[]).includes(
+            candidate.cryptoCurrency,
           );
+          if (isEVM || candidate.payAddress === event.toAddress) {
+            invoice = candidate;
+          }
         }
       }
+
+      if (!invoice) {
+        await WebhookEvent.create({
+          ...event,
+          eventType: "unmatched_tx",
+          processed: false,
+          rawPayload: event.rawPayload,
+        });
+        return { matched: false };
+      }
+
+      // 1.5. Validate Asset
+      const merchant = await Merchant.findById(invoice.merchantId);
+      if (!merchant) return { matched: false };
+
+      // Asset validation: Must match exactly
+      const isAssetMatch =
+        event.asset === invoice.cryptoCurrency ||
+        (invoice.cryptoCurrency.startsWith(event.asset) &&
+          ["USDT_ERC20", "USDT_POLYGON"].includes(invoice.cryptoCurrency));
+
+      if (!isAssetMatch) {
+        console.warn(
+          `⚠️  Asset mismatch for ${invoice.invoiceId}: Received ${event.asset}, Expected ${invoice.cryptoCurrency}`,
+        );
+        return { matched: false };
+      }
+
+      // 2. Record the webhook event (Idempotency check)
+      const existingEvent = await WebhookEvent.findOne({
+        txHash: event.txHash,
+        invoiceId: invoice._id,
+      });
+      if (!existingEvent) {
+        await WebhookEvent.create({
+          source: event.source,
+          eventType: "address_activity",
+          toAddress: event.toAddress,
+          txHash: event.txHash,
+          amount: event.amount,
+          asset: event.asset,
+          blockNumber: event.blockNumber,
+          confirmations: event.confirmations,
+          processed: true,
+          invoiceId: invoice._id,
+          rawPayload: event.rawPayload,
+        });
+      } else {
+        // Update confirmation count for existing event
+        await WebhookEvent.findByIdAndUpdate(existingEvent._id, {
+          confirmations: event.confirmations,
+          blockNumber: event.blockNumber,
+        });
+      }
+
+      // 3. Calculate Cumulative Received Amount
+      const allEvents = await WebhookEvent.find({
+        invoiceId: invoice._id,
+        processed: true,
+      });
+      const totalCryptoReceived = parseFloat(
+        allEvents.reduce((sum, e) => sum + parseFloat(e.amount), 0).toFixed(8),
+      );
+
+      const tolerance = merchant.underpaymentTolerancePercentage ?? 1;
+      const minRequired = invoice.cryptoAmount * (1 - tolerance / 100);
+      const isOverpayment = totalCryptoReceived > invoice.cryptoAmount * 1.05;
+
+      // Determine amount status
+      let amountStatus: InvoiceStatus = "confirming";
+      if (totalCryptoReceived < minRequired) {
+        amountStatus = "partially_paid";
+      } else if (isOverpayment) {
+        amountStatus = "overpaid";
+      }
+
+      // 4. Determine new status based on confirmation depth AND amount
+      let newStatus = this.determineStatus(invoice, event.confirmations);
+
+      // If the amount is wrong, override the depth-based status with the amount status.
+      // Partial payments must remain 'partially_paid' even if heavily confirmed.
+      if (amountStatus === "partially_paid") {
+        newStatus = "partially_paid";
+      } else if (amountStatus === "overpaid") {
+        // Overpaid should also count as confirmed for the customer's perspective
+        // but we keep the internal label 'overpaid' for merchant awareness.
+        if (newStatus === "confirmed") {
+          newStatus = "overpaid";
+        }
+      }
+
+      // A state is 'terminal_success' if it's confirmed or overpaid.
+      const isTerminalSuccess =
+        newStatus === "confirmed" || newStatus === "overpaid";
+
+      // 4. Update the invoice
+      const updateData: Partial<Record<string, unknown>> = {
+        txHash: event.txHash,
+        confirmations: event.confirmations,
+        status: newStatus,
+        cryptoAmountReceived: totalCryptoReceived, // Cumulative amount received
+      };
+
+      if (event.blockNumber > 0) {
+        updateData.blockNumber = event.blockNumber;
+      }
+
+      if (isTerminalSuccess && !invoice.paidAt) {
+        updateData.paidAt = new Date();
+      }
+
+      await Invoice.findByIdAndUpdate(invoice._id, { $set: updateData });
+
+      // 5. Emit real-time update
+      SocketService.emitStatusUpdate(invoice.invoiceId, newStatus, {
+        confirmations: event.confirmations,
+        requiredConfirmations: invoice.requiredConfirmations,
+        txHash: event.txHash,
+        cryptoAmountReceived: totalCryptoReceived,
+      });
+
+      const isTestnet = invoice.metadata?.isTestnet === true;
+      const isNewTransaction = !existingEvent;
+      const statusChanged = invoice.status !== newStatus;
+
+      // 5.1 Dispatch webhooks (Only on state change or new TX to avoid spamming merchant server)
+      if (isNewTransaction || statusChanged) {
+        const webhookEvent = isTerminalSuccess
+          ? "invoice.confirmed"
+          : `invoice.${newStatus}`;
+        WebhookDispatcher.dispatch(invoice.invoiceId, webhookEvent as any);
+      }
+
+      // 5.2 Notify Merchant (The NotificationService handles internal deduplication/updating)
+      if (amountStatus === "partially_paid") {
+        NotificationService.notifyPartialPayment(
+          invoice.merchantId.toString(),
+          invoice.invoiceId,
+          event.amount,
+          totalCryptoReceived.toString(),
+          invoice.cryptoAmount.toString(),
+          event.asset,
+          newStatus,
+          isTestnet,
+        );
+      } else if (amountStatus === "overpaid") {
+        NotificationService.notifyOverpayment(
+          invoice.merchantId.toString(),
+          invoice.invoiceId,
+          event.amount,
+          totalCryptoReceived.toString(),
+          invoice.cryptoAmount.toString(),
+          event.asset,
+          newStatus,
+          isTestnet,
+        );
+      } else {
+        const stage =
+          newStatus === "mempool_detected"
+            ? "mempool"
+            : newStatus === "confirming"
+              ? "confirming"
+              : "confirmed";
+
+        NotificationService.create({
+          merchantId: invoice.merchantId.toString(),
+          title: isTestnet ? "[TEST] New Transaction" : "New Transaction",
+          description: `Detected ${event.amount} ${event.asset} for invoice ${invoice.invoiceId} (${stage}).`,
+          type: "info",
+          link: `/dashboard/payments`,
+          meta: {
+            invoiceId: invoice.invoiceId,
+            txHash: event.txHash,
+            isTestnet,
+          },
+        });
+      }
+
+      // 6. Trigger outbound webhook if terminal success
+      if (isTerminalSuccess) {
+        // Dispatch additional standard webhook if status just became confirmed/overpaid
+        if (statusChanged) {
+          WebhookDispatcher.dispatch(invoice.invoiceId, "invoice.confirmed");
+        }
+
+        // 7. Cleanup Tatum monitoring
+        if (invoice.tatumSubscriptionId && invoice.providerName) {
+          BlockchainProviderPool.getInstance().deleteSubscription(
+            invoice.providerName,
+            invoice.tatumSubscriptionId,
+          );
+        }
+
+        // 8. Deduct from Credit Balance & Accrue Fees (KnotEngine Fee)
+        // Skip for testnet invoices
+        if (!invoice.paidAt && !isTestnet) {
+          await Merchant.findByIdAndUpdate(invoice.merchantId, {
+            $inc: {
+              "feesAccrued.usd": invoice.feeUsd,
+              [`feesAccrued.${invoice.cryptoCurrency}`]: invoice.feeCrypto,
+              creditBalance: -invoice.feeUsd, // Deduct from prepaid credits
+            },
+          });
+
+          // Notify Merchant
+          NotificationService.notifyPaymentConfirmed(
+            invoice.merchantId.toString(),
+            invoice.invoiceId,
+            invoice.amountUsd,
+            isTestnet,
+          );
+
+          // Check if credit balance is getting low
+          const updatedMerchant = await Merchant.findById(invoice.merchantId);
+          if (updatedMerchant && updatedMerchant.creditBalance < 3.0) {
+            NotificationService.notifyLowBalance(
+              invoice.merchantId.toString(),
+              updatedMerchant.creditBalance,
+            );
+          }
+        }
+      }
+
+      console.log(
+        `📦 Invoice ${invoice.invoiceId}: ${invoice.status} → ${newStatus} (${event.confirmations}/${invoice.requiredConfirmations} confirmations)`,
+      );
+
+      return {
+        matched: true,
+        invoiceId: invoice.invoiceId,
+        newStatus,
+      };
+    } catch (err) {
+      console.error("❌ ConfirmationEngine Error:", err);
+      return { matched: false };
     }
-
-    console.log(
-      `📦 Invoice ${invoice.invoiceId}: ${invoice.status} → ${newStatus} (${event.confirmations}/${invoice.requiredConfirmations} confirmations)`,
-    );
-
-    return {
-      matched: true,
-      invoiceId: invoice.invoiceId,
-      newStatus,
-    };
   }
 
   /**
@@ -244,30 +370,49 @@ export class ConfirmationEngine {
    */
   public static async expireStaleInvoices(): Promise<number> {
     const staleInvoices = await Invoice.find({
-      status: { $in: ["pending", "mempool_detected", "confirming"] },
+      status: {
+        $in: ["pending", "mempool_detected", "confirming", "partially_paid"],
+      },
       expiresAt: { $lt: new Date() },
     });
 
     if (staleInvoices.length === 0) return 0;
 
     for (const invoice of staleInvoices) {
+      const prevStatus = invoice.status;
       await Invoice.findByIdAndUpdate(invoice._id, {
         $set: { status: "expired" },
       });
 
-      // Cleanup Tatum monitoring
-      if (invoice.tatumSubscriptionId) {
-        TatumProvider.deleteSubscription(invoice.tatumSubscriptionId);
+      // 1. Emit real-time socket update
+      SocketService.emitStatusUpdate(invoice.invoiceId, "expired", {
+        txHash: invoice.txHash,
+        confirmations: invoice.confirmations,
+      });
+
+      // 2. Dispatch Webhook
+      WebhookDispatcher.dispatch(invoice.invoiceId, "invoice.expired");
+
+      // 3. Cleanup monitoring
+      if (invoice.tatumSubscriptionId && invoice.providerName) {
+        BlockchainProviderPool.getInstance().deleteSubscription(
+          invoice.providerName,
+          invoice.tatumSubscriptionId,
+        );
       }
 
-      NotificationService.create({
-        merchantId: invoice.merchantId.toString(),
-        title: "Invoice Expired",
-        description: `Invoice ${invoice.invoiceId} has expired without receiving payment.`,
-        type: "error",
-        link: "/dashboard/payments",
-        meta: { invoiceId: invoice.invoiceId },
-      });
+      // 4. Notify Merchant if funds were involved
+      if (prevStatus !== "pending") {
+        const isTestnet = invoice.metadata?.isTestnet === true;
+        NotificationService.create({
+          merchantId: invoice.merchantId.toString(),
+          title: isTestnet ? "[TEST] Invoice Expired" : "Invoice Expired",
+          description: `Invoice ${invoice.invoiceId} has expired after receiving partial or unconfirmed funds.`,
+          type: "error",
+          link: "/dashboard/payments",
+          meta: { invoiceId: invoice.invoiceId, isTestnet },
+        });
+      }
 
       console.log(`⏰ Invoice ${invoice.invoiceId} expired.`);
     }

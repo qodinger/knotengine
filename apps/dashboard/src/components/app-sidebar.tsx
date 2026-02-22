@@ -9,6 +9,7 @@ import {
   Coins,
   Settings,
   LifeBuoy,
+  Activity,
 } from "lucide-react";
 
 import {
@@ -25,21 +26,22 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
-import { StoreSwitcher } from "./store-switcher";
+import { MerchantSwitcher } from "./merchant-switcher";
 import { usePathname } from "next/navigation";
 import packageJson from "../../package.json";
 
 const navItems = {
   core: [
-    { icon: LayoutDashboard, label: "Home", href: "/dashboard" },
+    { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
     { icon: CreditCard, label: "Payments", href: "/dashboard/payments" },
+    { icon: Activity, label: "Activity Log", href: "/dashboard/activity" },
     { icon: Wallet, label: "Balances", href: "/dashboard/balances" },
     { icon: Coins, label: "Billing", href: "/dashboard/billing" },
     { icon: Code2, label: "Developers", href: "/dashboard/developers" },
   ],
   manage: [
     { icon: Settings, label: "Settings", href: "/dashboard/settings" },
-    { icon: LifeBuoy, label: "Get Help", href: "/dashboard/support" },
+    { icon: LifeBuoy, label: "Help & Support", href: "/dashboard/support" },
   ],
 };
 
@@ -56,7 +58,7 @@ export function AppSidebar() {
       <SidebarHeader className="h-(--header-height) flex flex-col justify-center border-b border-border/50 px-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <StoreSwitcher />
+            <MerchantSwitcher />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>

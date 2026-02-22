@@ -28,7 +28,7 @@ export async function createMerchant(name: string) {
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.message || "Failed to create store");
+    throw new Error(error.message || "Failed to create merchant");
   }
 
   const data = await response.json();

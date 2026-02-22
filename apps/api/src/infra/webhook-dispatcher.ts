@@ -1,5 +1,5 @@
-import { Invoice, IInvoice, Merchant } from "@knotengine/database";
-import { Derivator } from "@knotengine/crypto";
+import { Invoice, IInvoice, Merchant } from "@qodinger/knot-database";
+import { Derivator } from "@qodinger/knot-crypto";
 import * as crypto from "crypto";
 import { NotificationService } from "./notification-service";
 
@@ -50,6 +50,9 @@ export class WebhookDispatcher {
     const subscribedEvents = merchant.webhookEvents || [
       "invoice.confirmed",
       "invoice.mempool_detected",
+      "invoice.partially_paid",
+      "invoice.overpaid",
+      "invoice.expired",
       "invoice.failed",
     ];
 
@@ -69,6 +72,7 @@ export class WebhookDispatcher {
       amount: {
         usd: invoice.amountUsd,
         crypto: invoice.cryptoAmount,
+        crypto_received: invoice.cryptoAmountReceived || 0,
         currency: invoice.cryptoCurrency,
         fee_usd: invoice.feeUsd,
       },
@@ -140,13 +144,20 @@ export class WebhookDispatcher {
         `❌ Webhook FAILURE (${attempts}/${this.MAX_ATTEMPTS}) for ${invoiceId}: ${message}`,
       );
 
-      // Notify Merchant of persistent failure or first failure?
-      // Let's notify on every failure so they can see the issues in real-time.
-      NotificationService.notifyWebhookFailed(
-        invoice.merchantId.toString(),
-        invoice.invoiceId,
-        message,
-      );
+      // Notify Merchant only on the first failure to avoid spamming 10+ identical alerts
+      const isTestnet = invoice.metadata?.isTestnet === true;
+      if (attempts === 1) {
+        NotificationService.create({
+          merchantId: invoice.merchantId.toString(),
+          title: isTestnet
+            ? "[TEST] Webhook Delivery Failed"
+            : "Webhook Delivery Failed",
+          description: `Failed to notify your server for invoice ${invoice.invoiceId}: ${message}`,
+          type: "error",
+          link: "/dashboard/webhooks",
+          meta: { invoiceId: invoice.invoiceId, error: message, isTestnet },
+        });
+      }
 
       // We don't use setTimeout here anymore for production reliability.
       // Instead, we rely on the background 'dispatchPending' job to pick it up

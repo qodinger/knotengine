@@ -38,18 +38,18 @@ export default async function DashboardLayout({
   // No, user request was "Can't we let user create by their own".
   // The layout wraps everything.
 
-  // Let's modify the layout to conditionally render Sidebar based on store existence?
-  // If no stores, maybe hide sidebar?
+  // Let's modify the layout to conditionally render Sidebar based on merchant existence?
+  // If no merchants, maybe hide sidebar?
 
-  const hasStores = merchants.length > 0;
+  const hasMerchants = merchants.length > 0;
 
   return (
     <div className="[--header-height:--spacing(14)] h-svh overflow-hidden flex flex-col">
       <SidebarProvider
-        defaultOpen={hasStores}
+        defaultOpen={hasMerchants}
         className="flex-1 overflow-hidden"
       >
-        {hasStores && <AppSidebar />}
+        {hasMerchants && <AppSidebar />}
         <SidebarInset className="flex flex-col h-full overflow-hidden">
           <SiteHeader />
           <ScrollArea className="flex-1 min-h-0">

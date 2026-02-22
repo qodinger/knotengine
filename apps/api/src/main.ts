@@ -7,11 +7,13 @@ import {
 import { merchantRoutes } from "./routes/merchants";
 import { invoiceRoutes } from "./routes/invoices";
 import { webhookRoutes } from "./routes/webhooks";
+import { twoFactorRoutes } from "./routes/two-factor";
+import { configRoutes } from "./routes/config";
 import { PriceOracle } from "./infra/price-feed";
 import { ConfirmationEngine } from "./core/confirmation-engine";
 import { WebhookDispatcher } from "./infra/webhook-dispatcher";
-import { Currency } from "@knotengine/types";
-import { connectToDatabase } from "@knotengine/database";
+import { Currency } from "@qodinger/knot-types";
+import { connectToDatabase } from "@qodinger/knot-database";
 import { SocketService } from "./infra/socket-service";
 
 import dotenv from "dotenv";
@@ -79,6 +81,8 @@ server.get("/health", async () => {
 server.register(merchantRoutes);
 server.register(invoiceRoutes);
 server.register(webhookRoutes);
+server.register(twoFactorRoutes);
+server.register(configRoutes);
 
 // ──────────────────────────────────────────────
 // Price Oracle Endpoint (Phase 1)

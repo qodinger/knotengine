@@ -58,7 +58,7 @@ jobs:
 
           if [ -z "$NOTES" ]; then
             echo "⚠️ No notes found for v$VERSION in CHANGELOG.md"
-            NOTES="Detailed changes available in [CHANGELOG.md](https://github.com/tyecode/knotengine/blob/main/CHANGELOG.md)."
+            NOTES="Detailed changes available in [CHANGELOG.md](https://github.com/qodinger/knotengine/blob/main/CHANGELOG.md)."
           fi
 
           echo "notes<<EOF" >> $GITHUB_OUTPUT
@@ -75,7 +75,7 @@ jobs:
             ${{ steps.release_notes.outputs.notes }}
 
             ---
-            **[View Full Changelog](https://github.com/tyecode/knotengine/blob/main/CHANGELOG.md)**
+            **[View Full Changelog](https://github.com/qodinger/knotengine/blob/main/CHANGELOG.md)**
           generate_release_notes: true
           draft: false
           prerelease: false
