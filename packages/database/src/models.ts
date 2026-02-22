@@ -47,6 +47,11 @@ export interface IMerchant extends Document {
   };
   /** Prepaid credit balance (USD) — deducted per confirmed invoice */
   creditBalance: number;
+  /** Payment Configuration */
+  feeResponsibility: "merchant" | "client";
+  invoiceExpirationMinutes: number;
+  underpaymentTolerancePercentage: number;
+  bip21Enabled: boolean;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -78,6 +83,9 @@ const MerchantSchema: Schema = new Schema(
       default: [
         "invoice.confirmed",
         "invoice.mempool_detected",
+        "invoice.partially_paid",
+        "invoice.overpaid",
+        "invoice.expired",
         "invoice.failed",
       ],
     },
@@ -99,6 +107,14 @@ const MerchantSchema: Schema = new Schema(
       USDT_POLYGON: { type: Number, default: 0 },
     },
     creditBalance: { type: Number, default: 5.0 },
+    feeResponsibility: {
+      type: String,
+      enum: ["merchant", "client"],
+      default: "merchant",
+    },
+    invoiceExpirationMinutes: { type: Number, default: 30 },
+    underpaymentTolerancePercentage: { type: Number, default: 1 },
+    bip21Enabled: { type: Boolean, default: true },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true },
@@ -119,7 +135,9 @@ export type InvoiceStatus =
   | "confirming"
   | "confirmed"
   | "expired"
-  | "failed";
+  | "failed"
+  | "partially_paid"
+  | "overpaid";
 
 export interface IInvoice extends Document {
   merchantId: mongoose.Types.ObjectId;
@@ -127,6 +145,7 @@ export interface IInvoice extends Document {
   invoiceId: string;
   amountUsd: number;
   cryptoAmount: number;
+  cryptoAmountReceived: number;
   cryptoCurrency: string;
   payAddress: string;
   /** KnotEngine Fee (Platform Fee) */
@@ -155,6 +174,8 @@ export interface IInvoice extends Document {
   monitoringAttempts: number;
   /** Arbitrary metadata from merchant */
   metadata?: Record<string, unknown>;
+  /** Optional description/memo for the invoice */
+  description?: string;
   paidAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -170,8 +191,9 @@ const InvoiceSchema: Schema = new Schema(
     invoiceId: { type: String, required: true, unique: true },
     amountUsd: { type: Number, required: true },
     cryptoAmount: { type: Number, required: true },
+    cryptoAmountReceived: { type: Number, default: 0 },
     cryptoCurrency: { type: String, required: true },
-    payAddress: { type: String, required: true, unique: true },
+    payAddress: { type: String, required: true },
     feeUsd: { type: Number, required: true, default: 0 },
     feeCrypto: { type: Number, required: true, default: 0 },
     derivationIndex: { type: Number, required: true },
@@ -184,6 +206,8 @@ const InvoiceSchema: Schema = new Schema(
         "confirmed",
         "expired",
         "failed",
+        "partially_paid",
+        "overpaid",
       ],
       default: "pending",
     },
@@ -200,6 +224,7 @@ const InvoiceSchema: Schema = new Schema(
     lastMonitoringAttempt: { type: Date },
     monitoringAttempts: { type: Number, default: 0 },
     metadata: { type: Schema.Types.Mixed },
+    description: { type: String },
     paidAt: { type: Date },
   },
   { timestamps: true },
@@ -353,6 +378,7 @@ const NotificationSchema: Schema = new Schema(
 );
 
 NotificationSchema.index({ merchantId: 1, isRead: 1 });
+NotificationSchema.index({ merchantId: 1, "meta.invoiceId": 1, isRead: 1 });
 // 30-day Retention: MongoDB will auto-delete notifications older than 30 days
 NotificationSchema.index(
   { createdAt: 1 },

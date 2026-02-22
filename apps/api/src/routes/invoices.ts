@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
-import { Invoice, Merchant } from "@qodinger/knot-database";
+import { Invoice, Merchant, IInvoice } from "@qodinger/knot-database";
 import { Derivator } from "@qodinger/knot-crypto";
 import { PriceOracle } from "../infra/price-feed";
 import { ConfirmationEngine } from "../core/confirmation-engine";
@@ -84,188 +84,216 @@ export async function invoiceRoutes(app: FastifyInstance) {
         body: z.object({
           amount_usd: z.number().positive(),
           currency: z.enum(SUPPORTED_CURRENCIES),
-          /** Invoice TTL in minutes (default: 30) */
-          ttl_minutes: z.number().int().min(5).max(1440).default(30),
+          /** Invoice TTL in minutes (optional, falls back to merchant setting) */
+          ttl_minutes: z.number().int().min(15).max(1440).optional(),
           metadata: z.record(z.unknown()).optional(),
+          description: z.string().max(255).optional(),
           is_testnet: z.boolean().optional(),
         }),
       },
     },
     async (request, reply) => {
-      const merchant = request.merchant;
-      if (!merchant) return reply.code(401).send({ error: "Unauthorized" });
-      const { amount_usd, currency, ttl_minutes, metadata, is_testnet } =
-        request.body;
-
-      // 1. Get real-time crypto price
-      const priceUsd = await PriceOracle.getPrice(currency as Currency);
-      const cryptoAmount = parseFloat((amount_usd / priceUsd).toFixed(8));
-
-      // 2. Derive a unique payment address
-      const nextIndex = merchant.derivationIndex + 1;
-      let payAddress: string;
-
-      // Determine network context: is it a testnet invoice?
-      const isTestnet = is_testnet === true;
-      const envNetwork =
-        (process.env.BITCOIN_NETWORK as "bitcoin" | "testnet" | "regtest") ||
-        "bitcoin";
-
-      // Safety Rail: Only BTC and ETH supported on Testnet
-      if (isTestnet && !["BTC", "ETH"].includes(currency)) {
-        return reply.code(400).send({
-          error:
-            "Testnet is currently only supported for Bitcoin (BTC) and Ethereum (ETH).",
-        });
-      }
-
       try {
-        if (currency === "BTC" || currency === "LTC") {
-          const xpub = isTestnet ? merchant.btcXpubTestnet : merchant.btcXpub;
+        const merchant = request.merchant;
+        if (!merchant) return reply.code(401).send({ error: "Unauthorized" });
+        const {
+          amount_usd,
+          currency,
+          ttl_minutes,
+          metadata,
+          description,
+          is_testnet,
+        } = request.body;
 
-          if (!xpub) {
-            return reply.code(400).send({
-              error: `Merchant has no ${currency} ${isTestnet ? "Testnet" : "Mainnet"} xPub configured.`,
-            });
-          }
+        // 1. Get real-time crypto price
+        const priceUsd = await PriceOracle.getPrice(currency as Currency);
+        const cryptoAmount = parseFloat((amount_usd / priceUsd).toFixed(8));
 
-          // Map currency and testnet flag to internal network name
-          let targetNetwork:
-            | "bitcoin"
-            | "testnet"
-            | "litecoin"
-            | "litecoin-testnet";
-          if (currency === "BTC") {
-            targetNetwork = isTestnet ? "testnet" : "bitcoin";
+        // 2. Derive a unique payment address
+        const nextIndex = merchant.derivationIndex + 1;
+        let payAddress: string;
+
+        // Determine network context: is it a testnet invoice?
+        const isTestnet = is_testnet === true;
+        const envNetwork =
+          (process.env.BITCOIN_NETWORK as "bitcoin" | "testnet" | "regtest") ||
+          "bitcoin";
+
+        // Safety Rail: Only BTC, LTC, ETH and USDT supported on Testnet
+        if (isTestnet && !SUPPORTED_CURRENCIES.includes(currency as any)) {
+          return reply.code(400).send({
+            error: `Testnet is currently only supported for: ${SUPPORTED_CURRENCIES.join(", ")}.`,
+          });
+        }
+
+        try {
+          if (currency === "BTC" || currency === "LTC") {
+            const xpub = isTestnet ? merchant.btcXpubTestnet : merchant.btcXpub;
+
+            if (!xpub) {
+              return reply.code(400).send({
+                error: `Merchant has no ${currency} ${isTestnet ? "Testnet" : "Mainnet"} xPub configured.`,
+              });
+            }
+
+            // Map currency and testnet flag to internal network name
+            let targetNetwork:
+              | "bitcoin"
+              | "testnet"
+              | "litecoin"
+              | "litecoin-testnet";
+            if (currency === "BTC") {
+              targetNetwork = isTestnet ? "testnet" : "bitcoin";
+            } else {
+              targetNetwork = isTestnet ? "litecoin-testnet" : "litecoin";
+            }
+
+            payAddress = Derivator.deriveUTXOAddress(
+              xpub,
+              nextIndex,
+              targetNetwork,
+            );
           } else {
-            targetNetwork = isTestnet ? "litecoin-testnet" : "litecoin";
-          }
+            const ethXpub = isTestnet
+              ? merchant.ethXpubTestnet
+              : merchant.ethXpub;
+            const ethStaticAddr = isTestnet
+              ? merchant.ethAddressTestnet
+              : merchant.ethAddress;
 
-          payAddress = Derivator.deriveUTXOAddress(
-            xpub,
-            nextIndex,
-            targetNetwork,
+            if (ethXpub) {
+              payAddress = Derivator.deriveEthereumAddress(ethXpub, nextIndex);
+            } else if (ethStaticAddr) {
+              payAddress = ethStaticAddr;
+            } else {
+              return reply.code(400).send({
+                error: `Merchant has no ETH ${isTestnet ? "Testnet" : "Mainnet"} configuration.`,
+              });
+            }
+          }
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : String(err);
+          server.log.error(`Address derivation error: ${message}`);
+          return reply.code(400).send({
+            error: `Invalid xPub or address configuration: ${message}`,
+          });
+        }
+
+        // 3. Safety Rails: Minimum Invoice Amount
+        const minInvoiceAmount = parseFloat(
+          process.env.MIN_INVOICE_AMOUNT || "1.00",
+        );
+        if (amount_usd < minInvoiceAmount) {
+          return reply.code(400).send({
+            error: `Minimum invoice amount is $${minInvoiceAmount.toFixed(2)}`,
+          });
+        }
+
+        // 4. Credit Balance Gate
+        if (!isTestnet && merchant.creditBalance <= 0) {
+          return reply.code(402).send({
+            error:
+              "Insufficient credit balance. Please top up your account to continue creating invoices.",
+            creditBalance: merchant.creditBalance,
+            topUpWallets: {
+              BTC: process.env.PLATFORM_FEE_WALLET_BTC || null,
+              LTC: process.env.PLATFORM_FEE_WALLET_LTC || null,
+              EVM: process.env.PLATFORM_FEE_WALLET_EVM || null,
+            },
+          });
+        }
+
+        // 5. Get required confirmations
+        const requiredConfirmations =
+          await ConfirmationEngine.getRequiredConfirmations(
+            merchant._id.toString(),
+            currency,
           );
-        } else {
-          const ethXpub = isTestnet
-            ? merchant.ethXpubTestnet
-            : merchant.ethXpub;
-          const ethStaticAddr = isTestnet
-            ? merchant.ethAddressTestnet
-            : merchant.ethAddress;
 
-          if (ethXpub) {
-            payAddress = Derivator.deriveEthereumAddress(ethXpub, nextIndex);
-          } else if (ethStaticAddr) {
-            payAddress = ethStaticAddr;
-          } else {
-            return reply.code(400).send({
-              error: `Merchant has no ETH ${isTestnet ? "Testnet" : "Mainnet"} configuration.`,
-            });
+        // 5. Generate unique invoice ID
+        const invoiceId = `inv_${crypto.randomBytes(12).toString("hex")}`;
+
+        // 6. Calculate Fees and Totals
+        const platfromFeeRate = parseFloat(
+          process.env.PLATFORM_FEE_RATE || "0.01",
+        ); // 1%
+        const minFeeUsd = parseFloat(process.env.MIN_FEE_USD || "0.05");
+
+        let feeUsd = 0;
+        let feeCrypto = 0;
+        let totalAmountUsd = amount_usd;
+        let totalCryptoAmount = cryptoAmount;
+
+        if (!isTestnet) {
+          const rawFeeUsd = amount_usd * platfromFeeRate;
+          feeUsd = parseFloat(Math.max(rawFeeUsd, minFeeUsd).toFixed(2));
+          feeCrypto = parseFloat(
+            ((feeUsd / amount_usd) * cryptoAmount).toFixed(8),
+          );
+
+          // If client pays the fee, add it to the payment total
+          if (merchant.feeResponsibility === "client") {
+            totalAmountUsd = parseFloat((amount_usd + feeUsd).toFixed(2));
+            totalCryptoAmount = parseFloat(
+              (cryptoAmount + feeCrypto).toFixed(8),
+            );
           }
         }
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err);
-        server.log.error(`Address derivation error: ${message}`);
-        return reply.code(500).send({
-          error: `Failed to generate payment address: ${message}`,
-        });
-      }
 
-      // 3. Safety Rails: Minimum Invoice Amount
-      const minInvoiceAmount = parseFloat(
-        process.env.MIN_INVOICE_AMOUNT || "1.00",
-      );
-      if (amount_usd < minInvoiceAmount) {
-        return reply.code(400).send({
-          error: `Minimum invoice amount is $${minInvoiceAmount.toFixed(2)}`,
-        });
-      }
+        // 7. Create the invoice
+        const expirationMinutes =
+          ttl_minutes || merchant.invoiceExpirationMinutes || 30;
+        const expiresAt = new Date(Date.now() + expirationMinutes * 60 * 1000);
 
-      // 4. Credit Balance Gate
-      if (!isTestnet && merchant.creditBalance <= 0) {
-        return reply.code(402).send({
-          error:
-            "Insufficient credit balance. Please top up your account to continue creating invoices.",
-          creditBalance: merchant.creditBalance,
-          topUpWallets: {
-            BTC: process.env.PLATFORM_FEE_WALLET_BTC || null,
-            LTC: process.env.PLATFORM_FEE_WALLET_LTC || null,
-            EVM: process.env.PLATFORM_FEE_WALLET_EVM || null,
+        const invoice = await Invoice.create({
+          merchantId: merchant._id,
+          invoiceId,
+          amountUsd: totalAmountUsd,
+          cryptoAmount: totalCryptoAmount,
+          cryptoCurrency: currency,
+          payAddress,
+          feeUsd, // Platform internal tracking
+          feeCrypto,
+          derivationIndex: nextIndex,
+          requiredConfirmations,
+          expiresAt,
+          description,
+          metadata: {
+            ...metadata,
+            network: envNetwork,
+            isTestnet,
+            baseAmountUsd: amount_usd, // Track base amount for transparency
+            feeResponsibility: merchant.feeResponsibility || "merchant",
           },
         });
-      }
 
-      // 5. Get required confirmations
-      const requiredConfirmations =
-        await ConfirmationEngine.getRequiredConfirmations(
-          merchant._id.toString(),
-          currency,
+        // 8. Update derivation index on merchant (UTXO assets only)
+        if (currency === "BTC" || currency === "LTC") {
+          await Merchant.findByIdAndUpdate(merchant._id, {
+            $set: { derivationIndex: nextIndex },
+          });
+        }
+
+        server.log.info(
+          `[Invoice] Created ${invoiceId} for ${merchant.name} (Address: ${payAddress})`,
         );
 
-      // 5. Generate unique invoice ID
-      const invoiceId = `inv_${crypto.randomBytes(12).toString("hex")}`;
-
-      // 6. Create the invoice
-      const expiresAt = new Date(Date.now() + ttl_minutes * 60 * 1000);
-      const platfromFeeRate = parseFloat(
-        process.env.PLATFORM_FEE_RATE || "0.01",
-      ); // 1%
-      const minFeeUsd = parseFloat(process.env.MIN_FEE_USD || "0.05");
-
-      // Calculate fee with a minimum floor to cover infrastructure costs
-      let feeUsd = 0;
-      let feeCrypto = 0;
-
-      if (!isTestnet) {
-        const rawFeeUsd = amount_usd * platfromFeeRate;
-        feeUsd = parseFloat(Math.max(rawFeeUsd, minFeeUsd).toFixed(2));
-        feeCrypto = parseFloat(
-          ((feeUsd / amount_usd) * cryptoAmount).toFixed(8),
-        );
+        return reply.code(201).send({
+          invoice_id: invoice.invoiceId,
+          amount_usd: invoice.amountUsd,
+          crypto_amount: invoice.cryptoAmount,
+          crypto_currency: invoice.cryptoCurrency,
+          pay_address: invoice.payAddress,
+          expires_at: invoice.expiresAt,
+          status: invoice.status,
+          is_testnet: isTestnet,
+        });
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        return reply.code(500).send({
+          error: `Failed to create invoice: ${message}`,
+        });
       }
-
-      const invoice = await Invoice.create({
-        merchantId: merchant._id,
-        invoiceId,
-        amountUsd: amount_usd,
-        cryptoAmount,
-        cryptoCurrency: currency,
-        payAddress,
-        feeUsd,
-        feeCrypto,
-        derivationIndex: nextIndex,
-        requiredConfirmations,
-        expiresAt,
-        metadata: {
-          ...metadata,
-          network: envNetwork,
-          isTestnet,
-        },
-      });
-
-      // 6. Increment the merchant's derivation index
-      await Merchant.findByIdAndUpdate(merchant._id, {
-        derivationIndex: nextIndex,
-      });
-
-      server.log.info(`🧾 Invoice created: ${invoiceId} for $${amount_usd}`);
-
-      return reply.code(201).send({
-        invoice_id: invoice.invoiceId,
-        amount_usd: invoice.amountUsd,
-        crypto_amount: invoice.cryptoAmount,
-        crypto_currency: invoice.cryptoCurrency,
-        pay_address: invoice.payAddress,
-        status: invoice.status,
-        fee_usd: invoice.feeUsd,
-        fee_crypto: invoice.feeCrypto,
-        fee_rate: platfromFeeRate,
-        required_confirmations: invoice.requiredConfirmations,
-        expires_at: invoice.expiresAt.toISOString(),
-        created_at: invoice.createdAt.toISOString(),
-        metadata: invoice.metadata,
-      });
     },
   );
 
@@ -278,8 +306,13 @@ export async function invoiceRoutes(app: FastifyInstance) {
       const { id } = request.params;
 
       const invoice = await Invoice.findOne({ invoiceId: id }).populate<{
-        merchantId: { name: string; logoUrl?: string; returnUrl?: string };
-      }>("merchantId", "name logoUrl returnUrl");
+        merchantId: {
+          name: string;
+          logoUrl?: string;
+          returnUrl?: string;
+          bip21Enabled: boolean;
+        };
+      }>("merchantId", "name logoUrl returnUrl bip21Enabled");
 
       if (!invoice) {
         return reply.code(404).send({ error: "Invoice not found" });
@@ -327,6 +360,9 @@ export async function invoiceRoutes(app: FastifyInstance) {
         invoice_id: invoice.invoiceId,
         amount_usd: invoice.amountUsd,
         crypto_amount: invoice.cryptoAmount,
+        crypto_amount_received: parseFloat(
+          (invoice.cryptoAmountReceived || 0).toFixed(8),
+        ),
         crypto_currency: invoice.cryptoCurrency,
         pay_address: invoice.payAddress,
         status: invoice.status,
@@ -339,10 +375,12 @@ export async function invoiceRoutes(app: FastifyInstance) {
         paid_at: invoice.paidAt?.toISOString() || null,
         created_at: invoice.createdAt.toISOString(),
         metadata: invoice.metadata,
+        description: invoice.description || null,
         merchant: {
           name: invoice.merchantId.name,
           logo_url: invoice.merchantId.logoUrl || null,
           return_url: invoice.merchantId.returnUrl || null,
+          bip21_enabled: invoice.merchantId.bip21Enabled ?? true,
         },
       };
     },
@@ -400,6 +438,9 @@ export async function invoiceRoutes(app: FastifyInstance) {
         invoice_id: inv.invoiceId,
         amount_usd: inv.amountUsd,
         crypto_amount: inv.cryptoAmount,
+        crypto_amount_received: parseFloat(
+          (inv.cryptoAmountReceived || 0).toFixed(8),
+        ),
         crypto_currency: inv.cryptoCurrency,
         pay_address: inv.payAddress,
         status: inv.status,
@@ -452,6 +493,86 @@ export async function invoiceRoutes(app: FastifyInstance) {
       server.log.info(`🚫 Invoice cancelled: ${id}`);
 
       return { invoice_id: id, status: "expired", cancelled: true };
+    },
+  );
+
+  // ──────────────────────────────────────────────
+  // POST /v1/invoices/:id/resolve — Manual Resolve
+  // ──────────────────────────────────────────────
+  server.post<{ Params: { id: string } }>(
+    "/v1/invoices/:id/resolve",
+    async (request, reply) => {
+      const merchant = request.merchant;
+      if (!merchant) return reply.code(401).send({ error: "Unauthorized" });
+      const { id } = request.params;
+
+      const invoice = await Invoice.findOne({
+        invoiceId: id,
+        merchantId: merchant._id,
+      });
+
+      if (!invoice) {
+        return reply.code(404).send({ error: "Invoice not found" });
+      }
+
+      if (["confirmed", "overpaid"].includes(invoice.status)) {
+        return reply.code(409).send({
+          error: `Invoice is already in a completed state (${invoice.status}).`,
+        });
+      }
+
+      // Manual Resolution Logic
+      const updateData: Partial<IInvoice> = {
+        status: "confirmed",
+        paidAt: new Date(),
+        cryptoAmountReceived: invoice.cryptoAmount,
+      };
+
+      await Invoice.findByIdAndUpdate(invoice._id, { $set: updateData });
+
+      // Emit socket update for real-time frontend reactivity
+      const SocketService = (await import("../infra/socket-service"))
+        .SocketService;
+      SocketService.emitStatusUpdate(invoice.invoiceId, "confirmed", {
+        cryptoAmountReceived: invoice.cryptoAmount,
+      });
+
+      // Trigger standard confirmation side-effects
+      const WebhookDispatcher = (await import("../infra/webhook-dispatcher"))
+        .WebhookDispatcher;
+      WebhookDispatcher.dispatch(invoice.invoiceId, "invoice.confirmed");
+
+      // Deduct Fees (since the merchant has "accepted" this payment)
+      if (!invoice.metadata?.isTestnet) {
+        await Merchant.findByIdAndUpdate(invoice.merchantId, {
+          $inc: {
+            "feesAccrued.usd": invoice.feeUsd,
+            [`feesAccrued.${invoice.cryptoCurrency}`]: invoice.feeCrypto,
+            creditBalance: -invoice.feeUsd,
+          },
+        });
+      }
+
+      const NotificationService = (
+        await import("../infra/notification-service")
+      ).NotificationService;
+      await NotificationService.create({
+        merchantId: invoice.merchantId.toString(),
+        title: invoice.metadata?.isTestnet
+          ? "[TEST] Invoice Manually Resolved"
+          : "Invoice Manually Resolved",
+        description: `You have manually marked invoice ${invoice.invoiceId} as paid.`,
+        type: "success",
+        link: "/dashboard/payments",
+        meta: {
+          invoiceId: invoice.invoiceId,
+          isTestnet: invoice.metadata?.isTestnet,
+        },
+      });
+
+      server.log.info(`✅ Invoice manually resolved: ${id}`);
+
+      return { invoice_id: id, status: "confirmed", resolved: true };
     },
   );
 }
