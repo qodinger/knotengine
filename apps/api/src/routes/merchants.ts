@@ -6,6 +6,7 @@ import {
   Invoice,
   TopUpClaim,
   Notification,
+  User,
 } from "@qodinger/knot-database";
 
 import * as crypto from "crypto";
@@ -18,6 +19,7 @@ import * as bitcoin from "bitcoinjs-lib";
 import { ethers } from "ethers";
 import { SUPPORTED_CURRENCIES } from "@qodinger/knot-types";
 import { WebhookDispatcher } from "../infra/webhook-dispatcher";
+import { NotificationService } from "../infra/notification-service";
 
 const bip32 = BIP32Factory(ecc);
 
@@ -44,6 +46,29 @@ const generateMerchantId = async (): Promise<string> => {
   throw new Error("Failed to generate a unique merchant ID");
 };
 
+/**
+ * 🎁 Generate a short, unique referral code for the merchant
+ * e.g. REF_K7Q2
+ */
+const generateReferralCode = async (): Promise<string> => {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let attempts = 0;
+
+  while (attempts < 10) {
+    const code =
+      "REF_" +
+      Array.from(crypto.randomBytes(4))
+        .map((b) => chars[b % chars.length])
+        .join("");
+
+    const exists = await User.exists({ referralCode: code });
+    if (!exists) return code;
+    attempts++;
+  }
+
+  return "REF_" + crypto.randomBytes(4).toString("hex").toUpperCase();
+};
+
 export async function merchantRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>();
 
@@ -60,6 +85,7 @@ export async function merchantRoutes(app: FastifyInstance) {
           ethAddressTestnet: z.string().optional(),
           webhookUrl: z.string().optional(),
           oauthId: z.string().optional(), // OAuth identity e.g. 'google:12345'
+          referredBy: z.string().optional(), // Referral code from URL
         }),
       },
     },
@@ -73,6 +99,7 @@ export async function merchantRoutes(app: FastifyInstance) {
         ethAddressTestnet,
         webhookUrl,
         oauthId,
+        referredBy: referralCode,
       } = request.body;
 
       // Security: Creating a merchant for an OAuth user requires internal privilege
@@ -103,6 +130,35 @@ export async function merchantRoutes(app: FastifyInstance) {
         process.env.WELCOME_CREDIT_AMOUNT || "5.00",
       );
 
+      // 1. Resolve or Create User Identity (OAuth)
+      let userId: any = undefined;
+      if (oauthId) {
+        let user = await User.findOne({ oauthId });
+        if (!user) {
+          // Resolve Referrer for the new User
+          let referrerId: any = undefined;
+          if (referralCode) {
+            const referrer = await User.findOne({ referralCode });
+            if (referrer) {
+              referrerId = referrer._id;
+            }
+          }
+
+          user = await User.create({
+            oauthId,
+            email,
+            creditBalance: welcomeCredit,
+            welcomeBonusClaimed: true,
+            referralCode: await generateReferralCode(),
+            referredBy: referrerId,
+          });
+          server.log.info(
+            `👤 New User Identity created: ${oauthId} (+$${welcomeCredit} bonus)`,
+          );
+        }
+        userId = user._id;
+      }
+
       let finalBtcXpubTestnet = btcXpubTestnet;
       let finalEthAddressTestnet = ethAddressTestnet;
 
@@ -121,6 +177,7 @@ export async function merchantRoutes(app: FastifyInstance) {
 
       const newMerchant = await Merchant.create({
         merchantId: await generateMerchantId(),
+        userId,
         name,
         email,
         apiKeyHash,
@@ -131,7 +188,6 @@ export async function merchantRoutes(app: FastifyInstance) {
         ethAddressTestnet: finalEthAddressTestnet,
         webhookUrl,
         webhookSecret,
-        creditBalance: welcomeCredit,
       });
 
       server.log.info(`Merchant created: ${newMerchant.id}`);
@@ -213,14 +269,53 @@ export async function merchantRoutes(app: FastifyInstance) {
           );
         }
 
+        // 4. Ensure User Identity (Lazy Migration)
+        if (!merchant.userId) {
+          const baseOauthId = oauthId.split(":")[0];
+          let user = await User.findOne({ oauthId: baseOauthId });
+          if (!user) {
+            user = await User.create({
+              oauthId: baseOauthId,
+              creditBalance: parseFloat(
+                process.env.WELCOME_CREDIT_AMOUNT || "5.00",
+              ),
+              welcomeBonusClaimed: true,
+              referralCode: await generateReferralCode(),
+            });
+          }
+          const updatedMerchant = await Merchant.findByIdAndUpdate(
+            merchant._id,
+            { $set: { userId: user._id } },
+            { new: true },
+          );
+          if (updatedMerchant) merchant = updatedMerchant;
+        }
+
+        let currentUser = merchant.userId
+          ? await User.findById(merchant.userId)
+          : null;
+
+        // Ensure legacy user has a referral code
+        if (currentUser && !currentUser.referralCode) {
+          const code = await generateReferralCode();
+          currentUser = await User.findByIdAndUpdate(
+            currentUser._id,
+            { $set: { referralCode: code } },
+            { new: true },
+          );
+        }
+
         results.push({
           id: merchant._id.toString(),
           merchantId: merchant.merchantId,
           name: merchant.name,
           email: merchant.email,
-          apiKey: apiKey ?? null, // Will only be returned once if generated just now
+          apiKey: apiKey ?? null,
           hasApiKey: true,
-          twoFactorEnabled: merchant.twoFactorEnabled || false,
+          twoFactorEnabled: currentUser?.twoFactorEnabled || false,
+          referralCode: currentUser?.referralCode,
+          referralEarningsUsd: currentUser?.referralEarningsUsd || 0,
+          creditBalance: currentUser?.creditBalance || 0,
         });
       }
 
@@ -276,6 +371,24 @@ export async function merchantRoutes(app: FastifyInstance) {
 
     if (!merchant) {
       return reply.code(401).send({ error: "Merchant not found" });
+    }
+
+    // Lazy Migration: Sync to User
+    if (!merchant.userId) {
+      let user = await User.findOne({ oauthId });
+      if (!user) {
+        user = await User.create({
+          oauthId,
+          creditBalance: parseFloat(
+            process.env.WELCOME_CREDIT_AMOUNT || "5.00",
+          ),
+          welcomeBonusClaimed: true,
+        });
+      }
+      await Merchant.findByIdAndUpdate(merchant._id, {
+        $set: { userId: user._id },
+      });
+      merchant.userId = user._id as any;
     }
 
     request.merchant = merchant;
@@ -339,6 +452,10 @@ export async function merchantRoutes(app: FastifyInstance) {
         });
       }
 
+      const user = merchant.userId
+        ? await User.findById(merchant.userId)
+        : null;
+
       return {
         id: merchant._id.toString(),
         merchantId: merchant.merchantId,
@@ -363,9 +480,9 @@ export async function merchantRoutes(app: FastifyInstance) {
           "invoice.failed",
         ],
         confirmationPolicy: merchant.confirmationPolicy,
-        twoFactorEnabled: merchant.twoFactorEnabled || false,
+        twoFactorEnabled: user?.twoFactorEnabled || false,
         feesAccrued: merchant.feesAccrued,
-        creditBalance: merchant.creditBalance,
+        creditBalance: user?.creditBalance ?? 0,
         createdAt: merchant.createdAt,
       };
     },
@@ -597,6 +714,94 @@ export async function merchantRoutes(app: FastifyInstance) {
   );
 
   // ──────────────────────────────────────────────
+  // POST /v1/merchants/me/plan — Update Plan (Upgrade/Downgrade)
+  // ──────────────────────────────────────────────
+  server.post(
+    "/v1/merchants/me/plan",
+    {
+      preHandler: requireAuth,
+      schema: {
+        body: z.object({
+          plan: z.enum(["starter", "professional", "enterprise"]),
+        }),
+      },
+    },
+    async (request, reply) => {
+      const merchant = request.merchant;
+      if (!merchant) return reply.code(401).send({ error: "Unauthorized" });
+
+      const { plan: newPlan } = request.body;
+      const currentPlan = merchant.plan || "starter";
+
+      if (newPlan === currentPlan) {
+        return reply.code(400).send({ error: "Already on this plan." });
+      }
+
+      // Plan costs
+      const PLAN_COSTS = {
+        starter: 0,
+        professional: 29,
+        enterprise: 99,
+      };
+
+      const cost = PLAN_COSTS[newPlan];
+
+      const currentPlanCost =
+        PLAN_COSTS[currentPlan as keyof typeof PLAN_COSTS] || 0;
+
+      // If upgrading to a paid plan, check balance for the first month
+      if (cost > 0 && cost > currentPlanCost) {
+        const user = merchant.userId
+          ? await User.findById(merchant.userId)
+          : null;
+        if (!user || user.creditBalance < cost) {
+          return reply.code(400).send({
+            error: `Insufficient balance to upgrade to ${newPlan}. You need at least $${cost.toFixed(2)} in credits.`,
+            required: cost,
+            currentBalance: user?.creditBalance || 0,
+          });
+        }
+
+        // Deduct first month immediately
+        await User.findByIdAndUpdate(user._id, {
+          $inc: { creditBalance: -cost },
+        });
+
+        await Merchant.findByIdAndUpdate(merchant._id, {
+          $set: {
+            plan: newPlan,
+            planStartedAt: new Date(),
+            spreadEnabled: true, // Default to true on upgrade
+          },
+        });
+
+        // Notify
+        NotificationService.create({
+          merchantId: merchant._id.toString(),
+          title: `Upgraded to ${newPlan.toUpperCase()}`,
+          description: `You have successfully upgraded your plan. $${cost.toFixed(2)} has been deducted for the first month.`,
+          type: "success",
+          link: "/dashboard/billing",
+        });
+      } else {
+        // Downgrading or switching between paid plans (simple update for now)
+        await Merchant.findByIdAndUpdate(merchant._id, {
+          $set: {
+            plan: newPlan,
+            planStartedAt: new Date(),
+          },
+        });
+      }
+
+      return {
+        success: true,
+        plan: newPlan,
+        message: `Plan updated to ${newPlan} successfully.`,
+      };
+    },
+  );
+
+  // ──────────────────────────────────────────────
   // GET /v1/merchants/me/stats — Dashboard Stats
   // ──────────────────────────────────────────────
   server.get(
@@ -734,6 +939,10 @@ export async function merchantRoutes(app: FastifyInstance) {
         });
       }
 
+      const user = merchant.userId
+        ? await User.findById(merchant.userId)
+        : null;
+
       return {
         totalVolume,
         testnetVolume,
@@ -742,12 +951,18 @@ export async function merchantRoutes(app: FastifyInstance) {
         successRate: `${successRate}%`,
         chartData,
         feesAccrued: merchant.feesAccrued || { usd: 0 },
-        creditBalance: merchant.creditBalance ?? 5.0,
-        currentFeeRate: parseFloat(process.env.PLATFORM_FEE_RATE || "0.01"),
+        creditBalance: user?.creditBalance ?? 0,
+        currentPlan: merchant.plan || "starter",
+        currentFeeRate:
+          {
+            starter: 0.01,
+            professional: 0.005,
+            enterprise: 0.0025,
+          }[merchant.plan || "starter"] || 0.01,
         platformFeeWallets: {
-          BTC: process.env.PLATFORM_FEE_WALLET_BTC || null,
-          LTC: process.env.PLATFORM_FEE_WALLET_LTC || null,
-          EVM: process.env.PLATFORM_FEE_WALLET_EVM || null, // Shared for ETH/USDT
+          BTC: null, // No longer accepted for top-ups
+          LTC: null, // No longer accepted for top-ups
+          EVM: process.env.PLATFORM_FEE_WALLET_EVM || null, // USDT/USDC Only
         },
       };
     },
@@ -784,14 +999,21 @@ export async function merchantRoutes(app: FastifyInstance) {
         }
 
         // 2. Identify the expected platform wallet
-        let expectedAddress = "";
-        if (currency === "BTC") {
-          expectedAddress = process.env.PLATFORM_FEE_WALLET_BTC || "";
-        } else if (currency === "LTC") {
-          expectedAddress = process.env.PLATFORM_FEE_WALLET_LTC || "";
-        } else {
-          expectedAddress = process.env.PLATFORM_FEE_WALLET_EVM || "";
+        // Billing is strictly Stablecoins (USDT/USDC) on EVM
+        const STABLECOINS = [
+          "USDT_ERC20",
+          "USDT_POLYGON",
+          "USDC_ERC20",
+          "USDC_POLYGON",
+        ];
+        if (!STABLECOINS.includes(currency)) {
+          return reply.code(400).send({
+            error:
+              "Top-ups are strictly limited to Stablecoins (USDT/USDC) on Polygon or Ethereum.",
+          });
         }
+
+        const expectedAddress = process.env.PLATFORM_FEE_WALLET_EVM || "";
 
         if (!expectedAddress) {
           return reply.code(500).send({
@@ -829,12 +1051,54 @@ export async function merchantRoutes(app: FastifyInstance) {
           status: "approved",
         });
 
-        await Merchant.findByIdAndUpdate(merchant._id, {
-          $inc: { creditBalance: usdAmount },
-        });
+        if (merchant.userId) {
+          await User.findByIdAndUpdate(merchant.userId, {
+            $inc: { creditBalance: usdAmount },
+          });
+        }
+
+        const user = merchant.userId
+          ? await User.findById(merchant.userId)
+          : null;
+
+        // 6. Referral Bonus Payout (10% to the referrer)
+        if (user && user.referredBy) {
+          const referralBonus = parseFloat((usdAmount * 0.1).toFixed(2));
+          if (referralBonus > 0) {
+            const referrer = await User.findById(user.referredBy);
+            if (referrer) {
+              await User.findByIdAndUpdate(referrer._id, {
+                $inc: {
+                  creditBalance: referralBonus,
+                  referralEarningsUsd: referralBonus,
+                },
+              });
+
+              // Notify the referrer on one of their merchants
+              const referrerMerchant = await Merchant.findOne({
+                userId: referrer._id,
+              });
+              if (referrerMerchant) {
+                await NotificationService.create({
+                  merchantId: referrerMerchant._id.toString(),
+                  title: "Referral Bonus Received! 🎁",
+                  description: `You earned $${referralBonus.toFixed(2)} from a user top-up.`,
+                  type: "success",
+                  link: "/dashboard/referrals",
+                });
+              }
+
+              server.log.info(
+                `🎁 Referral Bonus: User(${user.referredBy}) +$${referralBonus} (From User(${user._id}))`,
+              );
+            }
+          }
+        }
 
         // Fetch fresh state for response
-        const updatedMerchant = await Merchant.findById(merchant._id);
+        const updatedUser = merchant.userId
+          ? await User.findById(merchant.userId)
+          : null;
 
         server.log.info(
           `🤑 Top-Up Claimed: ${merchant._id} +$${usdAmount} (${txHash})`,
@@ -843,7 +1107,7 @@ export async function merchantRoutes(app: FastifyInstance) {
         return reply.send({
           success: true,
           addedUsd: usdAmount,
-          newCreditBalance: updatedMerchant?.creditBalance,
+          newCreditBalance: updatedUser?.creditBalance,
           claimId: claim._id,
         });
       } catch (err: unknown) {

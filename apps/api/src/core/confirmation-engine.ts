@@ -4,6 +4,7 @@ import {
   InvoiceStatus,
   Merchant,
   WebhookEvent,
+  User,
 } from "@qodinger/knot-database";
 import { SocketService } from "../infra/socket-service";
 import { WebhookDispatcher } from "../infra/webhook-dispatcher";
@@ -283,13 +284,20 @@ export class ConfirmationEngine {
         // 8. Deduct from Credit Balance & Accrue Fees (KnotEngine Fee)
         // Skip for testnet invoices
         if (!invoice.paidAt && !isTestnet) {
+          // A. Accrue Merchant-level fees (for reporting)
           await Merchant.findByIdAndUpdate(invoice.merchantId, {
             $inc: {
               "feesAccrued.usd": invoice.feeUsd,
               [`feesAccrued.${invoice.cryptoCurrency}`]: invoice.feeCrypto,
-              creditBalance: -invoice.feeUsd, // Deduct from prepaid credits
             },
           });
+
+          // B. Deduct from User-level shared credit balance
+          if (merchant.userId) {
+            await User.findByIdAndUpdate(merchant.userId, {
+              $inc: { creditBalance: -invoice.feeUsd },
+            });
+          }
 
           // Notify Merchant
           NotificationService.notifyPaymentConfirmed(
@@ -299,12 +307,14 @@ export class ConfirmationEngine {
             isTestnet,
           );
 
-          // Check if credit balance is getting low
-          const updatedMerchant = await Merchant.findById(invoice.merchantId);
-          if (updatedMerchant && updatedMerchant.creditBalance < 3.0) {
+          // Check if user credit balance is getting low
+          const user = merchant.userId
+            ? await User.findById(merchant.userId)
+            : null;
+          if (user && user.creditBalance < 3.0) {
             NotificationService.notifyLowBalance(
               invoice.merchantId.toString(),
-              updatedMerchant.creditBalance,
+              user.creditBalance,
             );
           }
         }

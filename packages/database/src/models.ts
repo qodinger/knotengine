@@ -1,6 +1,53 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 // ============================================================
+// 👤 USER MODEL
+// Represents an identity (OAuth user) that can own multiple merchants.
+// Holds the shared credit balance and yield earnings.
+// ============================================================
+
+export interface IUser extends Document {
+  oauthId: string;
+  email?: string;
+  /** Shared prepaid credit balance (USD) across all merchants */
+  creditBalance: number;
+  /** Total yield accrued by this user's funds */
+  yieldAccruedUsd: number;
+  lastYieldSyncAt?: Date;
+  welcomeBonusClaimed: boolean;
+  /** TOTP Two-Factor Authentication */
+  twoFactorEnabled: boolean;
+  twoFactorSecret?: string;
+  twoFactorBackupCodes?: string[];
+  /** Referral System */
+  referralCode?: string;
+  referredBy?: mongoose.Types.ObjectId;
+  referralEarningsUsd: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const UserSchema: Schema = new Schema(
+  {
+    oauthId: { type: String, unique: true, required: true },
+    email: { type: String, sparse: true },
+    creditBalance: { type: Number, default: 0 },
+    yieldAccruedUsd: { type: Number, default: 0 },
+    lastYieldSyncAt: { type: Date },
+    welcomeBonusClaimed: { type: Boolean, default: false },
+    twoFactorEnabled: { type: Boolean, default: false },
+    twoFactorSecret: { type: String },
+    twoFactorBackupCodes: { type: [String], default: [] },
+    referralCode: { type: String, unique: true, sparse: true },
+    referredBy: { type: Schema.Types.ObjectId, ref: "User" },
+    referralEarningsUsd: { type: Number, default: 0 },
+  },
+  { timestamps: true },
+);
+
+export const User = mongoose.model<IUser>("User", UserSchema);
+
+// ============================================================
 // 🏪 MERCHANT MODEL
 // Holds merchant settings, public derivation keys, and API auth.
 // ============================================================
@@ -8,6 +55,7 @@ import mongoose, { Schema, Document } from "mongoose";
 export interface IMerchant extends Document {
   /** Public-facing ID e.g. 'mid_abc123' */
   merchantId: string;
+  userId?: mongoose.Types.ObjectId;
   name: string;
   apiKeyHash?: string;
   /** OAuth identity string e.g. 'google:1234567890' */
@@ -25,10 +73,6 @@ export interface IMerchant extends Document {
   logoUrl?: string;
   returnUrl?: string;
   enabledCurrencies: string[];
-  /** TOTP Two-Factor Authentication */
-  twoFactorEnabled: boolean;
-  twoFactorSecret?: string;
-  twoFactorBackupCodes?: string[];
   /** Current derivation index for unique address generation */
   derivationIndex: number;
   /** Required confirmations per currency */
@@ -45,13 +89,13 @@ export interface IMerchant extends Document {
     USDT_ERC20: number;
     USDT_POLYGON: number;
   };
-  /** Prepaid credit balance (USD) — deducted per confirmed invoice */
-  creditBalance: number;
   /** Payment Configuration */
   feeResponsibility: "merchant" | "client";
   invoiceExpirationMinutes: number;
   underpaymentTolerancePercentage: number;
   bip21Enabled: boolean;
+  plan: "starter" | "professional" | "enterprise";
+  spreadEnabled: boolean;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -60,6 +104,7 @@ export interface IMerchant extends Document {
 const MerchantSchema: Schema = new Schema(
   {
     merchantId: { type: String, unique: true, sparse: true },
+    userId: { type: Schema.Types.ObjectId, ref: "User" },
     name: { type: String, default: "" },
     apiKeyHash: { type: String, sparse: true, unique: true },
     oauthId: { type: String, sparse: true },
@@ -75,9 +120,6 @@ const MerchantSchema: Schema = new Schema(
     logoUrl: { type: String },
     returnUrl: { type: String },
     enabledCurrencies: { type: [String], default: [] },
-    twoFactorEnabled: { type: Boolean, default: false },
-    twoFactorSecret: { type: String },
-    twoFactorBackupCodes: { type: [String], default: [] },
     webhookEvents: {
       type: [String],
       default: [
@@ -106,7 +148,6 @@ const MerchantSchema: Schema = new Schema(
       USDT_ERC20: { type: Number, default: 0 },
       USDT_POLYGON: { type: Number, default: 0 },
     },
-    creditBalance: { type: Number, default: 5.0 },
     feeResponsibility: {
       type: String,
       enum: ["merchant", "client"],
@@ -115,6 +156,13 @@ const MerchantSchema: Schema = new Schema(
     invoiceExpirationMinutes: { type: Number, default: 30 },
     underpaymentTolerancePercentage: { type: Number, default: 1 },
     bip21Enabled: { type: Boolean, default: true },
+    plan: {
+      type: String,
+      enum: ["starter", "professional", "enterprise"],
+      default: "starter",
+    },
+    spreadEnabled: { type: Boolean, default: true },
+    planStartedAt: { type: Date, default: Date.now },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true },

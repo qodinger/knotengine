@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
-import { Invoice, Merchant, IInvoice } from "@qodinger/knot-database";
+import { Invoice, Merchant, IInvoice, User } from "@qodinger/knot-database";
 import { Derivator } from "@qodinger/knot-crypto";
 import { PriceOracle } from "../infra/price-feed";
 import { ConfirmationEngine } from "../core/confirmation-engine";
@@ -106,21 +106,38 @@ export async function invoiceRoutes(app: FastifyInstance) {
         } = request.body;
 
         // 1. Get real-time crypto price
-        const priceUsd = await PriceOracle.getPrice(currency as Currency);
-        const cryptoAmount = parseFloat((amount_usd / priceUsd).toFixed(8));
+        const marketPrice = await PriceOracle.getPrice(currency as Currency);
+
+        // Determine network context: is it a testnet invoice?
+        const isTestnet = is_testnet === true;
+
+        // Apply Spread:
+        // 1. Starter plan = Always 1% spread
+        // 2. Pro/Enterprise = Spread is optional (merchant.spreadEnabled)
+        // 3. Testnet = Always 0 spread
+        const shouldApplySpread =
+          !isTestnet && (merchant.plan === "starter" || merchant.spreadEnabled);
+        const platformSpread = shouldApplySpread
+          ? parseFloat(process.env.PLATFORM_SPREAD_RATE || "0.01")
+          : 0;
+        const customerPrice = marketPrice * (1 - platformSpread);
+
+        const cryptoAmountWithSpread = parseFloat(
+          (amount_usd / customerPrice).toFixed(8),
+        );
+
+        const cryptoAmount = cryptoAmountWithSpread; // This is what the customer must pay
 
         // 2. Derive a unique payment address
         const nextIndex = merchant.derivationIndex + 1;
         let payAddress: string;
 
-        // Determine network context: is it a testnet invoice?
-        const isTestnet = is_testnet === true;
         const envNetwork =
           (process.env.BITCOIN_NETWORK as "bitcoin" | "testnet" | "regtest") ||
           "bitcoin";
 
         // Safety Rail: Only BTC, LTC, ETH and USDT supported on Testnet
-        if (isTestnet && !SUPPORTED_CURRENCIES.includes(currency as any)) {
+        if (isTestnet && !SUPPORTED_CURRENCIES.includes(currency)) {
           return reply.code(400).send({
             error: `Testnet is currently only supported for: ${SUPPORTED_CURRENCIES.join(", ")}.`,
           });
@@ -190,15 +207,16 @@ export async function invoiceRoutes(app: FastifyInstance) {
         }
 
         // 4. Credit Balance Gate
-        if (!isTestnet && merchant.creditBalance <= 0) {
+        const user = merchant.userId
+          ? await User.findById(merchant.userId)
+          : null;
+        if (!isTestnet && (!user || user.creditBalance <= 0)) {
           return reply.code(402).send({
             error:
               "Insufficient credit balance. Please top up your account to continue creating invoices.",
-            creditBalance: merchant.creditBalance,
+            creditBalance: user?.creditBalance || 0,
             topUpWallets: {
-              BTC: process.env.PLATFORM_FEE_WALLET_BTC || null,
-              LTC: process.env.PLATFORM_FEE_WALLET_LTC || null,
-              EVM: process.env.PLATFORM_FEE_WALLET_EVM || null,
+              EVM_STABLECOIN: process.env.PLATFORM_FEE_WALLET_EVM || null,
             },
           });
         }
@@ -214,9 +232,14 @@ export async function invoiceRoutes(app: FastifyInstance) {
         const invoiceId = `inv_${crypto.randomBytes(12).toString("hex")}`;
 
         // 6. Calculate Fees and Totals
-        const platfromFeeRate = parseFloat(
-          process.env.PLATFORM_FEE_RATE || "0.01",
-        ); // 1%
+        // Determine the rate based on the plan: Starter: 1%, Pro: 0.5%, Enterprise: 0.25%
+        const planRates: Record<string, number> = {
+          starter: 0.01,
+          professional: 0.005,
+          enterprise: 0.0025,
+        };
+
+        const activeFeeRate = planRates[merchant.plan] || 0.01;
         const minFeeUsd = parseFloat(process.env.MIN_FEE_USD || "0.05");
 
         let feeUsd = 0;
@@ -225,19 +248,37 @@ export async function invoiceRoutes(app: FastifyInstance) {
         let totalCryptoAmount = cryptoAmount;
 
         if (!isTestnet) {
-          const rawFeeUsd = amount_usd * platfromFeeRate;
-          feeUsd = parseFloat(Math.max(rawFeeUsd, minFeeUsd).toFixed(2));
-          feeCrypto = parseFloat(
-            ((feeUsd / amount_usd) * cryptoAmount).toFixed(8),
+          // A. Calculate Base Platform Fee
+          const rawBaseFeeUsd = amount_usd * activeFeeRate;
+          const baseFeeUsd = parseFloat(
+            Math.max(rawBaseFeeUsd, minFeeUsd).toFixed(2),
           );
 
-          // If client pays the fee, add it to the payment total
+          let billedFiat = amount_usd;
+
+          // If client pays the base fee, increase the fiat target
           if (merchant.feeResponsibility === "client") {
-            totalAmountUsd = parseFloat((amount_usd + feeUsd).toFixed(2));
-            totalCryptoAmount = parseFloat(
-              (cryptoAmount + feeCrypto).toFixed(8),
-            );
+            billedFiat = parseFloat((amount_usd + baseFeeUsd).toFixed(2));
           }
+
+          // B. Calculate Final Crypto Amount for the whole bill
+          totalCryptoAmount = parseFloat(
+            (billedFiat / customerPrice).toFixed(8),
+          );
+          totalAmountUsd = billedFiat;
+
+          // C. Calculate Spread Gain (Recapture)
+          // The spread gain is the extra USD value the merchant receives on-chain
+          const marketValueReceived = totalCryptoAmount * marketPrice;
+          const spreadProfitUsd = marketValueReceived - billedFiat;
+
+          // D. Final Deduction (Total profit for KnotEngine)
+          feeUsd = parseFloat((baseFeeUsd + spreadProfitUsd).toFixed(2));
+
+          // feeCrypto is just for tracking/display relative to the payment
+          feeCrypto = parseFloat(
+            ((feeUsd / marketValueReceived) * totalCryptoAmount).toFixed(8),
+          );
         }
 
         // 7. Create the invoice
@@ -554,9 +595,14 @@ export async function invoiceRoutes(app: FastifyInstance) {
           $inc: {
             "feesAccrued.usd": invoice.feeUsd,
             [`feesAccrued.${invoice.cryptoCurrency}`]: invoice.feeCrypto,
-            creditBalance: -invoice.feeUsd,
           },
         });
+
+        if (merchant.userId) {
+          await User.findByIdAndUpdate(merchant.userId, {
+            $inc: { creditBalance: -invoice.feeUsd },
+          });
+        }
       }
 
       const NotificationService = (

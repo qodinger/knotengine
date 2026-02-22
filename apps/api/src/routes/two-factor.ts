@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
-import { Merchant } from "@qodinger/knot-database";
+import { Merchant, User } from "@qodinger/knot-database";
 import { generateSecret, generateURI, verifySync } from "otplib";
 import * as QRCode from "qrcode";
 import * as crypto from "crypto";
@@ -72,7 +72,13 @@ export async function twoFactorRoutes(app: FastifyInstance) {
       const merchant = request.merchant;
       if (!merchant) return reply.code(500).send({ error: "Auth failed" });
 
-      if (merchant.twoFactorEnabled) {
+      const user = merchant.userId
+        ? await User.findById(merchant.userId)
+        : null;
+      if (!user)
+        return reply.code(400).send({ error: "User identity not found." });
+
+      if (user.twoFactorEnabled) {
         return reply.code(400).send({
           error:
             "Two-factor authentication is already enabled. Disable it first to reconfigure.",
@@ -95,7 +101,7 @@ export async function twoFactorRoutes(app: FastifyInstance) {
       const qrCodeDataUrl = await QRCode.toDataURL(otpauthUrl);
 
       // Save the secret temporarily (not yet enabled)
-      await Merchant.findByIdAndUpdate(merchant._id, {
+      await User.findByIdAndUpdate(user._id, {
         $set: { twoFactorSecret: secret },
       });
 
@@ -129,13 +135,19 @@ export async function twoFactorRoutes(app: FastifyInstance) {
       const merchant = request.merchant;
       if (!merchant) return reply.code(500).send({ error: "Auth failed" });
 
-      if (merchant.twoFactorEnabled) {
+      const user = merchant.userId
+        ? await User.findById(merchant.userId)
+        : null;
+      if (!user)
+        return reply.code(400).send({ error: "User identity not found." });
+
+      if (user.twoFactorEnabled) {
         return reply
           .code(400)
           .send({ error: "Two-factor authentication is already enabled." });
       }
 
-      if (!merchant.twoFactorSecret) {
+      if (!user.twoFactorSecret) {
         return reply.code(400).send({
           error:
             "No 2FA setup in progress. Call /2fa/setup first to generate a secret.",
@@ -147,7 +159,7 @@ export async function twoFactorRoutes(app: FastifyInstance) {
       // Verify the TOTP code against the saved secret
       const result = verifySync({
         token: code,
-        secret: merchant.twoFactorSecret,
+        secret: user.twoFactorSecret,
       });
 
       if (!result.valid) {
@@ -167,7 +179,7 @@ export async function twoFactorRoutes(app: FastifyInstance) {
       );
 
       // Enable 2FA
-      await Merchant.findByIdAndUpdate(merchant._id, {
+      await User.findByIdAndUpdate(user._id, {
         $set: {
           twoFactorEnabled: true,
           twoFactorBackupCodes: hashedBackupCodes,
@@ -203,7 +215,13 @@ export async function twoFactorRoutes(app: FastifyInstance) {
       const merchant = request.merchant;
       if (!merchant) return reply.code(500).send({ error: "Auth failed" });
 
-      if (!merchant.twoFactorEnabled || !merchant.twoFactorSecret) {
+      const user = merchant.userId
+        ? await User.findById(merchant.userId)
+        : null;
+      if (!user)
+        return reply.code(400).send({ error: "User identity not found." });
+
+      if (!user.twoFactorEnabled || !user.twoFactorSecret) {
         return reply.code(400).send({
           error: "Two-factor authentication is not enabled on this account.",
         });
@@ -214,7 +232,7 @@ export async function twoFactorRoutes(app: FastifyInstance) {
       // 1. Try standard TOTP verification
       const result = verifySync({
         token: code,
-        secret: merchant.twoFactorSecret,
+        secret: user.twoFactorSecret,
       });
 
       if (result.valid) {
@@ -227,7 +245,7 @@ export async function twoFactorRoutes(app: FastifyInstance) {
         .update(code.toUpperCase())
         .digest("hex");
 
-      const backupCodes = merchant.twoFactorBackupCodes || [];
+      const backupCodes = user.twoFactorBackupCodes || [];
       const backupIndex = backupCodes.findIndex((bc) => bc === codeHash);
 
       if (backupIndex !== -1) {
@@ -235,7 +253,7 @@ export async function twoFactorRoutes(app: FastifyInstance) {
         const updatedCodes = [...backupCodes];
         updatedCodes.splice(backupIndex, 1);
 
-        await Merchant.findByIdAndUpdate(merchant._id, {
+        await User.findByIdAndUpdate(user._id, {
           $set: { twoFactorBackupCodes: updatedCodes },
         });
 
@@ -275,7 +293,13 @@ export async function twoFactorRoutes(app: FastifyInstance) {
       const merchant = request.merchant;
       if (!merchant) return reply.code(500).send({ error: "Auth failed" });
 
-      if (!merchant.twoFactorEnabled || !merchant.twoFactorSecret) {
+      const user = merchant.userId
+        ? await User.findById(merchant.userId)
+        : null;
+      if (!user)
+        return reply.code(400).send({ error: "User identity not found." });
+
+      if (!user.twoFactorEnabled || !user.twoFactorSecret) {
         return reply.code(400).send({
           error: "Two-factor authentication is not currently enabled.",
         });
@@ -286,7 +310,7 @@ export async function twoFactorRoutes(app: FastifyInstance) {
       // Verify the TOTP code before allowing disable
       const result = verifySync({
         token: code,
-        secret: merchant.twoFactorSecret,
+        secret: user.twoFactorSecret,
       });
 
       if (!result.valid) {
@@ -296,7 +320,7 @@ export async function twoFactorRoutes(app: FastifyInstance) {
       }
 
       // Disable 2FA and clean up secrets
-      await Merchant.findByIdAndUpdate(merchant._id, {
+      await User.findByIdAndUpdate(user._id, {
         $set: {
           twoFactorEnabled: false,
         },
@@ -326,8 +350,12 @@ export async function twoFactorRoutes(app: FastifyInstance) {
       const merchant = request.merchant;
       if (!merchant) return reply.code(500).send({ error: "Auth failed" });
 
+      const user = merchant.userId
+        ? await User.findById(merchant.userId)
+        : null;
+
       return reply.code(200).send({
-        enabled: merchant.twoFactorEnabled === true,
+        enabled: user?.twoFactorEnabled === true,
       });
     },
   );
