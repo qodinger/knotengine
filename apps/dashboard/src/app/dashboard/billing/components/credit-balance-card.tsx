@@ -136,11 +136,14 @@ export function CreditBalanceCard({ stats, loading }: CreditBalanceCardProps) {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1 p-4 rounded-xl bg-background/60 border border-border/40">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-                Fee Rate
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold flex justify-between">
+                <span>Fee Rate</span>
+                {!loading && (
+                  <span className="text-primary/60">{stats?.currentPlan}</span>
+                )}
               </span>
               <span className="text-xl font-bold">
-                {loading ? "—" : `${(feeRate * 100).toFixed(1)}%`}
+                {loading ? "—" : `${(feeRate * 100).toFixed(2)}%`}
               </span>
               <span className="text-[10px] text-muted-foreground font-medium">
                 Per confirmed invoice

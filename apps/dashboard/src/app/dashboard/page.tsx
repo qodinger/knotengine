@@ -5,6 +5,7 @@ import { OverviewHeader } from "./overview/components/overview-header";
 import { OverviewStats } from "./overview/components/overview-stats";
 import { VolumeChart } from "./overview/components/volume-chart";
 import { RecentInvoices } from "./overview/components/recent-invoices";
+import { FeaturedPartner } from "./overview/components/featured-partner";
 
 export default function DashboardOverview() {
   const { data, recentInvoices, loading, period, setPeriod, mounted } =
@@ -22,6 +23,8 @@ export default function DashboardOverview() {
         <VolumeChart data={data} period={period} setPeriod={setPeriod} />
         <RecentInvoices invoices={recentInvoices} />
       </div>
+
+      <FeaturedPartner />
     </div>
   );
 }

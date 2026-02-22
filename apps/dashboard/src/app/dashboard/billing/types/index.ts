@@ -5,6 +5,7 @@ export interface StatsData {
   activeInvoices: number;
   feesAccrued: { usd: number };
   creditBalance: number;
+  currentPlan: "starter" | "professional" | "enterprise";
   currentFeeRate: number;
   platformFeeWallets: {
     BTC: string | null;

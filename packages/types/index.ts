@@ -8,6 +8,8 @@ export const SUPPORTED_CURRENCIES = [
   "ETH",
   "USDT_ERC20",
   "USDT_POLYGON",
+  "USDC_ERC20",
+  "USDC_POLYGON",
 ] as const;
 
 export type Currency = (typeof SUPPORTED_CURRENCIES)[number];
@@ -20,6 +22,8 @@ export const CRYPTO_LOGOS: Record<Currency, string> = {
   ETH: "https://cryptologos.cc/logos/ethereum-eth-logo.svg?v=032",
   USDT_ERC20: "https://cryptologos.cc/logos/tether-usdt-logo.svg?v=032",
   USDT_POLYGON: "https://cryptologos.cc/logos/tether-usdt-logo.svg?v=032",
+  USDC_ERC20: "https://cryptologos.cc/logos/usd-coin-usdc-logo.svg?v=032",
+  USDC_POLYGON: "https://cryptologos.cc/logos/usd-coin-usdc-logo.svg?v=032",
 };
 
 export const CRYPTO_LABELS: Record<Currency, string> = {
@@ -28,6 +32,8 @@ export const CRYPTO_LABELS: Record<Currency, string> = {
   ETH: "Ethereum (ETH)",
   USDT_ERC20: "Tether (USDT) on Ethereum",
   USDT_POLYGON: "Tether (USDT) on Polygon",
+  USDC_ERC20: "USD Coin (USDC) on Ethereum",
+  USDC_POLYGON: "USD Coin (USDC) on Polygon",
 };
 
 /**
@@ -42,6 +48,12 @@ export const ASSET_CONFIG = [
     label: "Tether",
     symbol: "USDT",
     icon: CRYPTO_LOGOS.USDT_ERC20,
+  },
+  {
+    id: "USDC",
+    label: "USD Coin",
+    symbol: "USDC",
+    icon: CRYPTO_LOGOS.USDC_ERC20,
   },
 ];
 
@@ -130,6 +142,32 @@ export const NETWORK_CONFIG: Record<string, NetworkInfo[]> = {
       networkFee: "0.01 USDT (≈ $0.01)",
     },
   ],
+  USDC: [
+    {
+      id: "USDC_ERC20",
+      label: "Ethereum (ERC20)",
+      networkName: "Ethereum (ERC20)",
+      networkSymbol: "ETH",
+      merchantField: "ethAddress",
+      type: "Static Address",
+      iconColor: "bg-blue-500",
+      iconUrl: CRYPTO_LOGOS.USDC_ERC20,
+      estimatedTime: "≈ 2 mins",
+      networkFee: "0.05 USDC (≈ $0.05)",
+    },
+    {
+      id: "USDC_POLYGON",
+      label: "Polygon Network",
+      networkName: "Polygon",
+      networkSymbol: "POLYGON",
+      merchantField: "ethAddress",
+      type: "Static Address",
+      iconColor: "bg-blue-600",
+      iconUrl: CRYPTO_LOGOS.USDC_POLYGON,
+      estimatedTime: "≈ 1 mins",
+      networkFee: "0.01 USDC (≈ $0.01)",
+    },
+  ],
 };
 
 export type InvoiceStatus =
@@ -195,4 +233,5 @@ export const DEFAULT_CONFIRMATIONS: Record<string, number> = {
   ETH: 12,
   USDT_ERC20: 12,
   USDT_POLYGON: 30,
+  USDC_POLYGON: 30,
 };

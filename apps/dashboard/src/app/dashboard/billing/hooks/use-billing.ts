@@ -143,6 +143,23 @@ export function useBilling() {
     }
   };
 
+  const handleUpdatePlan = async (newPlan: string) => {
+    try {
+      setLoading(true);
+      await api.post("/v1/merchants/me/plan", { plan: newPlan });
+      await fetchData();
+    } catch (err: unknown) {
+      console.error("Failed to update plan", err);
+      let errorResponse = "Failed to update plan";
+      if (axios.isAxiosError(err)) {
+        errorResponse = err.response?.data?.error || errorResponse;
+      }
+      alert(errorResponse);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     stats,
     loading,
@@ -169,5 +186,6 @@ export function useBilling() {
     handleGeneratePayment,
     submitClaim,
     getWalletAddress,
+    handleUpdatePlan,
   };
 }

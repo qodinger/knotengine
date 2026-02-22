@@ -23,7 +23,9 @@ export class TxVerifier {
       } else if (
         currency === "ETH" ||
         currency === "USDT_ERC20" ||
-        currency === "USDT_POLYGON"
+        currency === "USDT_POLYGON" ||
+        currency === "USDC_ERC20" ||
+        currency === "USDC_POLYGON"
       ) {
         return await this.verifyEvmTx(txHash, currency, expectedToAddress);
       }
@@ -85,11 +87,16 @@ export class TxVerifier {
 
   private static async verifyEvmTx(
     txHash: string,
-    currency: "ETH" | "USDT_ERC20" | "USDT_POLYGON",
+    currency:
+      | "ETH"
+      | "USDT_ERC20"
+      | "USDT_POLYGON"
+      | "USDC_ERC20"
+      | "USDC_POLYGON",
     expectedToAddress: string,
   ) {
     let rpcUrl = "";
-    if (currency === "USDT_POLYGON") {
+    if (currency === "USDT_POLYGON" || currency === "USDC_POLYGON") {
       rpcUrl = `https://polygon-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`;
     } else {
       rpcUrl = `https://eth-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`;
@@ -112,7 +119,7 @@ export class TxVerifier {
         return { isValid: amountCrypto > 0, amountCrypto };
       }
     } else {
-      // Check ERC20 token transfer (USDT)
+      // Check ERC20 token transfer (USDT / USDC)
       const receipt = await provider.getTransactionReceipt(txHash);
       if (!receipt || receipt.status === 0)
         return { isValid: false, amountCrypto: 0 }; // Reverted
@@ -133,12 +140,20 @@ export class TxVerifier {
           // Check contract addresses for correctness
           const usdtEth = "0xdac17f958d2ee523a2206206994597c13d831ec7";
           const usdtPolygon = "0xc2132d05d31c914a87c6611c10748aeb04b58e8f";
+          const usdcEth = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48";
+          const usdcPolygon = "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359";
 
           const validContract =
-            currency === "USDT_POLYGON" ? usdtPolygon : usdtEth;
+            currency === "USDT_POLYGON"
+              ? usdtPolygon
+              : currency === "USDC_POLYGON"
+                ? usdcPolygon
+                : currency === "USDC_ERC20"
+                  ? usdcEth
+                  : usdtEth;
 
           if (log.address.toLowerCase() === validContract.toLowerCase()) {
-            // USDT uses 6 decimals
+            // USDT and USDC on Ethereum both use 6 decimals
             const amountBN = ethers.formatUnits(log.data, 6);
             totalTokens += parseFloat(amountBN);
           }

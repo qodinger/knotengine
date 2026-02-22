@@ -76,29 +76,82 @@ By leveraging **HD Wallet Derivation (BIP44)**, the system generates unique, one
 **Focus:** Validation of the "Stateless" Developer-First Model.
 
 - [x] **Infrastructure Hardening:** Git hooks (Husky, Commitlint) and rigid linting.
-- [x] **API Refinement:** Removed legacy AI/Agent routes to focus on core payment gateway.
-- [x] **API Key Prefixing:** Standardized API keys (`knot_sk_`) and Webhook secrets (`knot_wh_`).
+- [x] **API Refinement:** Standardized `KnotClient` SDK and added `/docs` Swagger documentation.
+- [x] **Licensing Shift:** Migrated the entire monorepo from MIT to **AGPL-3.0 (strong copyleft)** to protect the business model.
+- [x] **API Enhancements:** Added `checkout_url` to invoice responses for easier integration.
 - [x] **Auth Integration:** Wired up Login/Register UI to backend (API Key Based).
 - [x] **Testnet Beta:** Launched public testnet with faucet support.
 - [x] **Two-Factor Authentication (2FA):** Implemented TOTP-based security flow for merchant accounts.
 - [ ] **Legal Framework:** Register under KnotEngine IT Services.
-- [x] **Monetization:** Implement the 1.0% "KnotEngine Fee" via auto-accrual logic with designated platform collection wallets (BTC, LTC, EVM).
-- [x] **Ecosystem:** Launch documentation portal and official `@knotengine/sdk` npm package.
+- [x] **Monetization Engine (V1):** Implemented multi-tier logic (Free, Pro, Enterprise) with plan-aware fees.
+- [x] **Stablecoin-Only Billing:** Pivoted platform revenue to only accept USDT/USDC to eliminate volatility for "The Float".
+- [x] **Spread Recapture:** Implemented 1.0% auto-conversion spread for Starter accounts to cover infra costs.
+- [x] **Ecosystem:** Launch documentation portal and official `@qodinger/knot-sdk` npm package.
 - [x] **Live Dashboard Notifications:** Implement real-time events via Socket.io.
-  - [x] **Payments:** New Transaction (Mempool), Confirmed (Settlement), and Expiration alerts.
-  - [x] **Billing:** Low Credit Balance warnings (< $3.00) top-up alerts.
-  - [x] **Operations:** Webhook failure/retry alerts for developers.
-- [x] **Database Optimization:** Implemented 30-day TTL indexes for `WebhookEvent` and `Notification` collections to handle automatic log cleanup.
+- [x] **Database Optimization:** Implemented 30-day TTL indexes for logs and notifications.
 
 ### Phase 5: Growth & Advanced Tools (Next Up) 🔮
 
 **Focus:** Enhancing power-user tools for independent merchants.
 
+- [ ] **Merchant Billing UI:** Build the Dashboard tab for upgrading plans (Pro/Enterprise) and topping up credits.
+- [ ] **Spread Toggle UI:** Implement the setting for Pro/Enterprise merchants to disable the 1% spread.
 - [ ] **Reporting & Accounting:** Generate monthly revenue reports and CSV/JSON exports for taxes.
 - [ ] **Mobile Optimization:** Progressive Web App (PWA) for managing merchants on mobile devices.
-- [ ] **Multi-Asset Support:** Expand to higher-layer networks (L2s) for even lower transaction fees.
-- [ ] **External Notifications:** Implement email and Telegram alerts for new payments, balance warnings, and security events.
+- [ ] **External Notifications:** Implement email and Telegram alerts for security and payment events.
 - [ ] **Audit Logs:** Personal audit trail to track account changes and security events.
+- [ ] **Affiliate Integration:** Launch "Partner Program" to earn commissions from Ledger, Trezor, and MoonPay.
+
+### Phase 6: Launch & Public Identity 🚀
+
+**Focus:** Converting the infrastructure into a consumer-ready brand.
+
+- [ ] **Marketing Landing Page:** Build a premium, high-conversion homepage at `knotengine.com`.
+- [ ] **Legal Portal:** Implement `/terms` and `/privacy` pages with non-custodial protection clauses.
+- [ ] **Documentation Portal:** Create a dedicated docs site (e.g., `docs.knotengine.com`) with integration guides.
+- [ ] **SEO Optimization:** Finalize metadata, sitemaps, and robots.txt for all public routes.
+- [ ] **Deployment:** Final production deployment to cloud infrastructure.
+
+---
+
+## 🎯 Success Metrics
+
+- **⚡ Speed:** < 3 seconds for transaction detection from mempool.
+- **💎 Reliability:** 99.99% Webhook delivery success rate.
+- **📈 Adoption:** 10+ Production merchants within Q1.
+
+---
+
+## 📈 Revenue Comparison (Per Merchant)
+
+| Method                    | Est. Monthly Revenue     | Effort Level                   |
+| :------------------------ | :----------------------- | :----------------------------- |
+| **Transaction Fees (1%)** | $10,000                  | Passive (Built-in)             |
+| **SaaS Subscriptions**    | $2,000 - $5,000          | Medium (Needs UI work)         |
+| **Exchange Spread (2%)**  | $20,000                  | High (Needs exchange API)      |
+| **The Float (Yield)**     | **3-5% APY on Balances** | **Passive (Asset Management)** |
+| **Partner Kickbacks**     | **10-15% Revenue Share** | **Passive (Affiliate Links)**  |
+
+---
+
+## 🏦 "The Float" (DeFi Yield Strategy)
+
+Since KnotEngine uses a prepaid **Credit Balance** system, the platform effectively holds a pool of merchant funds.
+
+- **Strategy:** Aggregated fee credits are held in yield-bearing assets via **Aave (V3)** on Polygon. This maintains our non-custodial ethos while generating platform revenue.
+- **Profit:** The platform retains 100% of the interest generated by the float, while merchants spend their balance at a 1:1 USD value.
+- **Benefit:** This creates a "Risk-Free" revenue stream that is fully transparent and on-chain.
+- **Tracking:** Individual merchant contributions to the float yield are tracked via `yieldAccruedUsd` for platform analytics.
+
+---
+
+## 🤝 The Ecosystem (Affiliate Strategy)
+
+Generate secondary revenue by solving merchant pain points through trusted partners:
+
+1.  **🏦 Off-Ramping:** Integrate a "Withdraw to Bank" button via **MoonPay** or **Banxa**. Earn a commission for every transaction routed from our dashboard.
+2.  **🛡️ Security Upsell:** Place "Secure your funds" links for **Ledger** or **Trezor** hardware wallets. Ideal for new merchants setting up their first `xPub`.
+3.  **⚖️ Tax Compliance:** Partner with **Koinly** or **CoinTracker** to offer "One-Click Accounting" for KnotEngine transaction logs.
 
 ---
 

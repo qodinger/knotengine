@@ -66,22 +66,29 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             merchantId: string;
             name?: string;
             twoFactorEnabled?: boolean;
+            referralCode?: string;
+            referralEarningsUsd?: number;
           }) => ({
             id: m.id,
             merchantId: m.merchantId,
             name: m.name || "Untitled Merchant",
+            referralCode: m.referralCode,
+            referralEarningsUsd: m.referralEarningsUsd || 0,
           }),
         );
         if (merchants.length > 0) {
           if (!token.merchantId) token.merchantId = merchants[0].id;
           if (!token.publicMerchantId)
             token.publicMerchantId = merchants[0].merchantId;
-          // Track if the active merchant requires 2FA
+
           const activeMerchant =
             merchants.find((m: { id: string }) => m.id === token.merchantId) ||
             merchants[0];
+
+          token.referralCode = activeMerchant.referralCode;
+          token.referralEarningsUsd = activeMerchant.referralEarningsUsd || 0;
           token.twoFactorRequired = activeMerchant.twoFactorEnabled || false;
-          token.twoFactorVerified = false; // Needs verification on fresh login
+          token.twoFactorVerified = false;
         }
       }
 
@@ -90,10 +97,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // Refresh list to pick up new creations
         const merchants = await fetchMerchants(token.oauthId as string);
         token.merchants = merchants.map(
-          (m: { id: string; merchantId: string; name?: string }) => ({
+          (m: {
+            id: string;
+            merchantId: string;
+            name?: string;
+            referralCode?: string;
+            referralEarningsUsd?: number;
+          }) => ({
             id: m.id,
             merchantId: m.merchantId,
             name: m.name || "Untitled Merchant",
+            referralCode: m.referralCode,
+            referralEarningsUsd: m.referralEarningsUsd || 0,
           }),
         );
 
@@ -121,6 +136,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             token.merchantId = undefined;
             token.publicMerchantId = undefined;
           }
+        }
+
+        // Sync active merchant referral data (AFTER switching IDs)
+        const finalActive = merchants.find(
+          (m: { id: string }) => m.id === token.merchantId,
+        );
+        if (finalActive) {
+          token.referralCode = finalActive.referralCode;
+          token.referralEarningsUsd = finalActive.referralEarningsUsd || 0;
         }
 
         if (session?.apiKey) {
@@ -153,11 +177,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
           token.merchantId = activeMerchant.id;
           token.publicMerchantId = activeMerchant.merchantId;
+          token.referralCode = activeMerchant.referralCode;
+          token.referralEarningsUsd = activeMerchant.referralEarningsUsd || 0;
           token.merchants = merchants.map(
-            (m: { id: string; merchantId: string; name?: string }) => ({
+            (m: {
+              id: string;
+              merchantId: string;
+              name?: string;
+              referralCode?: string;
+              referralEarningsUsd?: number;
+            }) => ({
               id: m.id,
               merchantId: m.merchantId,
               name: m.name || "Untitled Merchant",
+              referralCode: m.referralCode,
+              referralEarningsUsd: m.referralEarningsUsd || 0,
             }),
           );
         }
@@ -179,6 +213,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user.twoFactorRequired = token.twoFactorRequired || false;
       // @ts-expect-error - 2FA fields
       session.user.twoFactorVerified = token.twoFactorVerified || false;
+      // @ts-expect-error - Referral fields
+      session.user.referralCode = token.referralCode as string;
+      // @ts-expect-error - Referral fields
+      session.user.referralEarningsUsd = token.referralEarningsUsd as number;
       return session;
     },
   },

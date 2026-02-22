@@ -23,16 +23,6 @@ import { QRCodeSVG } from "qrcode.react";
 import { Currency, NETWORK_CONFIG, ASSET_CONFIG } from "@qodinger/knot-types";
 import { StatsData } from "../types";
 
-/**
- * Maps a currency id to the platformFeeWallets key to check availability.
- * BTC/LTC have their own keys, all EVM-based currencies share "EVM".
- */
-function getPlatformWalletKey(currencyId: string): "BTC" | "LTC" | "EVM" {
-  if (currencyId === "BTC") return "BTC";
-  if (currencyId === "LTC") return "LTC";
-  return "EVM";
-}
-
 interface TopUpDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -121,19 +111,24 @@ export function TopUpDialog({
                 </Button>
               ) : null}
               {step === 1
-                ? "Select Top-Up Amount"
+                ? "Top Up with Stablecoins"
                 : step === 2
-                  ? "Pay with Crypto"
+                  ? "Pay with Stablecoin"
                   : "Verify Transaction"}
             </DialogTitle>
             <DialogDescription asChild>
-              <div className="text-xs text-muted-foreground mt-1.5">
-                {step === 1 &&
-                  "Enter how much you want to add to your prepaid balance, and choose a cryptocurrency."}
+              <div className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                {step === 1 && (
+                  <>
+                    KnotEngine uses <strong>Stablecoin-Only Billing</strong> via
+                    Ethereum or Polygon to guarantee your balance stability and
+                    fund our yield pools. Select an amount below.
+                  </>
+                )}
                 {step === 2 &&
-                  "Send the exact cryptocurrency amount to the address below. Your balance updates instantly after confirmation."}
+                  "Send the exact stablecoin amount via the Ethereum or Polygon network to the address below. Your balance updates 1:1 with USD after confirmation."}
                 {step === 3 &&
-                  "If you previously closed this dialog after sending payment, select the coin and paste the transaction hash below to manually confirm."}
+                  "If you previously closed this dialog after sending payment, select the currency and paste the transaction hash below."}
               </div>
             </DialogDescription>
           </DialogHeader>
@@ -165,7 +160,7 @@ export function TopUpDialog({
               <div className="grid gap-4">
                 <div className="space-y-2">
                   <label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-                    Pay With (Coin)
+                    Pay With (Stablecoin)
                   </label>
                   <Select
                     value={selectedCoin}
@@ -175,17 +170,15 @@ export function TopUpDialog({
                     }}
                   >
                     <SelectTrigger className="w-full h-11! shadow-sm bg-background/50 border-border/80 [&>span]:flex [&>span]:items-center [&>span]:gap-2 [&>span_img]:shrink-0">
-                      <SelectValue placeholder="Select a coin" />
+                      <SelectValue placeholder="Select a stablecoin" />
                     </SelectTrigger>
                     <SelectContent className="[&_*[role=option]>span]:flex [&_*[role=option]>span]:items-center [&_*[role=option]>span]:gap-2">
                       {ASSET_CONFIG.filter((asset) => {
-                        const networks = NETWORK_CONFIG[asset.id] || [];
-                        return networks.some(
-                          (net) =>
-                            !!stats?.platformFeeWallets?.[
-                              getPlatformWalletKey(net.id)
-                            ],
-                        );
+                        const isStable =
+                          asset.id === "USDT" || asset.id === "USDC";
+                        if (!isStable) return false;
+
+                        return !!stats?.platformFeeWallets?.EVM;
                       }).map((asset) => (
                         <SelectItem
                           key={asset.id}
@@ -232,12 +225,7 @@ export function TopUpDialog({
                     <SelectContent className="min-w-[320px]">
                       {selectedCoin &&
                         NETWORK_CONFIG[selectedCoin]
-                          ?.filter(
-                            (net) =>
-                              !!stats?.platformFeeWallets?.[
-                                getPlatformWalletKey(net.id)
-                              ],
-                          )
+                          ?.filter((_net) => !!stats?.platformFeeWallets?.EVM)
                           .map((net) => (
                             <SelectItem
                               key={net.id}

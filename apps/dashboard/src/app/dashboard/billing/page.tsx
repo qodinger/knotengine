@@ -35,6 +35,7 @@ export default function BillingPage() {
     handleGeneratePayment,
     submitClaim,
     getWalletAddress,
+    handleUpdatePlan,
   } = useBilling();
 
   const isTopUpDisabled =
@@ -47,6 +48,7 @@ export default function BillingPage() {
       <BillingHeader
         onTopUpClick={handleOpenTopUp}
         isTopUpDisabled={isTopUpDisabled}
+        currentPlan={stats?.currentPlan}
       />
 
       <CreditBalanceCard stats={stats} loading={loading} />
@@ -92,7 +94,11 @@ export default function BillingPage() {
         copiedField={copiedField}
       />
 
-      <HowItWorks feeRate={stats?.currentFeeRate ?? 0.01} />
+      <HowItWorks
+        feeRate={stats?.currentFeeRate ?? 0.01}
+        currentPlan={stats?.currentPlan}
+        onPlanUpdate={handleUpdatePlan}
+      />
     </div>
   );
 }
