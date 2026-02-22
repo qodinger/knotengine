@@ -29,14 +29,66 @@ function GoogleIcon() {
   );
 }
 
-export default function LoginPage() {
+import { useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import Cookies from "js-cookie";
+
+function LoginContent() {
+  const searchParams = useSearchParams();
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
+
+  useEffect(() => {
+    const ref = searchParams.get("ref");
+    if (ref) {
+      console.log(`[Auth] Affiliate referral detected: ${ref}`);
+      // Store for 30 days
+      Cookies.set("knot_affiliate_id", ref, { expires: 30 });
+    }
+  }, [searchParams]);
 
   const handleSignIn = async (provider: "google" | "github") => {
     setLoadingProvider(provider);
     await signIn(provider, { callbackUrl: "/dashboard" });
   };
 
+  return (
+    <div className="grid gap-3">
+      <Button
+        id="signin-google"
+        variant="outline"
+        size="lg"
+        className="gap-3 h-11 font-medium"
+        disabled={loadingProvider !== null}
+        onClick={() => handleSignIn("google")}
+      >
+        {loadingProvider === "google" ? (
+          <span className="h-4 w-4 rounded-full border-2 border-foreground/30 border-t-foreground animate-spin" />
+        ) : (
+          <GoogleIcon />
+        )}
+        Continue with Google
+      </Button>
+
+      <Button
+        id="signin-github"
+        variant="outline"
+        size="lg"
+        className="gap-3 h-11 font-medium"
+        disabled={loadingProvider !== null}
+        onClick={() => handleSignIn("github")}
+      >
+        {loadingProvider === "github" ? (
+          <span className="h-4 w-4 rounded-full border-2 border-foreground/30 border-t-foreground animate-spin" />
+        ) : (
+          <Github className="h-4 w-4" />
+        )}
+        Continue with GitHub
+      </Button>
+    </div>
+  );
+}
+
+export default function LoginPage() {
   return (
     <div className="container relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0">
       {/* Left panel */}
@@ -86,39 +138,13 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <div className="grid gap-3">
-            <Button
-              id="signin-google"
-              variant="outline"
-              size="lg"
-              className="gap-3 h-11 font-medium"
-              disabled={loadingProvider !== null}
-              onClick={() => handleSignIn("google")}
-            >
-              {loadingProvider === "google" ? (
-                <span className="h-4 w-4 rounded-full border-2 border-foreground/30 border-t-foreground animate-spin" />
-              ) : (
-                <GoogleIcon />
-              )}
-              Continue with Google
-            </Button>
-
-            <Button
-              id="signin-github"
-              variant="outline"
-              size="lg"
-              className="gap-3 h-11 font-medium"
-              disabled={loadingProvider !== null}
-              onClick={() => handleSignIn("github")}
-            >
-              {loadingProvider === "github" ? (
-                <span className="h-4 w-4 rounded-full border-2 border-foreground/30 border-t-foreground animate-spin" />
-              ) : (
-                <Github className="h-4 w-4" />
-              )}
-              Continue with GitHub
-            </Button>
-          </div>
+          <Suspense
+            fallback={
+              <div className="h-28 w-full animate-pulse bg-muted rounded-md" />
+            }
+          >
+            <LoginContent />
+          </Suspense>
 
           <p className="px-8 text-center text-xs text-muted-foreground leading-relaxed">
             By continuing, you agree to our{" "}
