@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -67,14 +66,6 @@ export function ApiKeysTab() {
     handleRotateKey,
   } = useApiKeys();
 
-  const merchants = (session?.user as any)?.merchants || [];
-  const activeMerchantId = session?.user?.merchantId;
-  const merchantIdFromList = merchants.find(
-    (m: any) => m.id === activeMerchantId,
-  )?.merchantId;
-  const displayMerchantId =
-    (session?.user as any)?.publicMerchantId || merchantIdFromList || "";
-
   return (
     <div className="space-y-6">
       <Card className="border shadow-sm">
@@ -86,34 +77,6 @@ export function ApiKeysTab() {
           </CardDescription>
         </CardHeader>
         <CardContent className="px-6 pt-0">
-          <div className="grid gap-2 mb-6">
-            <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
-              Merchant ID
-            </Label>
-            <div className="flex items-center gap-2">
-              <Input
-                readOnly
-                value={displayMerchantId}
-                className="bg-muted/30 font-mono text-xs h-9"
-              />
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-9 w-9 shrink-0"
-                onClick={() => copyToClipboard(displayMerchantId, "merchantId")}
-              >
-                {copied === "merchantId" ? (
-                  <Check className="h-3.5 w-3.5" />
-                ) : (
-                  <Copy className="h-3.5 w-3.5" />
-                )}
-              </Button>
-            </div>
-            <p className="text-[10px] text-muted-foreground/60">
-              Your unique identifier for API requests and support.
-            </p>
-          </div>
-
           <div className="border border-border/40 rounded-lg overflow-hidden shadow-sm">
             <Table>
               <TableHeader className="bg-muted/20">
