@@ -5,7 +5,7 @@
 | Attribute    | Details                                   |
 | :----------- | :---------------------------------------- |
 | **Brand**    | KnotEngine                                |
-| Status       | 🌑 Phase 4: Scaling & Compliance (v0.1.0) |
+| Status       | ✅ Phase 4: Scaling & Compliance (v0.2.1) |
 | **Category** | FinTech / Web3 Infrastructure             |
 
 ---
@@ -71,15 +71,16 @@ By leveraging **HD Wallet Derivation (BIP44)**, the system generates unique, one
   - [x] **Webhook Secrets:** Show/Rotate signing secrets (`knot_wh_...`) for verify incoming notifications.
   - [x] **Wallet Strategy:** UI for merchants to set up their `btcXpub` and choose confirmation rules.
 
-### Phase 4: Scaling & Compliance (Current) 🚧
+### Phase 4: Scaling & Compliance ✅
 
 **Focus:** Validation of the "Stateless" Developer-First Model.
 
 - [x] **Infrastructure Hardening:** Git hooks (Husky, Commitlint) and rigid linting.
 - [x] **API Refinement:** Removed legacy AI/Agent routes to focus on core payment gateway.
-- [x] **Prefix Standardization:** Standardized API keys (`knot_sk_`) and Webhook secrets (`knot_wh_`).
-- [x] **Auth Integration:** Wire up Login/Register UI to backend (API Key Based).
-- [x] **Testnet Beta:** Launch public testnet for developer feedback with free faucet coins.
+- [x] **API Key Prefixing:** Standardized API keys (`knot_sk_`) and Webhook secrets (`knot_wh_`).
+- [x] **Auth Integration:** Wired up Login/Register UI to backend (API Key Based).
+- [x] **Testnet Beta:** Launched public testnet with faucet support.
+- [x] **Two-Factor Authentication (2FA):** Implemented TOTP-based security flow for merchant accounts.
 - [ ] **Legal Framework:** Register under KnotEngine IT Services.
 - [x] **Monetization:** Implement the 1.0% "KnotEngine Fee" via auto-accrual logic with designated platform collection wallets (BTC, LTC, EVM).
 - [x] **Ecosystem:** Launch documentation portal and official `@knotengine/sdk` npm package.
@@ -89,11 +90,10 @@ By leveraging **HD Wallet Derivation (BIP44)**, the system generates unique, one
   - [x] **Operations:** Webhook failure/retry alerts for developers.
 - [x] **Database Optimization:** Implemented 30-day TTL indexes for `WebhookEvent` and `Notification` collections to handle automatic log cleanup.
 
-### Phase 5: Growth & Advanced Tools (Future) 🔮
+### Phase 5: Growth & Advanced Tools (Next Up) 🔮
 
-**Focus:** Enhancing security and power-user tools for independent merchants.
+**Focus:** Enhancing power-user tools for independent merchants.
 
-- [ ] **Enhanced Security:** Implement 2FA (Two-Factor Authentication) for session protection.
 - [ ] **Reporting & Accounting:** Generate monthly revenue reports and CSV/JSON exports for taxes.
 - [ ] **Mobile Optimization:** Progressive Web App (PWA) for managing merchants on mobile devices.
 - [ ] **Multi-Asset Support:** Expand to higher-layer networks (L2s) for even lower transaction fees.

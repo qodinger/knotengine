@@ -1,20 +1,43 @@
 # 🚀 KnotEngine
 
-Minimalist, Non-Custodial Crypto Payment Infrastructure for Humans.
+**Minimalist, Non-Custodial Crypto Payment Infrastructure for Humans.**
+
+[![Version](https://img.shields.io/badge/version-0.2.1-blue.svg)](https://github.com/qodinger/knotengine/releases)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![pnpm](https://img.shields.io/badge/pnpm-9.0.0-orange.svg)](https://pnpm.io)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
+
+KnotEngine is a professional-grade, open-source crypto payment gateway. It lets developers accept Bitcoin, Ethereum, and stablecoins without ever losing custody of their private keys. Every invoice generates a unique on-chain address — funds flow directly to your wallet, never through KnotEngine's servers.
+
+---
+
+## ✨ Features
+
+- **🛡️ 100% Non-Custodial** — HD Wallet derivation (BIP44) sends funds straight to your cold or hot wallet.
+- **🔐 Enterprise-Grade Security** — Two-Factor Authentication (TOTP), `mid_` prefixed Merchant IDs, and HMAC-signed webhooks.
+- **🚥 High Availability** — Dual-provider blockchain monitoring (Tatum + Alchemy) with automatic failover.
+- **📊 Professional Dashboard** — Modular Next.js merchant console with real-time Analytics and Activity History.
+- **⚡ Instant Alerts** — Mempool detection and confirmation notifications pushed instantly via Socket.io.
+- **🔌 Developer-First SDK** — Typed `@qodinger/knot-sdk` with full TypeScript support.
+- **🧹 Automatic Cleanup** — 30-day TTL policy on notification and webhook event collections keeps your database lean.
+
+---
 
 ## 🛠️ Prerequisites
 
-Ensure you have the following installed:
+- **Node.js** v20 or later
+- **pnpm** `npm install -g pnpm`
+- **Docker** (for running MongoDB and Redis locally)
 
-- **Node.js**: v18 or later
-- **pnpm**: `npm install -g pnpm`
-- **Docker**: For running MongoDB and Redis locally
+---
 
 ## 🚀 Quick Start
 
-### 1. Install Dependencies
+### 1. Clone & Install
 
 ```bash
+git clone https://github.com/qodinger/knotengine.git
+cd knotengine
 pnpm install
 ```
 
@@ -24,19 +47,25 @@ pnpm install
 cp .env.example .env
 ```
 
-Edit `.env` and fill in your keys (especially `DATABASE_URL` if not using local Docker Mongo).
+Open `.env` and set at minimum:
 
-### 3. Start Infrastructure (Background)
+| Variable          | Description                           |
+| :---------------- | :------------------------------------ |
+| `DATABASE_URL`    | MongoDB connection string             |
+| `TATUM_API_KEY`   | Tatum provider key (primary monitor)  |
+| `ALCHEMY_API_KEY` | Alchemy key (EVM redundancy provider) |
+| `JWT_SECRET`      | Random secret for session signing     |
+| `INTERNAL_SECRET` | Shared secret between API & Dashboard |
 
-This starts MongoDB and Redis via Docker Compose.
+### 3. Start Infrastructure
 
 ```bash
 pnpm docker:up
 ```
 
-### 4. Launch Services
+This starts **MongoDB** and **Redis** via Docker Compose.
 
-You can run everything at once:
+### 4. Launch All Services
 
 ```bash
 pnpm dev
@@ -44,68 +73,121 @@ pnpm dev
 
 Or run services individually:
 
-- **API Engine**: `pnpm dev:api` (Port 5050)
-- **Checkout UI**: `pnpm dev:checkout` (Port 5051)
-- **Dashboard**: `pnpm dev:dashboard` (Port 5052)
+| Command              | Service     | Port |
+| :------------------- | :---------- | :--- |
+| `pnpm dev:api`       | API Engine  | 5050 |
+| `pnpm dev:checkout`  | Checkout UI | 5051 |
+| `pnpm dev:dashboard` | Dashboard   | 5052 |
+
+---
 
 ## 📡 Port Mapping
 
 | Service         | Port | Description                  |
 | :-------------- | :--- | :--------------------------- |
-| **KnotEngine**  | 5050 | Core API & Socket.io Server  |
+| **API Engine**  | 5050 | Core API & Socket.io Server  |
 | **Checkout UI** | 5051 | Customer-facing payment page |
-| **Dashboard**   | 5052 | Merchant Console & Stats     |
+| **Dashboard**   | 5052 | Merchant Console & Analytics |
+
+---
+
+## 🛒 Integration Guide
+
+### 1. Set Up Your Merchant Account
+
+Open the **Dashboard** at `http://localhost:5052`, register, and configure:
+
+- Your settlement wallet address (BTC xPub or EVM address)
+- Your webhook endpoint URL
+- Two-Factor Authentication (optional but recommended)
+
+### 2. Install the SDK
+
+```bash
+npm install @qodinger/knot-sdk
+# or
+pnpm add @qodinger/knot-sdk
+```
+
+### 3. Create an Invoice
+
+```javascript
+import { KnotClient } from "@qodinger/knot-sdk";
+
+const knot = new KnotClient({
+  apiKey: "knot_sk_your_api_key",
+  endpoint: "https://api.knotengine.com", // or http://localhost:5050 for dev
+});
+
+const invoice = await knot.createInvoice({
+  amount_usd: 49.99,
+  currency: "BTC",
+  metadata: { orderId: "order_abc123" },
+});
+
+// Redirect customer to the hosted checkout page
+console.log(invoice.checkout_url);
+```
+
+### 4. Verify Webhooks
+
+```javascript
+const isValid = knot.verifyWebhook(rawBody, signature, webhookSecret);
+if (!isValid) return res.status(401).send("Invalid signature");
+```
+
+---
 
 ## 🧪 Testing & Simulation
 
-- **Run Unit Tests**: `pnpm test`
-
-## 🛒 Merchant Workflow
-
-KnotEngine is designed to be integrated into any application in under 5 minutes.
-
-### 1. Register a Merchant
-
-Send a `POST` request to the API to get your unique credentials:
+Run the full test suite:
 
 ```bash
-curl -X POST http://localhost:5050/v1/merchants \
-  -H "Content-Type: application/json" \
-  -d '{ "name": "My Merchant", "btcXpub": "[Your tpub/xpub]" }'
+pnpm test
 ```
 
-Take note of your `apiKey`.
-
-### 2. Create an Invoice
-
-When a customer is ready to pay, generate an invoice:
+To test local webhooks via a public tunnel:
 
 ```bash
-curl -X POST http://localhost:5050/v1/invoices \
-  -H "x-api-key: [YOUR_API_KEY]" \
-  -H "Content-Type: application/json" \
-  -d '{ "amount_usd": 49.99, "currency": "BTC" }'
+pnpm tunnel  # Uses cloudflared to expose localhost:5050
 ```
 
-You will receive a `pay_address` and a `checkout_url`.
-
-### 3. Redirect the Customer
-
-Redirect your user to the `checkout_url` provided. This page handles the QR code display, live price updates, and real-time payment detection via WebSockets.
-
-### 4. Receive Funds & Notifications
-
-- **Funds**: Go directly to the wallet associated with your `xPub`. KnotEngine is non-custodial.
-- **Notifications**: Once confirmed on-chain, KnotEngine sends an HMAC-signed webhook to your `webhookUrl` (configurable in merchant settings).
+Use the **Simulator** tab in the Dashboard to trigger test payment events (Mempool → Confirming → Confirmed) against any active testnet invoice.
 
 ---
 
 ## 🏗️ Project Structure
 
-- `apps/api`: Fastify-based core engine
-- `apps/checkout`: Next.js payment interface
-- `apps/dashboard`: Next.js merchant console
-- `packages/crypto`: Core derivation logic (BIP32/BIP44)
-- `packages/database`: Mongoose models and shared DB logic
-- `packages/types`: Shared TypeScript definitions
-- `packages/sdk`: Official Node.js SDK (`@qodinger/knot-sdk`)
+```
+knotengine/
+├── apps/
+│   ├── api/          # Fastify-based payment engine (Port 5050)
+│   ├── checkout/     # Next.js customer payment interface (Port 5051)
+│   └── dashboard/    # Next.js merchant console (Port 5052)
+└── packages/
+    ├── crypto/       # BIP32/BIP44 HD wallet derivation engine
+    ├── database/     # Mongoose models with TTL auto-pruning
+    ├── types/        # Shared TypeScript definitions
+    └── sdk/          # Official @qodinger/knot-sdk
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please follow [Conventional Commits](https://www.conventionalcommits.org) for all commit messages — enforced via `commitlint`.
+
+```bash
+git checkout -b feat/my-feature
+# ... make changes ...
+git commit -m "feat(api): add support for Lightning Network"
+git push origin feat/my-feature
+```
+
+Open a Pull Request to the `main` branch.
+
+---
+
+## 📄 License
+
+KnotEngine is licensed under the [MIT License](LICENSE).
