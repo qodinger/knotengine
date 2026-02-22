@@ -23,6 +23,7 @@ function PaymentsContent() {
     openInvoiceDetails,
     filteredInvoices,
     stats,
+    handleResolve,
   } = usePayments();
 
   return (
@@ -48,6 +49,7 @@ function PaymentsContent() {
         copiedId={copiedId}
         copyToClipboard={copyToClipboard}
         openInvoiceDetails={openInvoiceDetails}
+        onResolve={handleResolve}
       />
 
       <InvoiceDetailsSheet
@@ -57,6 +59,7 @@ function PaymentsContent() {
         loadingTimeline={loadingTimeline}
         copiedId={copiedId}
         copyToClipboard={copyToClipboard}
+        onResolve={handleResolve}
       />
     </div>
   );

@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import {
   Search,
   MoreHorizontal,
@@ -34,6 +36,14 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Invoice } from "../types";
 import { StatusBadge } from "./status-badge";
@@ -48,6 +58,7 @@ interface PaymentsTableProps {
   copiedId: string | null;
   copyToClipboard: (text: string, id: string) => void;
   openInvoiceDetails: (invoice: Invoice) => void;
+  onResolve: (invoiceId: string) => void;
 }
 
 export function PaymentsTable({
@@ -60,7 +71,10 @@ export function PaymentsTable({
   copiedId,
   copyToClipboard,
   openInvoiceDetails,
+  onResolve,
 }: PaymentsTableProps) {
+  const [confirmResolveId, setConfirmResolveId] = useState<string | null>(null);
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
@@ -280,8 +294,11 @@ export function PaymentsTable({
                             className="text-xs"
                             onClick={(e) => {
                               e.stopPropagation();
+                              const checkoutUrl =
+                                process.env.NEXT_PUBLIC_CHECKOUT_URL ||
+                                "https://checkout.knotengine.com";
                               window.open(
-                                `${process.env.NEXT_PUBLIC_CHECKOUT_URL}/checkout/${inv.invoice_id}`,
+                                `${checkoutUrl}/checkout/${inv.invoice_id}`,
                                 "_blank",
                               );
                             }}
@@ -289,6 +306,22 @@ export function PaymentsTable({
                             <ExternalLink className="mr-2 h-3.5 w-3.5" />
                             Open checkout
                           </DropdownMenuItem>
+
+                          {!["confirmed", "overpaid"].includes(inv.status) && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-xs text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/5 focus:text-emerald-600 focus:bg-emerald-500/5"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setConfirmResolveId(inv.invoice_id);
+                                }}
+                              >
+                                <Check className="mr-2 h-3.5 w-3.5" />
+                                Resolve payment
+                              </DropdownMenuItem>
+                            </>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -315,6 +348,43 @@ export function PaymentsTable({
           </CardFooter>
         )}
       </Card>
+
+      <Dialog
+        open={!!confirmResolveId}
+        onOpenChange={(open) => !open && setConfirmResolveId(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Manual Resolution</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to resolve invoice{" "}
+              <span className="font-bold text-foreground">
+                {confirmResolveId}
+              </span>{" "}
+              manually?
+              <br />
+              <br />
+              This will mark it as fully paid regardless of the actual amount
+              sent on-chain, unlocking the service for your customer and
+              deducting applicable platform fees from your balance.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 sm:justify-between">
+            <Button variant="ghost" onClick={() => setConfirmResolveId(null)}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 font-bold"
+              onClick={() => {
+                if (confirmResolveId) onResolve(confirmResolveId);
+                setConfirmResolveId(null);
+              }}
+            >
+              <Check size={16} /> Confirm Resolution
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

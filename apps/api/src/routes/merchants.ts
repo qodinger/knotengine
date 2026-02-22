@@ -58,7 +58,7 @@ export async function merchantRoutes(app: FastifyInstance) {
           btcXpubTestnet: z.string().optional(),
           ethAddress: z.string().optional(),
           ethAddressTestnet: z.string().optional(),
-          webhookUrl: z.string().url().optional(),
+          webhookUrl: z.string().optional(),
           oauthId: z.string().optional(), // OAuth identity e.g. 'google:12345'
         }),
       },
@@ -307,18 +307,55 @@ export async function merchantRoutes(app: FastifyInstance) {
       const merchant = request.merchant;
       if (!merchant) return reply.code(500).send({ error: "Auth failed" });
 
+      const sanitizeXpub = (val?: string) =>
+        val && (val.startsWith("mid_") || val.startsWith("knot_")) ? null : val;
+
+      const needsFix =
+        !merchant.btcXpubTestnet ||
+        !merchant.ethAddressTestnet ||
+        merchant.btcXpubTestnet?.startsWith("mid_") ||
+        merchant.ethAddressTestnet?.startsWith("mid_");
+
+      let finalBtcXpubTestnet = sanitizeXpub(merchant.btcXpubTestnet);
+      let finalEthAddressTestnet = sanitizeXpub(merchant.ethAddressTestnet);
+
+      if (needsFix) {
+        const mnemonic = bip39.generateMnemonic();
+        const seed = await bip39.mnemonicToSeed(mnemonic);
+
+        const root = bip32.fromSeed(seed, bitcoin.networks.testnet);
+        const btcNode = root.derivePath("m/84'/1'/0'");
+        finalBtcXpubTestnet =
+          finalBtcXpubTestnet || btcNode.neutered().toBase58();
+
+        const ethWallet = ethers.Wallet.fromPhrase(mnemonic);
+        finalEthAddressTestnet = finalEthAddressTestnet || ethWallet.address;
+
+        await Merchant.findByIdAndUpdate(merchant._id, {
+          $set: {
+            btcXpubTestnet: finalBtcXpubTestnet,
+            ethAddressTestnet: finalEthAddressTestnet,
+          },
+        });
+      }
+
       return {
         id: merchant._id.toString(),
         merchantId: merchant.merchantId,
         name: merchant.name,
         btcXpub: merchant.btcXpub,
-        btcXpubTestnet: merchant.btcXpubTestnet,
+        btcXpubTestnet: finalBtcXpubTestnet,
         ethAddress: merchant.ethAddress,
-        ethAddressTestnet: merchant.ethAddressTestnet,
+        ethAddressTestnet: finalEthAddressTestnet,
         webhookUrl: merchant.webhookUrl,
         webhookSecret: merchant.webhookSecret,
         logoUrl: merchant.logoUrl,
         returnUrl: merchant.returnUrl,
+        feeResponsibility: merchant.feeResponsibility || "merchant",
+        invoiceExpirationMinutes: merchant.invoiceExpirationMinutes || 60,
+        underpaymentTolerancePercentage:
+          merchant.underpaymentTolerancePercentage ?? 1,
+        bip21Enabled: merchant.bip21Enabled ?? true,
         enabledCurrencies: merchant.enabledCurrencies || [],
         webhookEvents: merchant.webhookEvents || [
           "invoice.confirmed",
@@ -367,14 +404,19 @@ export async function merchantRoutes(app: FastifyInstance) {
       schema: {
         body: z.object({
           name: z.string().min(0).optional(),
+          email: z.string().email().optional().or(z.literal("")),
           btcXpub: z.string().nullable().optional(),
           btcXpubTestnet: z.string().nullable().optional(),
           ethAddress: z.string().nullable().optional(),
           ethAddressTestnet: z.string().nullable().optional(),
-          webhookUrl: z.string().url().nullable().optional(),
+          webhookUrl: z.string().nullable().optional().or(z.literal("")),
           webhookEvents: z.array(z.string()).optional(),
-          logoUrl: z.string().nullable().optional(),
-          returnUrl: z.string().nullable().optional(),
+          logoUrl: z.string().nullable().optional().or(z.literal("")),
+          returnUrl: z.string().nullable().optional().or(z.literal("")),
+          feeResponsibility: z.enum(["merchant", "client"]).optional(),
+          invoiceExpirationMinutes: z.number().min(15).max(43200).optional(),
+          underpaymentTolerancePercentage: z.number().min(0).max(10).optional(),
+          bip21Enabled: z.boolean().optional(),
           confirmationPolicy: z
             .object({
               BTC: z.number().int().min(0),
@@ -417,6 +459,11 @@ export async function merchantRoutes(app: FastifyInstance) {
         ethAddressTestnet: updated.ethAddressTestnet,
         webhookUrl: updated.webhookUrl,
         webhookSecret: updated.webhookSecret,
+        feeResponsibility: updated.feeResponsibility,
+        invoiceExpirationMinutes: updated.invoiceExpirationMinutes,
+        underpaymentTolerancePercentage:
+          updated.underpaymentTolerancePercentage,
+        bip21Enabled: updated.bip21Enabled,
         enabledCurrencies: updated.enabledCurrencies,
         logoUrl: updated.logoUrl,
         returnUrl: updated.returnUrl,

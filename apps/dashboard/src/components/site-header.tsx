@@ -107,6 +107,26 @@ export function SiteHeader() {
       },
     );
 
+    socket.on(
+      "notification_updated",
+      (updatedNotification: Notification & { id: string }) => {
+        console.log("🔄 Notification updated:", updatedNotification);
+        setNotifications((prev) =>
+          prev.map((n) =>
+            n.id === updatedNotification.id
+              ? {
+                  ...n,
+                  title: updatedNotification.title,
+                  description: updatedNotification.description,
+                  type: updatedNotification.type,
+                  isRead: updatedNotification.isRead,
+                }
+              : n,
+          ),
+        );
+      },
+    );
+
     return () => {
       socket.disconnect();
     };
@@ -210,7 +230,7 @@ export function SiteHeader() {
                           Clear for now
                         </p>
                         <p className="text-xs text-muted-foreground/60 leading-relaxed max-w-[180px]">
-                          We'll ping you here when your merchant has news.
+                          We&apos;ll ping you here when your merchant has news.
                         </p>
                       </div>
                     </div>

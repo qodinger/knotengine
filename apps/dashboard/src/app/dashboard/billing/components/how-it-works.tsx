@@ -42,7 +42,7 @@ export function HowItWorks({ feeRate }: HowItWorksProps) {
             {
               step: "02",
               title: "Auto-Deduction",
-              description: `A ${(feeRate * 100).toFixed(1)}% fee is deducted from your credit for each confirmed payment. Your customers pay directly to your wallet.`,
+              description: `A ${(feeRate * 100).toFixed(1)}% fee is deducted for each payment confirmed (min $0.05). Minimum checkout amount is $1.00 USD.`,
               icon: Receipt,
               color: "text-blue-500",
             },

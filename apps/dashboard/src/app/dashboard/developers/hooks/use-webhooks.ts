@@ -45,14 +45,15 @@ export function useWebhooks() {
     fetchMerchantConfig();
   }, [fetchMerchantConfig]);
 
-  const handleSaveWebhooks = async () => {
+  const handleSaveWebhooks = async (data?: any) => {
     setSavingWebhooks(true);
     setWebhookSuccess(false);
     try {
-      await api.patch("/v1/merchants/me", {
+      const payload = data || {
         webhookUrl: webhookData.webhookUrl,
         webhookEvents: webhookData.webhookEvents,
-      });
+      };
+      await api.patch("/v1/merchants/me", payload);
       setWebhookSuccess(true);
       setTimeout(() => setWebhookSuccess(false), 3000);
     } catch (err) {

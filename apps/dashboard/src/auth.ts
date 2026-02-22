@@ -89,17 +89,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (trigger === "update" && token.oauthId) {
         // Refresh list to pick up new creations
         const merchants = await fetchMerchants(token.oauthId as string);
-        token.merchants = merchants.map((m: { id: string; name?: string }) => ({
-          id: m.id,
-          name: m.name || "Untitled Merchant",
-        }));
+        token.merchants = merchants.map(
+          (m: { id: string; merchantId: string; name?: string }) => ({
+            id: m.id,
+            merchantId: m.merchantId,
+            name: m.name || "Untitled Merchant",
+          }),
+        );
 
         // Switch active ID if requested and valid
         if (session?.merchantId) {
           const isValid = merchants.find(
             (m: { id: string }) => m.id === session.merchantId,
           );
-          if (isValid) token.merchantId = session.merchantId;
+          if (isValid) {
+            token.merchantId = session.merchantId;
+            token.publicMerchantId = isValid.merchantId;
+          }
         } else {
           // No specific switch requested — check if current active merchant still exists
           const currentStillExists = merchants.find(
@@ -133,6 +139,27 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               m.id === token.merchantId,
           );
           token.twoFactorRequired = activeMerchant?.twoFactorEnabled || false;
+        }
+      }
+
+      // 3. Proactive Refresh (If missing critical data but allowed)
+      if (!token.publicMerchantId && token.oauthId && trigger !== "update") {
+        const merchants = await fetchMerchants(token.oauthId as string);
+        if (merchants.length > 0) {
+          const activeId = token.merchantId || merchants[0].id;
+          const activeMerchant =
+            merchants.find((m: { id: string }) => m.id === activeId) ||
+            merchants[0];
+
+          token.merchantId = activeMerchant.id;
+          token.publicMerchantId = activeMerchant.merchantId;
+          token.merchants = merchants.map(
+            (m: { id: string; merchantId: string; name?: string }) => ({
+              id: m.id,
+              merchantId: m.merchantId,
+              name: m.name || "Untitled Merchant",
+            }),
+          );
         }
       }
 

@@ -9,27 +9,30 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Edit2, Store, Mail, Link2, ImageIcon } from "lucide-react";
+import {
+  Settings2,
+  Edit2,
+  Clock,
+  Percent,
+  UserCircle,
+  Wallet,
+  QrCode,
+} from "lucide-react";
 import { MerchantSettings } from "../types";
-import { MerchantDetailsDialog } from "./merchant-details-dialog";
+import { PaymentEngineDialog } from "./payment-engine-dialog";
 
-interface MerchantDetailsCardProps {
+interface PaymentEngineCardProps {
   formData: MerchantSettings;
   onSave: (data: MerchantSettings) => Promise<void>;
   saving: boolean;
 }
 
-export function MerchantDetailsCard({
+export function PaymentEngineCard({
   formData,
   onSave,
   saving,
-}: MerchantDetailsCardProps) {
+}: PaymentEngineCardProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-
-  const handleSaveWrapper = async (data: MerchantSettings) => {
-    await onSave(data);
-  };
 
   return (
     <>
@@ -38,14 +41,14 @@ export function MerchantDetailsCard({
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-primary/10 rounded-lg">
-                <Store className="size-5 text-primary" />
+                <Settings2 className="size-5 text-primary" />
               </div>
               <div>
                 <CardTitle className="text-base font-bold">
-                  Merchant Project
+                  Payment Engine
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Your merchant&apos;s public identity and identifiers.
+                  Configure how your checkout process behaves.
                 </CardDescription>
               </div>
             </div>
@@ -56,7 +59,7 @@ export function MerchantDetailsCard({
               onClick={() => setIsEditDialogOpen(true)}
             >
               <Edit2 className="size-3.5" />
-              Edit Profile
+              Configure
             </Button>
           </div>
         </CardHeader>
@@ -64,63 +67,79 @@ export function MerchantDetailsCard({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5 p-3 border border-border/40 rounded-lg bg-muted/10">
               <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-                <Store className="size-3" />
-                Business Name
+                <UserCircle className="size-3" />
+                Fee Payer
               </span>
-              <span className="text-sm font-semibold truncate">
-                {formData.businessName || "Not set"}
-              </span>
-            </div>
-
-            <div className="flex flex-col gap-1.5 p-3 border border-border/40 rounded-lg bg-muted/10">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-                <Mail className="size-3" />
-                Contact Email
-              </span>
-              <span className="text-sm font-semibold truncate">
-                {formData.businessEmail || "Not set"}
+              <span className="text-sm font-semibold capitalize">
+                {formData.feeResponsibility === "client"
+                  ? "Customer"
+                  : "Merchant"}
               </span>
             </div>
 
             <div className="flex flex-col gap-1.5 p-3 border border-border/40 rounded-lg bg-muted/10">
               <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-                <ImageIcon className="size-3" />
-                Merchant Logo
+                <Clock className="size-3" />
+                Expiration
               </span>
-              <div className="flex items-center gap-2">
-                <Avatar className="size-6 rounded-md">
-                  <AvatarImage
-                    src={formData.logoUrl}
-                    alt={formData.businessName}
-                  />
-                  <AvatarFallback className="bg-muted text-[10px]">
-                    <ImageIcon className="size-3" />
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-xs text-muted-foreground truncate">
-                  {formData.logoUrl ? "Logo configured" : "No logo set"}
+              <span className="text-sm font-semibold">
+                {formData.invoiceExpirationMinutes} minutes
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-1.5 p-3 border border-border/40 rounded-lg bg-muted/10">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                <Percent className="size-3" />
+                Tolerance
+              </span>
+              <span className="text-sm font-semibold">
+                {formData.underpaymentTolerancePercentage}% underpayment
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-1.5 p-3 border border-border/40 rounded-lg bg-muted/10">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                <QrCode className="size-3" />
+                QR Mode
+              </span>
+              <span className="text-sm font-semibold">
+                {formData.bip21Enabled
+                  ? "BIP21 (Amount Included)"
+                  : "Standard Address"}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 p-3 border border-border/40 rounded-lg bg-muted/10">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+              <Wallet className="size-3" />
+              Active Assets
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {formData.enabledCurrencies.length > 0 ? (
+                formData.enabledCurrencies.map((c) => (
+                  <div
+                    key={c}
+                    className="px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-[10px] font-bold text-primary"
+                  >
+                    {c}
+                  </div>
+                ))
+              ) : (
+                <span className="text-xs text-muted-foreground italic">
+                  All assets enabled by default
                 </span>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5 p-3 border border-border/40 rounded-lg bg-muted/10">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-                <Link2 className="size-3" />
-                Return URL
-              </span>
-              <span className="text-sm font-semibold truncate">
-                {formData.returnUrl || "Not set"}
-              </span>
+              )}
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <MerchantDetailsDialog
+      <PaymentEngineDialog
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         formData={formData}
-        onSave={handleSaveWrapper}
+        onSave={onSave}
         saving={saving}
       />
     </>

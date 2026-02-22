@@ -50,6 +50,9 @@ export class WebhookDispatcher {
     const subscribedEvents = merchant.webhookEvents || [
       "invoice.confirmed",
       "invoice.mempool_detected",
+      "invoice.partially_paid",
+      "invoice.overpaid",
+      "invoice.expired",
       "invoice.failed",
     ];
 
@@ -69,6 +72,7 @@ export class WebhookDispatcher {
       amount: {
         usd: invoice.amountUsd,
         crypto: invoice.cryptoAmount,
+        crypto_received: invoice.cryptoAmountReceived || 0,
         currency: invoice.cryptoCurrency,
         fee_usd: invoice.feeUsd,
       },

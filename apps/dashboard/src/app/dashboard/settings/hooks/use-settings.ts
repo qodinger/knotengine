@@ -18,12 +18,18 @@ export function useSettings() {
   const { update } = useSession();
 
   const [formData, setFormData] = useState<MerchantSettings>({
+    merchantId: "",
     businessName: "",
     businessEmail: "",
     logoUrl: "",
     returnUrl: "",
     webhookUrl: "",
     webhookSecret: "",
+    feeResponsibility: "merchant",
+    invoiceExpirationMinutes: 60,
+    underpaymentTolerancePercentage: 1,
+    bip21Enabled: true,
+    enabledCurrencies: [],
   });
 
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
@@ -43,12 +49,18 @@ export function useSettings() {
       const res = await api.get("/v1/merchants/me");
       const m = res.data;
       setFormData({
+        merchantId: m.merchantId || m._id || "",
         businessName: m.name || "",
         businessEmail: m.email || "",
         logoUrl: m.logoUrl || "",
         returnUrl: m.returnUrl || "",
         webhookUrl: m.webhookUrl || "",
         webhookSecret: m.webhookSecret || "",
+        feeResponsibility: m.feeResponsibility || "client",
+        invoiceExpirationMinutes: m.invoiceExpirationMinutes || 60,
+        underpaymentTolerancePercentage: m.underpaymentTolerancePercentage || 0,
+        bip21Enabled: m.bip21Enabled ?? true,
+        enabledCurrencies: m.enabledCurrencies || [],
       });
       setTwoFactorEnabled(m.twoFactorEnabled || false);
     } catch (err) {
@@ -62,17 +74,26 @@ export function useSettings() {
     fetchSettings();
   }, [fetchSettings]);
 
-  const handleSave = async () => {
+  const handleSave = async (newData?: MerchantSettings) => {
+    const dataToSave = newData || formData;
     setSaving(true);
     setSuccess(false);
     try {
       await api.patch("/v1/merchants/me", {
-        name: formData.businessName,
-        email: formData.businessEmail,
-        logoUrl: formData.logoUrl,
-        returnUrl: formData.returnUrl,
-        webhookUrl: formData.webhookUrl,
+        name: dataToSave.businessName,
+        email: dataToSave.businessEmail,
+        logoUrl: dataToSave.logoUrl,
+        returnUrl: dataToSave.returnUrl,
+        feeResponsibility: dataToSave.feeResponsibility,
+        invoiceExpirationMinutes: dataToSave.invoiceExpirationMinutes,
+        underpaymentTolerancePercentage:
+          dataToSave.underpaymentTolerancePercentage,
+        bip21Enabled: dataToSave.bip21Enabled,
+        enabledCurrencies: dataToSave.enabledCurrencies,
       });
+      if (newData) {
+        setFormData(newData);
+      }
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err: unknown) {
@@ -111,7 +132,8 @@ export function useSettings() {
       setTwoFASetupDialogOpen(true);
     } catch (err: unknown) {
       const message =
-        (err as any)?.response?.data?.error || "Failed to start 2FA setup.";
+        (err as { response?: { data?: { error?: string } } })?.response?.data
+          ?.error || "Failed to start 2FA setup.";
       setTwoFAError(message);
     } finally {
       setTwoFALoading(false);

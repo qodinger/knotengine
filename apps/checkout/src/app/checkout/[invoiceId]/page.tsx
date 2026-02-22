@@ -10,7 +10,7 @@ async function getInvoice(invoiceId: string) {
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:5050";
   try {
     const res = await fetch(`${API_BASE_URL}/v1/invoices/${invoiceId}`, {
-      next: { revalidate: 60 }, // Cache for 60 seconds
+      cache: "no-store",
     });
     if (!res.ok) return null;
     return res.json();

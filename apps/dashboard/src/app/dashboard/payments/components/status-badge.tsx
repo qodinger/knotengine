@@ -41,6 +41,23 @@ export function StatusBadge({ status }: StatusBadgeProps) {
       className:
         "text-orange-600 bg-orange-50 dark:text-orange-400 dark:bg-orange-500/10",
     },
+    overpaid: {
+      label: "Overpaid",
+      icon: CheckCircle2,
+      className:
+        "text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-500/10",
+    },
+    confirming: {
+      label: "Confirming",
+      icon: Clock,
+      className:
+        "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-500/10",
+    },
+    mempool_detected: {
+      label: "Detected",
+      icon: Clock,
+      className: "text-sky-600 bg-sky-50 dark:text-sky-400 dark:bg-sky-500/10",
+    },
   };
 
   const config = configs[status] || {

@@ -59,14 +59,14 @@ export function TwoFactorCard({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center justify-between p-4 border border-border/40 rounded-lg bg-muted/10">
+        <div className="flex flex-wrap items-center justify-between p-4 border border-border/40 rounded-lg bg-muted/10 gap-4">
           <div>
             <div className="font-bold text-sm">
               {twoFactorEnabled
                 ? "Two-Factor Authentication is Active"
                 : "Protect Your Account"}
             </div>
-            <div className="text-xs text-muted-foreground mt-0.5 max-w-sm">
+            <div className="text-xs text-muted-foreground mt-0.5 max-w-md">
               {twoFactorEnabled
                 ? "Your account is secured with TOTP verification. A code is required for sensitive operations."
                 : "Enable 2FA to require an authenticator code when performing sensitive actions like changing wallet addresses or rotating API keys."}

@@ -67,6 +67,14 @@ export function ApiKeysTab() {
     handleRotateKey,
   } = useApiKeys();
 
+  const merchants = (session?.user as any)?.merchants || [];
+  const activeMerchantId = session?.user?.merchantId;
+  const merchantIdFromList = merchants.find(
+    (m: any) => m.id === activeMerchantId,
+  )?.merchantId;
+  const displayMerchantId =
+    (session?.user as any)?.publicMerchantId || merchantIdFromList || "";
+
   return (
     <div className="space-y-6">
       <Card className="border shadow-sm">
@@ -85,19 +93,14 @@ export function ApiKeysTab() {
             <div className="flex items-center gap-2">
               <Input
                 readOnly
-                value={(session?.user as any)?.publicMerchantId || ""}
+                value={displayMerchantId}
                 className="bg-muted/30 font-mono text-xs h-9"
               />
               <Button
                 variant="outline"
                 size="icon"
                 className="h-9 w-9 shrink-0"
-                onClick={() =>
-                  copyToClipboard(
-                    (session?.user as any)?.publicMerchantId || "",
-                    "merchantId",
-                  )
-                }
+                onClick={() => copyToClipboard(displayMerchantId, "merchantId")}
               >
                 {copied === "merchantId" ? (
                   <Check className="h-3.5 w-3.5" />

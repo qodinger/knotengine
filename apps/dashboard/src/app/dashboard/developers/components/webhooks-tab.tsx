@@ -1,5 +1,6 @@
-"use client";
-
+import { useRef, useEffect } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Loader2,
   Send,
@@ -23,11 +24,11 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CodeBlock } from "@/components/ui/code-block";
 import { useWebhooks } from "../hooks/use-webhooks";
+import { webhookSchema, WebhookFormData } from "../../settings/types";
 
 export function WebhooksTab() {
   const {
     webhookData,
-    setWebhookData,
     copied,
     savingWebhooks,
     webhookSuccess,
@@ -41,7 +42,37 @@ export function WebhooksTab() {
     handleSaveWebhooks,
     handleRotateWebhookSecret,
     handleTestWebhook,
+    fetchMerchantConfig,
   } = useWebhooks();
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    setValue,
+    reset,
+    formState: { errors, isValid },
+  } = useForm<WebhookFormData>({
+    resolver: zodResolver(webhookSchema),
+    defaultValues: {
+      webhookUrl: webhookData.webhookUrl,
+      webhookEvents: webhookData.webhookEvents,
+    },
+    mode: "onChange",
+  });
+
+  useEffect(() => {
+    reset({
+      webhookUrl: webhookData.webhookUrl,
+      webhookEvents: webhookData.webhookEvents,
+    });
+  }, [webhookData, reset]);
+
+  const onSave = async (data: WebhookFormData) => {
+    // We need to manually call the save handler with current form data
+    // since the hook doesn't know about RHF state yet
+    await handleSaveWebhooks(data);
+  };
 
   return (
     <div className="space-y-6">
@@ -71,8 +102,8 @@ export function WebhooksTab() {
           <Button
             size="sm"
             className="h-8 text-[10px] font-bold uppercase tracking-wider gap-1.5"
-            onClick={handleSaveWebhooks}
-            disabled={savingWebhooks}
+            onClick={handleSubmit(onSave)}
+            disabled={savingWebhooks || !isValid}
           >
             {savingWebhooks ? (
               <Loader2 className="size-3 animate-spin" />
@@ -95,16 +126,34 @@ export function WebhooksTab() {
             </Label>
             <Input
               id="webhookUrl"
-              value={webhookData.webhookUrl}
-              onChange={(e) =>
-                setWebhookData({
-                  ...webhookData,
-                  webhookUrl: e.target.value,
-                })
-              }
+              {...register("webhookUrl", {
+                onBlur: (e) => {
+                  const val = e.target.value.trim();
+                  if (
+                    val &&
+                    !val.startsWith("http://") &&
+                    !val.startsWith("https://") &&
+                    !val.startsWith("/")
+                  ) {
+                    setValue("webhookUrl", `https://${val}`, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    });
+                  }
+                },
+              })}
               placeholder="https://api.myapp.com/webhooks"
-              className="bg-background/50 font-mono text-xs focus-visible:ring-emerald-500/30"
+              className={cn(
+                "bg-background/50 font-mono text-xs focus-visible:ring-emerald-500/30",
+                errors.webhookUrl &&
+                  "border-destructive focus-visible:ring-destructive",
+              )}
             />
+            {errors.webhookUrl && (
+              <p className="text-[10px] font-medium text-destructive">
+                {errors.webhookUrl.message}
+              </p>
+            )}
           </div>
 
           <div className="grid gap-2">
@@ -191,61 +240,61 @@ export function WebhooksTab() {
           </CardDescription>
         </CardHeader>
         <CardContent className="px-6 pb-6 pt-0">
-          <div className="grid grid-cols-1 gap-1.5 mt-2">
-            {[
-              {
-                id: "e-confirmed",
-                key: "invoice.confirmed",
-                desc: "Fired when an invoice reaches required confirmations.",
-              },
-              {
-                id: "e-mempool",
-                key: "invoice.mempool_detected",
-                desc: "Fired immediately when a transaction is seen in mempool.",
-              },
-              {
-                id: "e-failed",
-                key: "invoice.failed",
-                desc: "Fired when an invoice expires or remains unpaid.",
-              },
-            ].map((item) => (
-              <div
-                key={item.id}
-                className="flex items-start gap-3 p-2.5 rounded-lg border border-transparent hover:border-border/50 hover:bg-muted/30 transition-all group"
-              >
-                <Checkbox
-                  id={item.id}
-                  checked={webhookData.webhookEvents.includes(item.key)}
-                  onCheckedChange={(checked) => {
-                    const events = webhookData.webhookEvents;
-                    if (checked) {
-                      setWebhookData({
-                        ...webhookData,
-                        webhookEvents: [...events, item.key],
-                      });
-                    } else {
-                      setWebhookData({
-                        ...webhookData,
-                        webhookEvents: events.filter((e) => e !== item.key),
-                      });
-                    }
-                  }}
-                  className="mt-0.5"
-                />
-                <div className="grid gap-0.5 leading-none">
-                  <Label
-                    htmlFor={item.id}
-                    className="text-xs font-bold cursor-pointer group-hover:text-primary transition-colors"
+          <Controller
+            name="webhookEvents"
+            control={control}
+            render={({ field }) => (
+              <div className="grid grid-cols-1 gap-1.5 mt-2">
+                {[
+                  {
+                    id: "e-confirmed",
+                    key: "invoice.confirmed",
+                    desc: "Fired when an invoice reaches required confirmations.",
+                  },
+                  {
+                    id: "e-mempool",
+                    key: "invoice.mempool_detected",
+                    desc: "Fired immediately when a transaction is seen in mempool.",
+                  },
+                  {
+                    id: "e-failed",
+                    key: "invoice.failed",
+                    desc: "Fired when an invoice expires or remains unpaid.",
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-start gap-3 p-2.5 rounded-lg border border-transparent hover:border-border/50 hover:bg-muted/30 transition-all group"
                   >
-                    {item.key}
-                  </Label>
-                  <p className="text-[10px] text-muted-foreground font-medium">
-                    {item.desc}
-                  </p>
-                </div>
+                    <Checkbox
+                      id={item.id}
+                      checked={field.value.includes(item.key)}
+                      onCheckedChange={(checked) => {
+                        const events = field.value;
+                        if (checked) {
+                          field.onChange([...events, item.key]);
+                        } else {
+                          field.onChange(events.filter((e) => e !== item.key));
+                        }
+                      }}
+                      className="mt-0.5"
+                    />
+                    <div className="grid gap-0.5 leading-none">
+                      <Label
+                        htmlFor={item.id}
+                        className="text-xs font-bold cursor-pointer group-hover:text-primary transition-colors"
+                      >
+                        {item.key}
+                      </Label>
+                      <p className="text-[10px] text-muted-foreground font-medium">
+                        {item.desc}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+          />
         </CardContent>
       </Card>
 

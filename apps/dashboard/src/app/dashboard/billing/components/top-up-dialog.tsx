@@ -84,6 +84,21 @@ export function TopUpDialog({
   copyAddress,
   copiedField,
 }: TopUpDialogProps) {
+  const generatePaymentUri = () => {
+    const address = getWalletAddress(selectedCurrency) || "";
+    if (!address) return "";
+
+    // Base currency symbol (e.g., BTC_TESTNET -> BTC)
+    const baseCurrency = selectedCurrency.split("_")[0];
+
+    if (baseCurrency === "BTC")
+      return `bitcoin:${address}?amount=${cryptoAmount || 0}`;
+    if (baseCurrency === "LTC")
+      return `litecoin:${address}?amount=${cryptoAmount || 0}`;
+
+    return address;
+  };
+
   return (
     <Dialog
       open={isOpen}
@@ -342,7 +357,7 @@ export function TopUpDialog({
             <div className="flex flex-col items-center">
               <div className="mb-6 p-4 rounded-3xl bg-white border border-border shadow-xs dark:ring-4 dark:ring-white/10 mx-auto relative flex items-center justify-center">
                 <QRCodeSVG
-                  value={getWalletAddress(selectedCurrency) || ""}
+                  value={generatePaymentUri()}
                   size={180}
                   level={"H"}
                   includeMargin={false}

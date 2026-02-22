@@ -25,8 +25,6 @@ export function usePayments() {
       if (activeTab === "testnet") {
         params.include_testnet = "true";
         params.only_testnet = "true";
-      } else {
-        if (activeTab !== "all") params.status = activeTab;
       }
       const res = await api.get("/v1/invoices", { params });
       setInvoices(res.data.data);
@@ -78,22 +76,43 @@ export function usePayments() {
   };
 
   const filteredInvoices = useMemo(() => {
-    return invoices.filter(
-      (inv) =>
+    return invoices.filter((inv) => {
+      const matchesSearch =
         inv.invoice_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        inv.crypto_currency.toLowerCase().includes(searchTerm.toLowerCase()),
-    );
-  }, [invoices, searchTerm]);
+        inv.crypto_currency.toLowerCase().includes(searchTerm.toLowerCase());
+
+      if (!matchesSearch) return false;
+
+      if (activeTab === "all" || activeTab === "testnet") return true;
+
+      if (activeTab === "confirmed") {
+        return ["confirmed", "overpaid"].includes(inv.status);
+      }
+
+      if (activeTab === "pending") {
+        return [
+          "pending",
+          "partially_paid",
+          "confirming",
+          "mempool_detected",
+        ].includes(inv.status);
+      }
+
+      return inv.status === activeTab;
+    });
+  }, [invoices, searchTerm, activeTab]);
 
   const stats = useMemo(() => {
     const totalVolume = invoices
-      .filter((inv) => inv.status === "confirmed")
+      .filter((inv) => ["confirmed", "overpaid"].includes(inv.status))
       .reduce((sum, inv) => sum + inv.amount_usd, 0);
-    const confirmedCount = invoices.filter(
-      (inv) => inv.status === "confirmed",
+    const confirmedCount = invoices.filter((inv) =>
+      ["confirmed", "overpaid"].includes(inv.status),
     ).length;
-    const pendingCount = invoices.filter(
-      (inv) => inv.status === "pending",
+    const pendingCount = invoices.filter((inv) =>
+      ["pending", "partially_paid", "confirming", "mempool_detected"].includes(
+        inv.status,
+      ),
     ).length;
 
     return {
@@ -103,6 +122,15 @@ export function usePayments() {
       totalCount: invoices.length,
     };
   }, [invoices]);
+
+  const handleResolve = async (invoiceId: string) => {
+    try {
+      await api.post(`/v1/invoices/${invoiceId}/resolve`);
+      await fetchInvoices();
+    } catch (err) {
+      console.error("Failed to resolve invoice", err);
+    }
+  };
 
   return {
     invoices,
@@ -121,5 +149,6 @@ export function usePayments() {
     filteredInvoices,
     stats,
     fetchInvoices,
+    handleResolve,
   };
 }

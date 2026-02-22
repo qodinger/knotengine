@@ -11,6 +11,7 @@ interface CheckoutCardProps {
     invoice_id: string;
     amount_usd: number;
     crypto_amount: number;
+    crypto_amount_received?: number;
     crypto_currency: string;
     pay_address: string;
     status: string;
@@ -23,7 +24,9 @@ interface CheckoutCardProps {
       name: string;
       logo_url?: string | null;
       return_url?: string | null;
+      bip21_enabled?: boolean;
     };
+    description?: string;
   };
 }
 
@@ -58,19 +61,35 @@ export function CheckoutCard({ invoice }: CheckoutCardProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const getRemainingAmount = () => {
+    if (invoice.status === "partially_paid") {
+      return parseFloat(
+        (invoice.crypto_amount - (invoice.crypto_amount_received || 0)).toFixed(
+          8,
+        ),
+      );
+    }
+    return invoice.crypto_amount;
+  };
+
   const copyAmount = () => {
-    navigator.clipboard.writeText(invoice.crypto_amount.toString());
+    navigator.clipboard.writeText(getRemainingAmount().toString());
     setAmountCopied(true);
     setTimeout(() => setAmountCopied(false), 2000);
   };
 
   const generatePaymentUri = () => {
-    const currency = invoice.crypto_currency;
     const address = invoice.pay_address;
-    const amount = invoice.crypto_amount;
+    const amount = getRemainingAmount();
+    const bip21 = invoice.merchant?.bip21_enabled ?? true;
 
-    if (currency === "BTC") return `bitcoin:${address}?amount=${amount}`;
-    if (currency === "LTC") return `litecoin:${address}?amount=${amount}`;
+    if (!bip21) return address;
+
+    // Handle testnet symbols like BTC_TESTNET or LTC_TESTNET
+    const baseCurrency = invoice.crypto_currency.split("_")[0];
+
+    if (baseCurrency === "BTC") return `bitcoin:${address}?amount=${amount}`;
+    if (baseCurrency === "LTC") return `litecoin:${address}?amount=${amount}`;
 
     return address;
   };
@@ -89,28 +108,38 @@ export function CheckoutCard({ invoice }: CheckoutCardProps) {
 
       <div className="p-6">
         {/* Merchant Branding */}
-        <div className="flex items-center gap-3 mb-8 pb-6 border-b border-border/50">
-          <div className="size-10 rounded-lg bg-muted flex items-center justify-center overflow-hidden border border-border/50">
-            {invoice.merchant?.logo_url ? (
-              <img
-                src={invoice.merchant.logo_url}
-                alt={invoice.merchant.name}
-                className="size-full object-cover"
-              />
-            ) : (
-              <span className="text-xl font-bold text-muted-foreground uppercase">
-                {invoice.merchant?.name?.charAt(0) || "M"}
-              </span>
-            )}
+        <div className="flex flex-col mb-8 pb-6 border-b border-border/50">
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-lg bg-muted flex items-center justify-center overflow-hidden border border-border/50">
+              {invoice.merchant?.logo_url ? (
+                <img
+                  src={invoice.merchant.logo_url}
+                  alt={invoice.merchant.name}
+                  className="size-full object-cover"
+                />
+              ) : (
+                <span className="text-xl font-bold text-muted-foreground uppercase">
+                  {invoice.merchant?.name?.charAt(0) || "M"}
+                </span>
+              )}
+            </div>
+            <div className="flex flex-col">
+              <h1 className="text-sm font-bold tracking-tight text-foreground">
+                {invoice.merchant?.name || "Merchant"}
+              </h1>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium">
+                Payment Request
+              </p>
+            </div>
           </div>
-          <div className="flex flex-col">
-            <h1 className="text-sm font-bold tracking-tight text-foreground">
-              {invoice.merchant?.name || "Merchant"}
-            </h1>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium">
-              Payment Request
-            </p>
-          </div>
+
+          {invoice.description && (
+            <div className="mt-4 px-3 py-2 bg-muted/30 rounded-lg border border-border/50">
+              <p className="text-[11px] text-muted-foreground leading-relaxed italic">
+                “{invoice.description}”
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Header */}
@@ -119,13 +148,17 @@ export function CheckoutCard({ invoice }: CheckoutCardProps) {
             <div
               className={cn(
                 "w-2 h-2 rounded-full animate-pulse",
-                invoice.status === "pending"
+                ["pending", "mempool_detected", "confirming"].includes(
+                  invoice.status,
+                )
                   ? "bg-amber-500"
-                  : invoice.status === "confirmed"
+                  : ["confirmed", "overpaid"].includes(invoice.status)
                     ? "bg-emerald-500"
-                    : invoice.status === "expired"
-                      ? "bg-destructive"
-                      : "bg-muted-foreground",
+                    : invoice.status === "partially_paid"
+                      ? "bg-orange-500"
+                      : invoice.status === "expired"
+                        ? "bg-destructive"
+                        : "bg-muted-foreground",
               )}
             />
             <span className="text-xs font-bold tracking-wider uppercase text-muted-foreground">
@@ -143,7 +176,9 @@ export function CheckoutCard({ invoice }: CheckoutCardProps) {
         {/* Amount Section */}
         <div className="flex flex-col items-center mb-8">
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">
-            Total Amount
+            {invoice.status === "partially_paid"
+              ? "Remaining Balance"
+              : "Total Amount"}
           </p>
           <div
             className="group flex flex-col items-center cursor-pointer select-none"
@@ -153,10 +188,14 @@ export function CheckoutCard({ invoice }: CheckoutCardProps) {
               <h2
                 className={cn(
                   "text-3xl font-bold tracking-tight transition-colors",
-                  amountCopied ? "text-emerald-500" : "text-foreground",
+                  amountCopied
+                    ? "text-emerald-500"
+                    : invoice.status === "partially_paid"
+                      ? "text-amber-500"
+                      : "text-foreground",
                 )}
               >
-                {invoice.crypto_amount}
+                {getRemainingAmount()}
               </h2>
               <span className="text-lg font-medium text-muted-foreground">
                 {invoice.crypto_currency}
@@ -168,14 +207,45 @@ export function CheckoutCard({ invoice }: CheckoutCardProps) {
                 </span>
               )}
             </div>
+
+            {invoice.status === "partially_paid" && (
+              <p className="text-[10px] font-bold text-amber-500/80 mt-1 uppercase tracking-wider">
+                Received:{" "}
+                {parseFloat((invoice.crypto_amount_received || 0).toFixed(8))}{" "}
+                {invoice.crypto_currency}
+              </p>
+            )}
+
             <p className="text-sm font-medium text-muted-foreground mt-1">
-              ≈ ${invoice.amount_usd.toFixed(2)} USD
+              ≈ $
+              {(
+                (getRemainingAmount() / invoice.crypto_amount) *
+                invoice.amount_usd
+              ).toFixed(2)}{" "}
+              USD
             </p>
             <span className="text-[10px] text-muted-foreground mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              Click to copy amount
+              Click to copy{" "}
+              {invoice.status === "partially_paid" ? "remaining" : ""} amount
             </span>
           </div>
         </div>
+
+        {/* Partial Payment Alert */}
+        {invoice.status === "partially_paid" && (
+          <div className="mb-6 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 flex flex-col gap-1">
+            <div className="flex items-center gap-2 text-amber-500">
+              <AlertCircle size={14} />
+              <span className="text-xs font-bold uppercase tracking-tight">
+                Underpayment Detected
+              </span>
+            </div>
+            <p className="text-[10px] text-amber-200/60 leading-relaxed">
+              We detected a payment, but it was less than the required amount.
+              Please send the remaining balance above to complete your order.
+            </p>
+          </div>
+        )}
 
         <div className="flex flex-col gap-6">
           {/* QR Code */}

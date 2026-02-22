@@ -2,12 +2,16 @@ export type InvoiceStatus =
   | "pending"
   | "confirmed"
   | "expired"
-  | "partially_paid";
+  | "partially_paid"
+  | "overpaid"
+  | "confirming"
+  | "mempool_detected";
 
 export interface Invoice {
   invoice_id: string;
   amount_usd: number;
   crypto_amount: number;
+  crypto_amount_received?: number;
   crypto_currency: string;
   pay_address: string;
   status: InvoiceStatus;

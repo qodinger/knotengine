@@ -27,7 +27,25 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { useTestnet } from "../hooks/use-testnet";
 
 export function TestnetTab() {
@@ -44,6 +62,12 @@ export function TestnetTab() {
     fetchPendingInvoices,
     copyToClipboard,
   } = useTestnet();
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [createAmount, setCreateAmount] = useState("10.00");
+  const [createCurrency, setCreateCurrency] = useState("BTC");
+
+  const [simulateInvoice, setSimulateInvoice] = useState<any>(null);
+  const [simulateAmount, setSimulateAmount] = useState("");
 
   const truncate = (addr: string) => {
     if (!addr) return "";
@@ -51,7 +75,16 @@ export function TestnetTab() {
     return `${addr.slice(0, 10)}...${addr.slice(-6)}`;
   };
 
-  const wallets = [];
+  const wallets: Array<{
+    id: string;
+    label: string;
+    currency: string;
+    address: string;
+    type: string;
+    iconUrl: string;
+    iconColor: string;
+    iconFallback: string;
+  }> = [];
   if (config?.btcXpubTestnet) {
     wallets.push({
       id: "btc-testnet",
@@ -191,8 +224,13 @@ export function TestnetTab() {
           <Button
             variant="outline"
             size="sm"
-            onClick={createTestInvoice}
-            disabled={testnetLoading}
+            onClick={() => {
+              if (wallets.length > 0) {
+                setCreateCurrency(wallets[0].iconFallback);
+                setShowCreateDialog(true);
+              }
+            }}
+            disabled={testnetLoading || wallets.length === 0}
             className="h-8 text-xs gap-1.5"
           >
             <Plus className="size-3" />
@@ -255,7 +293,7 @@ export function TestnetTab() {
                 </TableRow>
               ) : invoices.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-64 text-center">
+                  <TableCell colSpan={5} className="h-48 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <div className="size-12 rounded-full bg-muted/30 flex items-center justify-center">
                         <FlaskConical className="size-6 text-muted-foreground/20" />
@@ -358,6 +396,16 @@ export function TestnetTab() {
                             className:
                               "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
                           },
+                          partially_paid: {
+                            label: "Partial",
+                            className:
+                              "bg-amber-500/10 text-amber-500 border-amber-500/20",
+                          },
+                          overpaid: {
+                            label: "Overpaid",
+                            className:
+                              "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+                          },
                         };
                         const stage = stages[s] || stages.pending;
                         return (
@@ -375,37 +423,59 @@ export function TestnetTab() {
                       })()}
                     </TableCell>
                     <TableCell className="text-right pr-6">
-                      <Button
-                        size="sm"
-                        disabled={
-                          simulating === inv.invoice_id ||
-                          successId === inv.invoice_id ||
-                          (inv.status !== "pending" &&
-                            simulating !== inv.invoice_id)
-                        }
-                        onClick={() => simulatePayment(inv)}
-                        className={cn(
-                          "h-7 text-[10px] font-bold uppercase tracking-wider transition-all w-28",
-                          successId === inv.invoice_id
-                            ? "bg-emerald-500 hover:bg-emerald-600 text-white"
-                            : "bg-amber-500 hover:bg-amber-600 text-black",
-                        )}
-                      >
-                        {simulating === inv.invoice_id ? (
-                          <>
-                            <RefreshCw className="size-3 animate-spin mr-1.5" />
-                            Simulating
-                          </>
-                        ) : successId === inv.invoice_id ? (
-                          <>
-                            <CheckCircle2 className="size-3 mr-1.5" /> Paid
-                          </>
-                        ) : (
-                          <>
-                            <Zap className="size-3 mr-1.5" /> Simulate
-                          </>
-                        )}
-                      </Button>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => {
+                            const checkoutUrl =
+                              process.env.NEXT_PUBLIC_CHECKOUT_URL ||
+                              "https://checkout.knotengine.com";
+                            window.open(
+                              `${checkoutUrl}/checkout/${inv.invoice_id}`,
+                              "_blank",
+                            );
+                          }}
+                        >
+                          <ExternalLink className="size-3.5" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          disabled={
+                            simulating === inv.invoice_id ||
+                            successId === inv.invoice_id ||
+                            (inv.status !== "pending" &&
+                              inv.status !== "partially_paid" &&
+                              simulating !== inv.invoice_id)
+                          }
+                          onClick={() => {
+                            setSimulateInvoice(inv);
+                            setSimulateAmount(inv.crypto_amount.toString());
+                          }}
+                          className={cn(
+                            "h-7 text-[10px] font-bold uppercase tracking-wider transition-all w-28",
+                            successId === inv.invoice_id
+                              ? "bg-emerald-500 hover:bg-emerald-600 text-white"
+                              : "bg-amber-500 hover:bg-amber-600 text-black",
+                          )}
+                        >
+                          {simulating === inv.invoice_id ? (
+                            <>
+                              <RefreshCw className="size-3 animate-spin mr-1.5" />
+                              Simulating
+                            </>
+                          ) : successId === inv.invoice_id ? (
+                            <>
+                              <CheckCircle2 className="size-3 mr-1.5" /> Paid
+                            </>
+                          ) : (
+                            <>
+                              <Zap className="size-3 mr-1.5" /> Simulate
+                            </>
+                          )}
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -431,6 +501,146 @@ export function TestnetTab() {
           </Link>
         </Button>
       </div>
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Create Test Invoice</DialogTitle>
+            <DialogDescription>
+              Set the required amount and asset for your simulated customer
+              payment.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label
+                htmlFor="amount"
+                className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+              >
+                Amount (USD)
+              </Label>
+              <Input
+                id="amount"
+                type="number"
+                step="0.01"
+                min="1.00"
+                value={createAmount}
+                onChange={(e) => setCreateAmount(e.target.value)}
+                className="col-span-3 font-mono"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label
+                htmlFor="currency"
+                className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+              >
+                Currency
+              </Label>
+              <Select value={createCurrency} onValueChange={setCreateCurrency}>
+                <SelectTrigger className="col-span-3 font-semibold">
+                  <SelectValue placeholder="Select currency" />
+                </SelectTrigger>
+                <SelectContent>
+                  {wallets.map((w) => (
+                    <SelectItem key={w.id} value={w.iconFallback}>
+                      {w.iconFallback} ({w.currency})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowCreateDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={testnetLoading}
+              onClick={async () => {
+                const amountNum = parseFloat(createAmount);
+                if (isNaN(amountNum) || amountNum <= 0) return;
+                const success = await createTestInvoice(
+                  amountNum,
+                  createCurrency,
+                );
+                if (success) setShowCreateDialog(false);
+              }}
+            >
+              {testnetLoading ? "Creating..." : "Create Invoice"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={!!simulateInvoice}
+        onOpenChange={(open) => !open && setSimulateInvoice(null)}
+      >
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Simulate Payment Details</DialogTitle>
+            <DialogDescription>
+              Enter the exact crypto amount you want to simulate sending.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label
+                htmlFor="simAmount"
+                className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground leading-tight"
+              >
+                Send Amount
+              </Label>
+              <div className="col-span-3 relative">
+                <Input
+                  id="simAmount"
+                  type="text"
+                  value={simulateAmount}
+                  onChange={(e) => setSimulateAmount(e.target.value)}
+                  className="font-mono pr-12"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground">
+                  {simulateInvoice?.crypto_currency}
+                </span>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <div />
+              <p className="col-span-3 text-[10px] text-muted-foreground flex items-center justify-between">
+                <span>
+                  Target:{" "}
+                  <span className="font-mono text-foreground">
+                    {simulateInvoice?.crypto_amount}
+                  </span>
+                </span>
+                <span>
+                  Received:{" "}
+                  <span className="font-mono text-foreground">
+                    {simulateInvoice?.crypto_amount_received || 0}
+                  </span>
+                </span>
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSimulateInvoice(null)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={testnetLoading}
+              onClick={async () => {
+                if (!simulateInvoice) return;
+                simulatePayment(simulateInvoice, simulateAmount);
+                setSimulateInvoice(null);
+              }}
+              className="bg-amber-500 hover:bg-amber-600 text-black gap-2 font-bold"
+            >
+              <Zap size={14} /> Simulate
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

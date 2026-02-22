@@ -22,7 +22,12 @@ export function useTestnet() {
       ]);
       setConfig(configRes.data);
       const active = (invoicesRes.data.data as TestnetInvoice[]).filter((inv) =>
-        ["pending", "mempool_detected", "confirming"].includes(inv.status),
+        [
+          "pending",
+          "mempool_detected",
+          "confirming",
+          "partially_paid",
+        ].includes(inv.status),
       );
       setInvoices(active);
     } catch (err) {
@@ -40,7 +45,12 @@ export function useTestnet() {
     try {
       const res = await api.get("/v1/invoices?limit=10&include_testnet=true");
       const active = (res.data.data as TestnetInvoice[]).filter((inv) =>
-        ["pending", "mempool_detected", "confirming"].includes(inv.status),
+        [
+          "pending",
+          "mempool_detected",
+          "confirming",
+          "partially_paid",
+        ].includes(inv.status),
       );
       setInvoices(active);
     } catch (err) {
@@ -48,7 +58,10 @@ export function useTestnet() {
     }
   };
 
-  const simulatePayment = async (invoice: TestnetInvoice) => {
+  const simulatePayment = async (
+    invoice: TestnetInvoice,
+    overrideAmount?: string,
+  ) => {
     setSimulating(invoice.invoice_id);
     const txHash = `0x${Math.random().toString(16).slice(2)}${Math.random().toString(16).slice(2)}`;
 
@@ -60,37 +73,45 @@ export function useTestnet() {
       );
     };
 
+    const finalAmount = overrideAmount || invoice.crypto_amount.toString();
+
     try {
-      setInvoiceStatus("mempool_detected");
-      await api.post("/v1/webhooks/simulate", {
+      const res0 = await api.post("/v1/webhooks/simulate", {
         invoiceId: invoice.invoice_id,
         txHash,
-        amount: invoice.crypto_amount.toString(),
+        amount: finalAmount,
         asset: invoice.crypto_currency,
         confirmations: 0,
       });
+      if (res0.data?.newStatus) setInvoiceStatus(res0.data.newStatus);
 
       setTimeout(async () => {
-        setInvoiceStatus("confirming");
-        await api.post("/v1/webhooks/simulate", {
+        const res1 = await api.post("/v1/webhooks/simulate", {
           invoiceId: invoice.invoice_id,
           txHash,
-          amount: invoice.crypto_amount.toString(),
+          amount: finalAmount,
           asset: invoice.crypto_currency,
           confirmations: 1,
         });
+        if (res1.data?.newStatus) setInvoiceStatus(res1.data.newStatus);
       }, 2000);
 
       setTimeout(async () => {
-        setInvoiceStatus("confirmed");
-        await api.post("/v1/webhooks/simulate", {
+        const res12 = await api.post("/v1/webhooks/simulate", {
           invoiceId: invoice.invoice_id,
           txHash,
-          amount: invoice.crypto_amount.toString(),
+          amount: finalAmount,
           asset: invoice.crypto_currency,
           confirmations: 12,
         });
-        setSuccessId(invoice.invoice_id);
+
+        const finalStatus = res12.data?.newStatus || "confirmed";
+        setInvoiceStatus(finalStatus);
+
+        if (["confirmed", "overpaid", "expired"].includes(finalStatus)) {
+          setSuccessId(invoice.invoice_id);
+        }
+
         setSimulating(null);
         setTimeout(() => {
           setSuccessId(null);
@@ -103,38 +124,22 @@ export function useTestnet() {
     }
   };
 
-  const createTestInvoice = async () => {
-    if (!config) return;
+  const createTestInvoice = async (amount: number, currency: string) => {
+    if (!config) return false;
     try {
       setTestnetLoading(true);
       setError(null);
-      const availableCurrencies: string[] = [];
-      if (config.btcXpub || config.btcXpubTestnet) {
-        availableCurrencies.push("BTC");
-      }
-      if (config.ethAddress || config.ethAddressTestnet) {
-        availableCurrencies.push("ETH");
-      }
-
-      if (availableCurrencies.length === 0) {
-        setError(
-          "Wallet configuration missing. Add a BTC xPub or ETH Address in Settings or generate Testnet Wallets here.",
-        );
-        return;
-      }
-
-      const currency =
-        availableCurrencies[
-          Math.floor(Math.random() * availableCurrencies.length)
-        ];
       await api.post("/v1/invoices", {
-        amount_usd: Math.round((10 + Math.random() * 90) * 100) / 100,
+        amount_usd: amount,
         currency,
         is_testnet: true,
       });
       await fetchPendingInvoices();
-    } catch (err) {
+      return true;
+    } catch (err: any) {
       console.error("Failed to create test invoice", err);
+      setError(err.response?.data?.error || "Failed to create invoice");
+      return false;
     } finally {
       setTestnetLoading(false);
     }

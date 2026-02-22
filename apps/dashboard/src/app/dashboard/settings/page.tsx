@@ -4,6 +4,7 @@ import { useSettings } from "./hooks/use-settings";
 import { SettingsHeader } from "./components/settings-header";
 import { MerchantDetailsCard } from "./components/merchant-details-card";
 import { TwoFactorCard } from "./components/two-factor-card";
+import { PaymentEngineCard } from "./components/payment-engine-card";
 import { TwoFASetupDialog } from "./components/two-fa-setup-dialog";
 import { TwoFADisableDialog } from "./components/two-fa-disable-dialog";
 import { DangerZoneCard } from "./components/danger-zone-card";
@@ -11,7 +12,6 @@ import { SuccessToast } from "./components/success-toast";
 
 export default function SettingsPage() {
   const {
-    loading,
     saving,
     success,
     deleting,
@@ -20,7 +20,6 @@ export default function SettingsPage() {
     deleteConfirmationName,
     setDeleteConfirmationName,
     formData,
-    setFormData,
     twoFactorEnabled,
     twoFASetupDialogOpen,
     setTwoFASetupDialogOpen,
@@ -43,16 +42,15 @@ export default function SettingsPage() {
 
   return (
     <div className="w-full space-y-4">
-      <SettingsHeader
-        handleSave={handleSave}
-        saving={saving}
-        loading={loading}
-        success={success}
-      />
+      <SettingsHeader />
 
       <div className="space-y-6">
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          <MerchantDetailsCard formData={formData} setFormData={setFormData} />
+          <MerchantDetailsCard
+            formData={formData}
+            onSave={handleSave}
+            saving={saving}
+          />
 
           <TwoFactorCard
             twoFactorEnabled={twoFactorEnabled}
@@ -63,6 +61,12 @@ export default function SettingsPage() {
               setTwoFAError("");
             }}
             loading={twoFALoading}
+          />
+
+          <PaymentEngineCard
+            formData={formData}
+            onSave={handleSave}
+            saving={saving}
           />
         </div>
 
