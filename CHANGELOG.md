@@ -15,7 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Failover Logic** — Built a resilient `ProviderPool` that automatically rotates between Tatum and Alchemy if a subscription fails.
 - **Secure Webhooks** — Specialized Alchemy signature verification with automated test ping handling.
 - **Automatic Cleanup** — Implemented 30-day Retention (TTL) Policy for `WebhookEvent` and `Notification` collections to prevent database bloat.
-- **Real-time Notifications** — Production-ready alerts for payments, expirations, and webhook failures via Socket.io.
+- **Dashboard Real-time Alerts** — Production-ready toasts for payments, expirations, and webhook failures via Socket.io.
+- **Deduplication Indexing** — Implemented compound database indexing on `Notification` models to maintain high-performance lookups as history grows.
+- **Manual Event Metadata** — Enhanced manual resolution logs with consistent metadata linking for better traceability.
 - **Organization Migration** — Relocated ecosystem to the `qodinger` GitHub Organization for enhanced trust and scalability.
 
 ### Changed
@@ -23,7 +25,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Settings Architecture** — Relocated technical Merchant IDs to the Developers tab and simplified business settings.
 - **Unified Branding** — Consolidated all packages under the `qodinger` scope (e.g., `@qodinger/knot-database`, `@qodinger/knot-types`).
 - **Sidebar UX** — Reordered dashboard navigation to prioritize operations (Dashboard, Payments, Activity Log).
-- **Notification Logic** — Refined signal-to-noise ratio by deduplicating alerts and adding `[TEST]` labels for dev clarity.
+- **Modular Dashboard Architecture** — Completely refactored Balances, Billing, Payments, and Settings into a modern, hook-centric component system for better maintainability.
+- **Regex-Safe Notifications** — Hardened the deduplication engine with regex escaping to support special characters and labels in log titles.
+- **Unified Testnet Experience** — Synchronized `[TEST]` branding across real-time toasts, activity history, and terminal logs for all payment types.
+- **Asset-Agnostic Simulations** — Enabled testnet support for all system-configured currencies, removing hardcoded testnet-only restrictions.
+- **Notification Logic** — Refined signal-to-noise ratio by deduplicating alerts and optimizing event grouping.
 - **Improved Dev DX** — Replaced ngrok with `cloudflared` (Cloudflare Tunnel) for reliable local webhook testing.
 - **Reset Utility** — Added a safe database reset script for development with environment guards.
 
