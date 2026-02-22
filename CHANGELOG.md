@@ -20,6 +20,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Manual Event Metadata** — Enhanced manual resolution logs with consistent metadata linking for better traceability.
 - **Organization Migration** — Relocated ecosystem to the `qodinger` GitHub Organization for enhanced trust and scalability.
 
+### Fixed
+
+- **Notification Duplication** — Fixed a bug where special regex characters in titles (like `[TEST]`) caused duplicate alert entries.
+- **Testnet Visibility** — Resolved inconsistent filtering on the Payments page to correctly show or hide testnet invoices based on active tabs.
+- **Type Safety** — Corrected multiple TypeScript compilation and lint errors across the API and Dashboard monorepo.
+- **Broken Imports** — Fixed missing asset config imports in the Billing and Balances pages.
+
+### Removed
+
+- **Legacy Dashboard Pages** — Cleaned up unused and deprecated directory structures in the Dashboard application to reduce bundle size.
+- **Hardcoded Configurations** — Removed all hardcoded asset and network references, transitioning fully to dynamic shared types.
+
 ### Changed
 
 - **Settings Architecture** — Relocated technical Merchant IDs to the Developers tab and simplified business settings.
