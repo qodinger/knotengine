@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Prettier Tailwind Plugin** — Integrated `prettier-plugin-tailwindcss` for automatic class sorting following official Tailwind recommended order.
 - **Two-Factor Authentication (2FA)** — Implemented complete TOTP-based security flow with backup codes and middleware enforcement.
 - **Professional Merchant IDs** — Introduced `mid_` prefixed identity system with unique generation retry logic for enhanced API professionalism.
 - **Blockchain Redundancy** — Implemented dual-provider support (Tatum + Alchemy) for EVM chains to ensure zero-downtime payment monitoring.
@@ -23,6 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **ESM Import Compliance** — Added `.js` extensions to all relative imports in API for Node.js ESM `moduleResolution: "node16"` compatibility.
+- **TypeScript Type Safety** — Replaced all `any` types with proper type definitions across balances components and hooks.
+- **React Best Practices** — Fixed unescaped apostrophes using `&apos;` entity and added Suspense boundary for `useSearchParams` in login flow.
+- **Checkout Type Safety** — Created proper `Invoice` interface to replace `any` types in checkout components.
+- **ESLint Configuration** — Disabled non-critical warnings (Tailwind canonical classes, image optimization, React Compiler) for cleaner lint output.
 - **Notification Duplication** — Fixed a bug where special regex characters in titles (like `[TEST]`) caused duplicate alert entries.
 - **Testnet Visibility** — Resolved inconsistent filtering on the Payments page to correctly show or hide testnet invoices based on active tabs.
 - **Type Safety** — Corrected multiple TypeScript compilation and lint errors across the API and Dashboard monorepo.
@@ -35,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Tailwind Class Ordering** — Auto-sorted all Tailwind CSS classes across 63 files following official recommended order for consistency.
 - **Settings Architecture** — Relocated technical Merchant IDs to the Developers tab and simplified business settings.
 - **Unified Branding** — Consolidated all packages under the `qodinger` scope (e.g., `@qodinger/knot-database`, `@qodinger/knot-types`).
 - **Sidebar UX** — Reordered dashboard navigation to prioritize operations (Dashboard, Payments, Activity Log).
