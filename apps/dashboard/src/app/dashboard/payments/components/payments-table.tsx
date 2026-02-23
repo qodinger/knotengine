@@ -77,30 +77,30 @@ export function PaymentsTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+      <div className="flex flex-col items-start justify-between gap-4 lg:flex-row lg:items-center">
         <Tabs
           value={activeTab}
           onValueChange={setActiveTab}
           className="w-full lg:w-auto"
         >
           <TabsList className="bg-muted/30 h-9">
-            <TabsTrigger value="all" className="text-xs font-medium px-3">
+            <TabsTrigger value="all" className="px-3 text-xs font-medium">
               All
             </TabsTrigger>
-            <TabsTrigger value="confirmed" className="text-xs font-medium px-3">
+            <TabsTrigger value="confirmed" className="px-3 text-xs font-medium">
               Succeeded
             </TabsTrigger>
-            <TabsTrigger value="pending" className="text-xs font-medium px-3">
+            <TabsTrigger value="pending" className="px-3 text-xs font-medium">
               Pending
             </TabsTrigger>
-            <TabsTrigger value="expired" className="text-xs font-medium px-3">
+            <TabsTrigger value="expired" className="px-3 text-xs font-medium">
               Expired
             </TabsTrigger>
             <TabsTrigger
               value="testnet"
-              className="text-xs font-medium px-3 gap-1.5"
+              className="gap-1.5 px-3 text-xs font-medium"
             >
-              <span className="size-1.5 rounded-full bg-yellow-500 shrink-0" />
+              <span className="size-1.5 shrink-0 rounded-full bg-yellow-500" />
               Testnet
             </TabsTrigger>
           </TabsList>
@@ -108,39 +108,39 @@ export function PaymentsTable({
 
         <div className="relative w-full lg:w-72">
           <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2"
             size={14}
           />
           <Input
             placeholder="Search payments..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9 h-9 bg-muted/30 border-none text-sm"
+            className="bg-muted/30 h-9 border-none pl-9 text-sm"
           />
         </div>
       </div>
 
-      <Card className="border shadow-sm overflow-hidden py-0 gap-0">
+      <Card className="gap-0 overflow-hidden border py-0 shadow-sm">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow className="hover:bg-transparent border-border/30 h-12">
-                <TableHead className="w-[220px] text-[10px] font-bold uppercase tracking-wider pl-6">
+              <TableRow className="border-border/30 h-12 hover:bg-transparent">
+                <TableHead className="w-[220px] pl-6 text-[10px] font-bold tracking-wider uppercase">
                   Amount
                 </TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-wider">
+                <TableHead className="text-[10px] font-bold tracking-wider uppercase">
                   Status
                 </TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-wider">
+                <TableHead className="text-[10px] font-bold tracking-wider uppercase">
                   Invoice ID
                 </TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-wider">
+                <TableHead className="text-[10px] font-bold tracking-wider uppercase">
                   Currency
                 </TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-wider">
+                <TableHead className="text-[10px] font-bold tracking-wider uppercase">
                   Date
                 </TableHead>
-                <TableHead className="text-right pr-6 text-[10px] font-bold uppercase tracking-wider">
+                <TableHead className="pr-6 text-right text-[10px] font-bold tracking-wider uppercase">
                   Actions
                 </TableHead>
               </TableRow>
@@ -148,7 +148,7 @@ export function PaymentsTable({
             <TableBody>
               {loading ? (
                 Array.from({ length: 6 }).map((_, i) => (
-                  <TableRow key={i} className="border-b border-border/20">
+                  <TableRow key={i} className="border-border/20 border-b">
                     <TableCell className="pl-6">
                       <Skeleton className="h-5 w-20" />
                     </TableCell>
@@ -165,7 +165,7 @@ export function PaymentsTable({
                       <Skeleton className="h-5 w-20" />
                     </TableCell>
                     <TableCell>
-                      <Skeleton className="h-5 w-8 ml-auto" />
+                      <Skeleton className="ml-auto h-5 w-8" />
                     </TableCell>
                   </TableRow>
                 ))
@@ -173,14 +173,14 @@ export function PaymentsTable({
                 <TableRow>
                   <TableCell colSpan={6} className="h-64 text-center">
                     <div className="flex flex-col items-center gap-3">
-                      <div className="size-12 rounded-full bg-muted/30 flex items-center justify-center">
-                        <CreditCard className="size-6 text-muted-foreground/20" />
+                      <div className="bg-muted/30 flex size-12 items-center justify-center rounded-full">
+                        <CreditCard className="text-muted-foreground/20 size-6" />
                       </div>
                       <div className="space-y-1">
-                        <p className="text-sm font-semibold text-foreground">
+                        <p className="text-foreground text-sm font-semibold">
                           No payments found
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-muted-foreground text-xs">
                           {searchTerm
                             ? "Try adjusting your search query."
                             : "Payments will appear here when invoices are created."}
@@ -193,18 +193,18 @@ export function PaymentsTable({
                 invoices.map((inv) => (
                   <TableRow
                     key={inv.invoice_id}
-                    className="border-b border-border/20 hover:bg-muted/5 transition-colors group cursor-pointer"
+                    className="border-border/20 hover:bg-muted/5 group cursor-pointer border-b transition-colors"
                     onClick={() => openInvoiceDetails(inv)}
                   >
                     <TableCell className="pl-6">
                       <div className="flex flex-col">
-                        <span className="font-semibold text-sm">
+                        <span className="text-sm font-semibold">
                           $
                           {inv.amount_usd.toLocaleString(undefined, {
                             minimumFractionDigits: 2,
                           })}
                         </span>
-                        <span className="text-xs text-muted-foreground font-mono">
+                        <span className="text-muted-foreground font-mono text-xs">
                           {inv.crypto_amount} {inv.crypto_currency}
                         </span>
                       </div>
@@ -214,7 +214,7 @@ export function PaymentsTable({
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1.5">
-                        <span className="font-mono text-xs text-muted-foreground">
+                        <span className="text-muted-foreground font-mono text-xs">
                           {inv.invoice_id}
                         </span>
                         <button
@@ -222,18 +222,18 @@ export function PaymentsTable({
                             e.stopPropagation();
                             copyToClipboard(inv.invoice_id, inv.invoice_id);
                           }}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="opacity-0 transition-opacity group-hover:opacity-100"
                         >
                           {copiedId === inv.invoice_id ? (
                             <Check className="size-3 text-emerald-500" />
                           ) : (
-                            <Copy className="size-3 text-muted-foreground hover:text-foreground" />
+                            <Copy className="text-muted-foreground hover:text-foreground size-3" />
                           )}
                         </button>
                         {inv.metadata?.isTestnet && (
                           <Badge
                             variant="outline"
-                            className="text-[9px] h-4 py-0 px-1 border-yellow-500/20 text-yellow-500 bg-yellow-500/5"
+                            className="h-4 border-yellow-500/20 bg-yellow-500/5 px-1 py-0 text-[9px] text-yellow-500"
                           >
                             TEST
                           </Badge>
@@ -243,30 +243,30 @@ export function PaymentsTable({
                     <TableCell>
                       <Badge
                         variant="secondary"
-                        className="text-[10px] py-0 px-1.5 h-5 font-semibold tracking-wide"
+                        className="h-5 px-1.5 py-0 text-[10px] font-semibold tracking-wide"
                       >
                         {inv.crypto_currency}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                    <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                       <span className="flex items-center gap-1.5">
                         <Calendar className="size-3" />
                         {format(new Date(inv.created_at), "MMM d, HH:mm")}
                       </span>
                     </TableCell>
-                    <TableCell className="text-right pr-6">
+                    <TableCell className="pr-6 text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
                           >
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuLabel className="text-xs text-muted-foreground">
+                          <DropdownMenuLabel className="text-muted-foreground text-xs">
                             Actions
                           </DropdownMenuLabel>
                           <DropdownMenuSeparator />
@@ -311,7 +311,7 @@ export function PaymentsTable({
                             <>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
-                                className="text-xs text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/5 focus:text-emerald-600 focus:bg-emerald-500/5"
+                                className="text-xs text-emerald-500 hover:bg-emerald-500/5 hover:text-emerald-600 focus:bg-emerald-500/5 focus:text-emerald-600"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setConfirmResolveId(inv.invoice_id);
@@ -332,8 +332,8 @@ export function PaymentsTable({
           </Table>
         </CardContent>
         {invoices.length > 0 && (
-          <CardFooter className="py-4! px-6 border-t flex items-center justify-between bg-muted/5">
-            <p className="text-xs text-muted-foreground">
+          <CardFooter className="bg-muted/5 flex items-center justify-between border-t px-6 py-4!">
+            <p className="text-muted-foreground text-xs">
               Showing {invoices.length} payment
               {invoices.length !== 1 ? "s" : ""}
             </p>
@@ -358,7 +358,7 @@ export function PaymentsTable({
             <DialogTitle>Confirm Manual Resolution</DialogTitle>
             <DialogDescription>
               Are you sure you want to resolve invoice{" "}
-              <span className="font-bold text-foreground">
+              <span className="text-foreground font-bold">
                 {confirmResolveId}
               </span>{" "}
               manually?
@@ -374,7 +374,7 @@ export function PaymentsTable({
               Cancel
             </Button>
             <Button
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 font-bold"
+              className="gap-2 bg-emerald-600 font-bold text-white hover:bg-emerald-700"
               onClick={() => {
                 if (confirmResolveId) onResolve(confirmResolveId);
                 setConfirmResolveId(null);

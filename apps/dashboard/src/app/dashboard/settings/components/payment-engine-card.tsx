@@ -36,12 +36,12 @@ export function PaymentEngineCard({
 
   return (
     <>
-      <Card className="bg-linear-to-br from-card to-card/50 border-border/50 shadow-sm">
+      <Card className="from-card to-card/50 border-border/50 bg-linear-to-br shadow-sm">
         <CardHeader>
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Settings2 className="size-5 text-primary" />
+              <div className="bg-primary/10 rounded-lg p-2">
+                <Settings2 className="text-primary size-5" />
               </div>
               <div>
                 <CardTitle className="text-base font-bold">
@@ -55,7 +55,7 @@ export function PaymentEngineCard({
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 gap-2 text-muted-foreground hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground h-8 gap-2"
               onClick={() => setIsEditDialogOpen(true)}
             >
               <Edit2 className="size-3.5" />
@@ -64,9 +64,9 @@ export function PaymentEngineCard({
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5 p-3 border border-border/40 rounded-lg bg-muted/10">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="border-border/40 bg-muted/10 flex flex-col gap-1.5 rounded-lg border p-3">
+              <span className="text-muted-foreground flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase">
                 <UserCircle className="size-3" />
                 Fee Payer
               </span>
@@ -77,8 +77,8 @@ export function PaymentEngineCard({
               </span>
             </div>
 
-            <div className="flex flex-col gap-1.5 p-3 border border-border/40 rounded-lg bg-muted/10">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+            <div className="border-border/40 bg-muted/10 flex flex-col gap-1.5 rounded-lg border p-3">
+              <span className="text-muted-foreground flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase">
                 <Clock className="size-3" />
                 Expiration
               </span>
@@ -87,8 +87,8 @@ export function PaymentEngineCard({
               </span>
             </div>
 
-            <div className="flex flex-col gap-1.5 p-3 border border-border/40 rounded-lg bg-muted/10">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+            <div className="border-border/40 bg-muted/10 flex flex-col gap-1.5 rounded-lg border p-3">
+              <span className="text-muted-foreground flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase">
                 <Percent className="size-3" />
                 Tolerance
               </span>
@@ -97,8 +97,8 @@ export function PaymentEngineCard({
               </span>
             </div>
 
-            <div className="flex flex-col gap-1.5 p-3 border border-border/40 rounded-lg bg-muted/10">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+            <div className="border-border/40 bg-muted/10 flex flex-col gap-1.5 rounded-lg border p-3">
+              <span className="text-muted-foreground flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase">
                 <QrCode className="size-3" />
                 QR Mode
               </span>
@@ -110,8 +110,8 @@ export function PaymentEngineCard({
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 p-3 border border-border/40 rounded-lg bg-muted/10">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+          <div className="border-border/40 bg-muted/10 flex flex-col gap-2 rounded-lg border p-3">
+            <span className="text-muted-foreground flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase">
               <Wallet className="size-3" />
               Active Assets
             </span>
@@ -120,13 +120,13 @@ export function PaymentEngineCard({
                 formData.enabledCurrencies.map((c) => (
                   <div
                     key={c}
-                    className="px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-[10px] font-bold text-primary"
+                    className="bg-primary/10 border-primary/20 text-primary rounded-md border px-2 py-0.5 text-[10px] font-bold"
                   >
                     {c}
                   </div>
                 ))
               ) : (
-                <span className="text-xs text-muted-foreground italic">
+                <span className="text-muted-foreground text-xs italic">
                   All assets enabled by default
                 </span>
               )}

@@ -56,14 +56,14 @@ export function OverviewStats({ data, loading }: OverviewStatsProps) {
       {stats.map((stat) => (
         <Card
           key={stat.label}
-          className="bg-card/40 border-border/50 backdrop-blur-md shadow-sm transition-all hover:bg-card/60 hover:border-primary/30 group"
+          className="bg-card/40 border-border/50 hover:bg-card/60 hover:border-primary/30 group shadow-sm backdrop-blur-md transition-all"
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-tight">
+            <CardTitle className="text-muted-foreground text-sm font-medium tracking-tight uppercase">
               {stat.label}
             </CardTitle>
             <stat.icon
-              className={cn("h-4 w-4 text-muted-foreground", stat.color)}
+              className={cn("text-muted-foreground h-4 w-4", stat.color)}
             />
           </CardHeader>
           <CardContent>
@@ -74,7 +74,7 @@ export function OverviewStats({ data, loading }: OverviewStatsProps) {
                 stat.value
               )}
             </div>
-            <p className="text-xs text-muted-foreground mt-2 font-medium">
+            <p className="text-muted-foreground mt-2 text-xs font-medium">
               {stat.description}
             </p>
           </CardContent>

@@ -7,7 +7,7 @@ export default function ActivityPage() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Activity Log</h1>
-        <p className="text-muted-foreground text-sm mt-1">
+        <p className="text-muted-foreground mt-1 text-sm">
           A real-time record of all system events, webhook attempts, and
           merchant alerts.
         </p>

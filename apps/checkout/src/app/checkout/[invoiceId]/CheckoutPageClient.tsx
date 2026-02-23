@@ -91,7 +91,7 @@ export default function CheckoutPageClient({
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
+      <div className="bg-background text-foreground flex min-h-screen items-center justify-center">
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
@@ -108,17 +108,17 @@ export default function CheckoutPageClient({
 
   if (error) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background text-foreground text-center">
-        <div className="p-8 bg-card rounded-xl border border-border max-w-sm shadow-2xl">
-          <h1 className="text-xl font-bold mb-2 tracking-tight">
+      <div className="bg-background text-foreground flex min-h-screen flex-col items-center justify-center p-4 text-center">
+        <div className="bg-card border-border max-w-sm rounded-xl border p-8 shadow-2xl">
+          <h1 className="mb-2 text-xl font-bold tracking-tight">
             Connection Error
           </h1>
-          <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
+          <p className="text-muted-foreground mb-6 text-sm leading-relaxed">
             {error}. Please verify the Invoice ID or contact the merchant.
           </p>
           <button
             onClick={handleRetry}
-            className="w-full px-4 py-2.5 bg-foreground text-background rounded-lg font-medium text-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+            className="bg-foreground text-background flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-opacity hover:opacity-90"
           >
             Retry Connection
           </button>
@@ -132,28 +132,28 @@ export default function CheckoutPageClient({
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-6 bg-background text-foreground">
-      <div className="w-full max-w-md relative z-10">
+    <main className="bg-background text-foreground flex min-h-screen flex-col items-center justify-center p-6">
+      <div className="relative z-10 w-full max-w-md">
         <AnimatePresence mode="wait">
           {["confirmed", "overpaid"].includes(invoice.status) ? (
             <motion.div
               key="success"
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="w-full bg-card border border-border rounded-xl p-8 pb-4 text-center shadow-2xl"
+              className="bg-card border-border w-full rounded-xl border p-8 pb-4 text-center shadow-2xl"
             >
-              <div className="w-14 h-14 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10">
                 <ShieldCheck size={28} className="text-emerald-500" />
               </div>
-              <h2 className="text-2xl font-bold mb-2 tracking-tight">
+              <h2 className="mb-2 text-2xl font-bold tracking-tight">
                 {invoice.status === "overpaid"
                   ? "Overpayment Confirmed"
                   : "Payment Confirmed"}
               </h2>
 
               {invoice.description && (
-                <div className="mb-6 px-4 py-2.5 bg-muted/20 border border-border/40 rounded-lg inline-block mx-auto">
-                  <p className="text-xs text-muted-foreground italic leading-relaxed">
+                <div className="bg-muted/20 border-border/40 mx-auto mb-6 inline-block rounded-lg border px-4 py-2.5">
+                  <p className="text-muted-foreground text-xs leading-relaxed italic">
                     “{invoice.description}”
                   </p>
                 </div>
@@ -169,18 +169,18 @@ export default function CheckoutPageClient({
                 </p>
 
                 {invoice.status === "overpaid" && (
-                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-left">
-                    <p className="text-xs font-medium text-amber-500 mb-1">
+                  <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-left">
+                    <p className="mb-1 text-xs font-medium text-amber-500">
                       Overpayment Detected
                     </p>
-                    <p className="text-[11px] text-amber-200/60 leading-relaxed">
+                    <p className="text-[11px] leading-relaxed text-amber-200/60">
                       We detected that you sent more than the required amount.
                       Please contact{" "}
-                      <span className="text-amber-500 font-bold">
+                      <span className="font-bold text-amber-500">
                         {invoice.merchant?.name || "the merchant"}
                       </span>{" "}
                       regarding your overpayment of{" "}
-                      <span className="text-amber-500 font-bold">
+                      <span className="font-bold text-amber-500">
                         {parseFloat(
                           (
                             (invoice.crypto_amount_received || 0) -
@@ -195,12 +195,12 @@ export default function CheckoutPageClient({
                 )}
               </div>
 
-              <div className="flex flex-col gap-1 mt-6 mb-6">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+              <div className="mt-6 mb-6 flex flex-col gap-1">
+                <span className="text-muted-foreground mb-1 text-[10px] font-bold tracking-wider uppercase">
                   Transaction Hash
                 </span>
-                <div className="bg-secondary/50 border border-border rounded-lg p-2 flex items-center justify-center">
-                  <code className="text-[11px] font-mono text-foreground break-all">
+                <div className="bg-secondary/50 border-border flex items-center justify-center rounded-lg border p-2">
+                  <code className="text-foreground font-mono text-[11px] break-all">
                     {invoice.tx_hash ? (
                       invoice.tx_hash
                     ) : invoice.status === "confirmed" ||
@@ -232,7 +232,7 @@ export default function CheckoutPageClient({
                     }
                     window.location.href = url;
                   }}
-                  className="w-full py-3 mb-4 bg-emerald-500 text-black font-bold rounded-lg hover:bg-emerald-400 transition-colors text-sm shadow-lg shadow-emerald-500/20 active:scale-[0.98]"
+                  className="mb-4 w-full rounded-lg bg-emerald-500 py-3 text-sm font-bold text-black shadow-lg shadow-emerald-500/20 transition-colors hover:bg-emerald-400 active:scale-[0.98]"
                 >
                   Return to {invoice.merchant?.name || "Merchant"}
                 </button>
@@ -249,8 +249,8 @@ export default function CheckoutPageClient({
           )}
         </AnimatePresence>
 
-        <footer className="mt-8 flex flex-col items-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
-          <div className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground uppercase tracking-widest">
+        <footer className="mt-8 flex flex-col items-center gap-2 opacity-50 transition-opacity hover:opacity-100">
+          <div className="text-muted-foreground flex items-center gap-1.5 text-[10px] font-medium tracking-widest uppercase">
             <ShieldCheck size={12} />
             <span>Secured by</span>
             <span className="text-foreground font-bold">KnotEngine</span>

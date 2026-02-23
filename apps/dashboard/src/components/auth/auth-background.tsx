@@ -7,12 +7,12 @@ export function AuthBackground() {
     <div className="absolute inset-0 z-0 overflow-hidden bg-[#050505]">
       {/* Premium Base Texture */}
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-60 mix-blend-luminosity scale-[1.02] animate-pulse duration-[15s]"
+        className="absolute inset-0 scale-[1.02] animate-pulse bg-cover bg-center bg-no-repeat opacity-60 mix-blend-luminosity duration-[15s]"
         style={{ backgroundImage: "url('/auth-bg.png')" }}
       />
 
       <svg
-        className="absolute inset-0 w-full h-full opacity-30 mix-blend-screen"
+        className="absolute inset-0 h-full w-full opacity-30 mix-blend-screen"
         xmlns="http://www.w3.org/2000/svg"
       >
         <filter id="noiseFilter">
@@ -38,7 +38,7 @@ export function AuthBackground() {
           </radialGradient>
         </defs>
 
-        <g className="animate-pulse duration-[10s] ease-in-out infinite">
+        <g className="infinite animate-pulse duration-[10s] ease-in-out">
           <circle cx="50%" cy="50%" r="50%" fill="url(#grad1)" />
         </g>
       </svg>

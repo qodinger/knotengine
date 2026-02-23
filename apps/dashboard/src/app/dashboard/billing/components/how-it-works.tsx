@@ -30,8 +30,8 @@ export function HowItWorks({
     <Card className="border shadow-sm">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
-          <Sparkles className="size-4 text-primary" />
-          <CardTitle className="text-[10px] font-bold uppercase tracking-wider">
+          <Sparkles className="text-primary size-4" />
+          <CardTitle className="text-[10px] font-bold tracking-wider uppercase">
             How Billing Works
           </CardTitle>
         </div>
@@ -41,7 +41,7 @@ export function HowItWorks({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           {[
             {
               step: "01",
@@ -77,29 +77,29 @@ export function HowItWorks({
           ].map((item) => (
             <div
               key={item.step}
-              className="flex flex-col gap-2 p-4 rounded-xl border border-border/30 bg-muted/20"
+              className="border-border/30 bg-muted/20 flex flex-col gap-2 rounded-xl border p-4"
             >
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-muted-foreground/40">
+                <span className="text-muted-foreground/40 text-[10px] font-bold">
                   {item.step}
                 </span>
                 <item.icon className={cn("size-3.5", item.color)} />
               </div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-foreground">
+              <p className="text-foreground text-[10px] font-bold tracking-wider uppercase">
                 {item.title}
               </p>
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
+              <p className="text-muted-foreground text-[11px] leading-relaxed">
                 {item.description}
               </p>
             </div>
           ))}
         </div>
 
-        <div className="pt-4 border-t border-border/40">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-4">
+        <div className="border-border/40 border-t pt-4">
+          <p className="text-muted-foreground mb-4 text-[10px] font-bold tracking-wider uppercase">
             Available Plans
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {[
               {
                 name: "Starter",
@@ -145,34 +145,34 @@ export function HowItWorks({
               <div
                 key={plan.name}
                 className={cn(
-                  "relative p-4 rounded-xl border transition-all flex flex-col",
+                  "relative flex flex-col rounded-xl border p-4 transition-all",
                   plan.popular
                     ? "border-primary bg-primary/5 shadow-sm"
                     : "border-border/60 bg-muted/10",
                 )}
               >
                 {plan.popular && (
-                  <span className="absolute -top-2 left-4 px-2 py-0.5 bg-primary text-[8px] font-black uppercase text-primary-foreground rounded">
+                  <span className="bg-primary text-primary-foreground absolute -top-2 left-4 rounded px-2 py-0.5 text-[8px] font-black uppercase">
                     Most Popular
                   </span>
                 )}
-                <div className="flex justify-between items-start mb-1">
+                <div className="mb-1 flex items-start justify-between">
                   <p className="text-xs font-bold">{plan.name}</p>
-                  <p className="text-xs font-black text-primary">{plan.fee}</p>
+                  <p className="text-primary text-xs font-black">{plan.fee}</p>
                 </div>
-                <p className="text-[10px] text-muted-foreground mb-1">
+                <p className="text-muted-foreground mb-1 text-[10px]">
                   {plan.cost}
                 </p>
-                <p className="text-[9px] text-muted-foreground/70 mb-3">
+                <p className="text-muted-foreground/70 mb-3 text-[9px]">
                   {plan.description}
                 </p>
-                <ul className="space-y-1 mb-4 flex-1">
+                <ul className="mb-4 flex-1 space-y-1">
                   {plan.features.map((f) => (
                     <li
                       key={f}
-                      className="text-[9px] text-muted-foreground flex items-center gap-1.5"
+                      className="text-muted-foreground flex items-center gap-1.5 text-[9px]"
                     >
-                      <Check className="size-2.5 text-primary" />
+                      <Check className="text-primary size-2.5" />
                       {f}
                     </li>
                   ))}
@@ -188,10 +188,10 @@ export function HowItWorks({
                   }
                   disabled={currentPlan === plan.name.toLowerCase()}
                   className={cn(
-                    "w-full py-1.5 text-[9px] font-black uppercase tracking-widest transition-all",
+                    "w-full py-1.5 text-[9px] font-black tracking-widest uppercase transition-all",
                     currentPlan === plan.name.toLowerCase()
                       ? "bg-muted text-muted-foreground cursor-not-allowed"
-                      : "bg-primary text-primary-foreground hover:opacity-90 active:scale-95 shadow-sm",
+                      : "bg-primary text-primary-foreground shadow-sm hover:opacity-90 active:scale-95",
                   )}
                 >
                   {currentPlan === plan.name.toLowerCase()
@@ -203,17 +203,17 @@ export function HowItWorks({
           </div>
         </div>
       </CardContent>
-      <CardFooter className="pt-0 flex flex-col items-start gap-4">
-        <div className="flex items-center gap-2 text-[10px] text-muted-foreground bg-muted/30 p-2 rounded-lg border border-border/40 w-full">
-          <TrendingUp className="size-3.5 text-primary shrink-0" />
+      <CardFooter className="flex flex-col items-start gap-4 pt-0">
+        <div className="text-muted-foreground bg-muted/30 border-border/40 flex w-full items-center gap-2 rounded-lg border p-2 text-[10px]">
+          <TrendingUp className="text-primary size-3.5 shrink-0" />
           <span>
             <strong>The Float Strategy:</strong> Fee credits are held in
             yield-bearing protocols (Aave/Lido). We keep the yield to keep your
             fees low.
           </span>
         </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <ShieldCheck className="size-3.5 text-emerald-500 shrink-0" />
+        <div className="text-muted-foreground flex items-center gap-2 text-xs">
+          <ShieldCheck className="size-3.5 shrink-0 text-emerald-500" />
           <span>
             Zero-custody guarantee — KnotEngine never holds or routes your
             customer funds.

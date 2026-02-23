@@ -56,12 +56,12 @@ export function TwoFADisableDialog({
               }
               placeholder="000000"
               maxLength={6}
-              className="text-center text-2xl font-mono tracking-[0.5em] bg-background/50"
+              className="bg-background/50 text-center font-mono text-2xl tracking-[0.5em]"
               autoComplete="one-time-code"
             />
           </div>
           {error && (
-            <p className="text-xs text-destructive font-medium">{error}</p>
+            <p className="text-destructive text-xs font-medium">{error}</p>
           )}
         </div>
         <DialogFooter>
@@ -77,7 +77,7 @@ export function TwoFADisableDialog({
             onClick={onDisable}
             disabled={twoFACode.length !== 6 || loading}
           >
-            {loading && <Loader2 className="size-3 mr-2 animate-spin" />}
+            {loading && <Loader2 className="mr-2 size-3 animate-spin" />}
             Disable 2FA
           </Button>
         </DialogFooter>

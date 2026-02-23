@@ -60,7 +60,7 @@ function EventIcon({ type }: { type: string }) {
   return (
     <div
       className={cn(
-        "size-7 rounded-lg flex items-center justify-center border shrink-0 transition-transform group-hover:scale-105",
+        "flex size-7 shrink-0 items-center justify-center rounded-lg border transition-transform group-hover:scale-105",
         config.class,
       )}
     >
@@ -82,13 +82,13 @@ export function EventsTab() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-500/5 border border-emerald-500/20 rounded-full">
-            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">
+          <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-2 py-1">
+            <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
+            <span className="text-[10px] font-bold tracking-wider text-emerald-500 uppercase">
               Live Stream
             </span>
           </div>
-          <p className="text-xs text-muted-foreground hidden sm:block">
+          <p className="text-muted-foreground hidden text-xs sm:block">
             Real-time activity log for your merchant
           </p>
         </div>
@@ -97,11 +97,11 @@ export function EventsTab() {
           size="sm"
           onClick={fetchNotifications}
           disabled={eventsLoading}
-          className="h-8 text-[10px] font-bold uppercase tracking-widest bg-card/40 border-border/50 backdrop-blur-sm"
+          className="bg-card/40 border-border/50 h-8 text-[10px] font-bold tracking-widest uppercase backdrop-blur-sm"
         >
           <RefreshCw
             className={cn(
-              "size-3 mr-2 text-primary",
+              "text-primary mr-2 size-3",
               eventsLoading && "animate-spin",
             )}
           />
@@ -109,18 +109,18 @@ export function EventsTab() {
         </Button>
       </div>
 
-      <Card className="bg-card/30 border-border/40 backdrop-blur-md shadow-sm overflow-hidden py-0 gap-0">
+      <Card className="bg-card/30 border-border/40 gap-0 overflow-hidden py-0 shadow-sm backdrop-blur-md">
         <CardContent className="p-0">
           <Table>
             <TableHeader className="bg-muted/20">
-              <TableRow className="hover:bg-transparent border-border/40 h-12">
-                <TableHead className="w-[200px] text-[10px] font-bold pl-6 uppercase tracking-wider">
+              <TableRow className="border-border/40 h-12 hover:bg-transparent">
+                <TableHead className="w-[200px] pl-6 text-[10px] font-bold tracking-wider uppercase">
                   Event Type
                 </TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-wider">
+                <TableHead className="text-[10px] font-bold tracking-wider uppercase">
                   Description
                 </TableHead>
-                <TableHead className="w-[160px] text-right pr-6 text-[10px] font-bold uppercase tracking-wider">
+                <TableHead className="w-[160px] pr-6 text-right text-[10px] font-bold tracking-wider uppercase">
                   Time
                 </TableHead>
               </TableRow>
@@ -131,15 +131,15 @@ export function EventsTab() {
                   <TableRow key={i} className="border-border/10">
                     <TableCell className="pl-6">
                       <div className="flex items-center gap-2">
-                        <div className="size-7 bg-muted animate-pulse rounded-lg" />
-                        <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+                        <div className="bg-muted size-7 animate-pulse rounded-lg" />
+                        <div className="bg-muted h-4 w-24 animate-pulse rounded" />
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="h-4 w-full max-w-md bg-muted animate-pulse rounded" />
+                      <div className="bg-muted h-4 w-full max-w-md animate-pulse rounded" />
                     </TableCell>
                     <TableCell className="pr-6">
-                      <div className="h-4 w-20 ml-auto bg-muted animate-pulse rounded" />
+                      <div className="bg-muted ml-auto h-4 w-20 animate-pulse rounded" />
                     </TableCell>
                   </TableRow>
                 ))
@@ -147,14 +147,14 @@ export function EventsTab() {
                 <TableRow>
                   <TableCell colSpan={3} className="h-64 text-center">
                     <div className="flex flex-col items-center gap-3">
-                      <div className="size-12 rounded-full bg-muted/30 flex items-center justify-center">
-                        <Bell className="size-6 text-muted-foreground/20" />
+                      <div className="bg-muted/30 flex size-12 items-center justify-center rounded-full">
+                        <Bell className="text-muted-foreground/20 size-6" />
                       </div>
                       <div className="space-y-1">
-                        <p className="text-sm font-semibold text-foreground">
+                        <p className="text-foreground text-sm font-semibold">
                           No activity yet
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-muted-foreground text-xs">
                           Incoming merchant events will appear here in
                           real-time.
                         </p>
@@ -166,24 +166,24 @@ export function EventsTab() {
                 notifications.map((n) => (
                   <TableRow
                     key={n._id}
-                    className="group border-border/10 transition-all hover:bg-primary/2 cursor-pointer"
+                    className="group border-border/10 hover:bg-primary/2 cursor-pointer transition-all"
                     onClick={() => setSelectedEvent(n)}
                   >
-                    <TableCell className="pl-6 py-4">
+                    <TableCell className="py-4 pl-6">
                       <div className="flex items-center gap-3">
                         <EventIcon type={n.type} />
-                        <span className="text-xs font-bold text-foreground">
+                        <span className="text-foreground text-xs font-bold">
                           {n.title}
                         </span>
                       </div>
                     </TableCell>
                     <TableCell className="py-4">
-                      <p className="text-xs text-muted-foreground/80 font-medium line-clamp-1 group-hover:text-foreground transition-colors">
+                      <p className="text-muted-foreground/80 group-hover:text-foreground line-clamp-1 text-xs font-medium transition-colors">
                         {n.description}
                       </p>
                     </TableCell>
-                    <TableCell className="text-right pr-6 py-4">
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider bg-muted/30 px-2 py-1 rounded-md">
+                    <TableCell className="py-4 pr-6 text-right">
+                      <span className="text-muted-foreground bg-muted/30 rounded-md px-2 py-1 text-[10px] font-bold tracking-wider uppercase">
                         {formatDistanceToNow(new Date(n.createdAt), {
                           addSuffix: true,
                         })}
@@ -201,13 +201,13 @@ export function EventsTab() {
         open={!!selectedEvent}
         onOpenChange={(open) => !open && setSelectedEvent(null)}
       >
-        <SheetContent className="w-[450px] sm:w-[540px] px-0">
-          <SheetHeader className="px-8 pb-6 border-b">
-            <div className="flex items-center gap-3 mb-2">
+        <SheetContent className="w-[450px] px-0 sm:w-[540px]">
+          <SheetHeader className="border-b px-8 pb-6">
+            <div className="mb-2 flex items-center gap-3">
               {selectedEvent && <EventIcon type={selectedEvent.type} />}
               <Badge
                 variant="outline"
-                className="text-[10px] font-bold uppercase tracking-widest bg-muted/30 px-2"
+                className="bg-muted/30 px-2 text-[10px] font-bold tracking-widest uppercase"
               >
                 Event Details
               </Badge>
@@ -227,20 +227,20 @@ export function EventsTab() {
           <ScrollArea className="h-[calc(100vh-140px)] px-8 py-6">
             <div className="space-y-8">
               <div className="space-y-3">
-                <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60">
+                <h4 className="text-muted-foreground/60 text-[10px] font-bold tracking-[0.2em] uppercase">
                   Message
                 </h4>
-                <p className="text-sm font-medium leading-relaxed bg-muted/20 p-4 rounded-xl border border-border/40">
+                <p className="bg-muted/20 border-border/40 rounded-xl border p-4 text-sm leading-relaxed font-medium">
                   {selectedEvent?.description}
                 </p>
               </div>
 
               <div className="space-y-4">
-                <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60">
+                <h4 className="text-muted-foreground/60 text-[10px] font-bold tracking-[0.2em] uppercase">
                   Technical Metadata
                 </h4>
-                <div className="rounded-xl border border-border/40 bg-zinc-950 p-6 overflow-hidden">
-                  <pre className="text-[11px] font-mono leading-relaxed text-zinc-300 whitespace-pre-wrap">
+                <div className="border-border/40 overflow-hidden rounded-xl border bg-zinc-950 p-6">
+                  <pre className="font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-zinc-300">
                     {JSON.stringify(
                       {
                         event_id: selectedEvent?._id,
@@ -256,10 +256,10 @@ export function EventsTab() {
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-border/40">
+              <div className="border-border/40 border-t pt-4">
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-1">
-                    <p className="text-[10px] font-bold text-muted-foreground/60 uppercase">
+                    <p className="text-muted-foreground/60 text-[10px] font-bold uppercase">
                       Severity
                     </p>
                     <p className="text-xs font-bold capitalize">
@@ -267,10 +267,10 @@ export function EventsTab() {
                     </p>
                   </div>
                   <div className="space-y-1 text-right">
-                    <p className="text-[10px] font-bold text-muted-foreground/60 uppercase">
+                    <p className="text-muted-foreground/60 text-[10px] font-bold uppercase">
                       Trace ID
                     </p>
-                    <p className="text-xs font-mono text-muted-foreground">
+                    <p className="text-muted-foreground font-mono text-xs">
                       {selectedEvent?._id.slice(0, 12)}...
                     </p>
                   </div>

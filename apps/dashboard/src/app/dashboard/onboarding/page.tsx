@@ -76,13 +76,13 @@ export default function OnboardingPage() {
     : "M";
 
   return (
-    <div className="flex items-center justify-center min-h-[85vh] px-4">
-      <Card className="w-full max-w-md bg-background/50 backdrop-blur-sm border-border/40 shadow-xl">
+    <div className="flex min-h-[85vh] items-center justify-center px-4">
+      <Card className="bg-background/50 border-border/40 w-full max-w-md shadow-xl backdrop-blur-sm">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold tracking-tight">
             Create your merchant
           </CardTitle>
-          <CardDescription className="text-sm mt-1">
+          <CardDescription className="mt-1 text-sm">
             Set up your brand identity to start accepting crypto.
           </CardDescription>
         </CardHeader>
@@ -91,9 +91,9 @@ export default function OnboardingPage() {
           <div className="flex flex-col items-center justify-center gap-3">
             <div
               onClick={handleAvatarClick}
-              className="relative group cursor-pointer"
+              className="group relative cursor-pointer"
             >
-              <Avatar className="h-28 w-28 border-2 border-border/40 transition-all duration-200 hover:border-primary/40 ring-offset-background group-hover:ring-2 ring-primary/20">
+              <Avatar className="border-border/40 hover:border-primary/40 ring-offset-background ring-primary/20 h-28 w-28 border-2 transition-all duration-200 group-hover:ring-2">
                 <AvatarImage
                   src={logoBase64}
                   alt={merchantName}
@@ -103,7 +103,7 @@ export default function OnboardingPage() {
                   {nameInitial}
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                 <Camera className="h-6 w-6 text-white" />
               </div>
               <input
@@ -114,7 +114,7 @@ export default function OnboardingPage() {
                 onChange={handleFileChange}
               />
             </div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+            <p className="text-muted-foreground/60 text-[10px] font-bold tracking-widest uppercase">
               Merchant Logo
             </p>
           </div>
@@ -123,14 +123,14 @@ export default function OnboardingPage() {
           <div className="space-y-2">
             <Label
               htmlFor="merchant"
-              className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80 ml-1"
+              className="text-muted-foreground/80 ml-1 text-[11px] font-bold tracking-wider uppercase"
             >
               Legal Business Name
             </Label>
             <Input
               id="merchant"
               placeholder="e.g. Acme Payments Ltd."
-              className="h-11 bg-background/50 border-border/40 focus:ring-primary/40"
+              className="bg-background/50 border-border/40 focus:ring-primary/40 h-11"
               value={merchantName}
               onChange={(e) => setMerchantName(e.target.value)}
               disabled={isLoading}
@@ -142,7 +142,7 @@ export default function OnboardingPage() {
           <Button
             size="lg"
             onClick={handleCreate}
-            className="w-full h-11! gap-2 text-xs font-bold uppercase tracking-widest shadow-lg shadow-primary/10 transition-all cursor-pointer"
+            className="shadow-primary/10 h-11! w-full cursor-pointer gap-2 text-xs font-bold tracking-widest uppercase shadow-lg transition-all"
             disabled={!merchantName.trim() || isLoading}
           >
             {isLoading ? (

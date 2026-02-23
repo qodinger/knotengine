@@ -129,23 +129,23 @@ export function MerchantSwitcher() {
             size="lg"
             className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
           >
-            <Avatar className="size-8 rounded-md border border-white/10 shrink-0">
+            <Avatar className="size-8 shrink-0 rounded-md border border-white/10">
               <AvatarImage
                 src={activeMerchant.logoUrl}
                 alt={activeMerchant.name}
                 className="object-cover"
               />
-              <AvatarFallback className="bg-primary text-primary-foreground rounded-md shadow-sm text-xs font-bold">
+              <AvatarFallback className="bg-primary text-primary-foreground rounded-md text-xs font-bold shadow-sm">
                 {activeMerchant.name?.[0]?.toUpperCase() || (
                   <Store className="size-4 fill-current" />
                 )}
               </AvatarFallback>
             </Avatar>
-            <div className="flex flex-col gap-0.5 group-data-[collapsible=icon]:hidden ml-3 overflow-hidden text-left flex-1">
-              <span className="font-bold text-sm tracking-tight leading-none text-foreground truncate">
+            <div className="ml-3 flex flex-1 flex-col gap-0.5 overflow-hidden text-left group-data-[collapsible=icon]:hidden">
+              <span className="text-foreground truncate text-sm leading-none font-bold tracking-tight">
                 {activeMerchant.name || "Untitled Merchant"}
               </span>
-              <span className="text-[10px] text-muted-foreground/60 font-bold tracking-widest leading-none mt-0.5 truncate uppercase">
+              <span className="text-muted-foreground/60 mt-0.5 truncate text-[10px] leading-none font-bold tracking-widest uppercase">
                 Merchant
               </span>
             </div>
@@ -158,7 +158,7 @@ export function MerchantSwitcher() {
           side="bottom"
           sideOffset={4}
         >
-          <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-widest font-bold px-2 py-1.5">
+          <DropdownMenuLabel className="text-muted-foreground px-2 py-1.5 text-xs font-bold tracking-widest uppercase">
             Merchants
           </DropdownMenuLabel>
           {merchants.map(
@@ -166,15 +166,15 @@ export function MerchantSwitcher() {
               <DropdownMenuItem
                 key={merchant.id}
                 onSelect={() => handleMerchantSwitch(merchant.id)}
-                className="gap-2 p-2 cursor-pointer font-medium text-sm"
+                className="cursor-pointer gap-2 p-2 text-sm font-medium"
               >
-                <Avatar className="size-6 rounded-sm border shrink-0">
+                <Avatar className="size-6 shrink-0 rounded-sm border">
                   <AvatarImage
                     src={merchant.logoUrl}
                     alt={merchant.name}
                     className="object-cover"
                   />
-                  <AvatarFallback className="text-[10px] font-bold bg-muted">
+                  <AvatarFallback className="bg-muted text-[10px] font-bold">
                     {merchant.name?.[0]?.toUpperCase() || (
                       <Store className="size-3" />
                     )}
@@ -189,10 +189,10 @@ export function MerchantSwitcher() {
           )}
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            className="gap-2 p-2 cursor-pointer font-medium text-sm"
+            className="cursor-pointer gap-2 p-2 text-sm font-medium"
             onSelect={() => setShowNewMerchantDialog(true)}
           >
-            <div className="flex size-6 items-center justify-center rounded-md border bg-background">
+            <div className="bg-background flex size-6 items-center justify-center rounded-md border">
               <PlusCircle className="size-4" />
             </div>
             Create Merchant
@@ -211,15 +211,15 @@ export function MerchantSwitcher() {
           <div className="flex flex-col items-center justify-center gap-4 py-4">
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="relative group cursor-pointer"
+              className="group relative cursor-pointer"
             >
-              <Avatar className="h-20 w-20 border-2 border-border/40 transition-all duration-200 group-hover:border-primary/40">
+              <Avatar className="border-border/40 group-hover:border-primary/40 h-20 w-20 border-2 transition-all duration-200">
                 <AvatarImage src={logoBase64} className="object-cover" />
                 <AvatarFallback className="bg-muted">
-                  <Camera className="size-6 text-muted-foreground" />
+                  <Camera className="text-muted-foreground size-6" />
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200">
+              <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-all duration-200 group-hover:opacity-100">
                 <PlusCircle className="size-5 text-white" />
               </div>
               <input
@@ -230,7 +230,7 @@ export function MerchantSwitcher() {
                 onChange={handleFileChange}
               />
             </div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            <p className="text-muted-foreground text-[10px] font-bold tracking-widest uppercase">
               Merchant Logo
             </p>
           </div>

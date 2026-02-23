@@ -87,16 +87,16 @@ export default function EcosystemPage() {
     <div className="flex flex-col gap-6 pb-10">
       <EcosystemHeader />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {partners.map((partner) => (
           <Card
             key={partner.id}
-            className="relative overflow-hidden border-border/40 group hover:border-border/80 transition-all bg-background/50 backdrop-blur-sm"
+            className="border-border/40 group hover:border-border/80 bg-background/50 relative overflow-hidden backdrop-blur-sm transition-all"
           >
             {/* Glossy background effect */}
             <div
               className={cn(
-                "absolute inset-0 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity",
+                "absolute inset-0 opacity-[0.03] transition-opacity group-hover:opacity-[0.05]",
                 partner.id === "moonpay"
                   ? "bg-blue-500"
                   : partner.id === "ledger"
@@ -109,16 +109,16 @@ export default function EcosystemPage() {
 
             <div
               className={cn(
-                "absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 opacity-20 group-hover:opacity-40 blur-3xl transition-opacity",
+                "absolute top-0 right-0 -mt-8 -mr-8 h-32 w-32 opacity-20 blur-3xl transition-opacity group-hover:opacity-40",
                 partner.bg,
               )}
             />
 
             <CardHeader className="relative pb-4">
-              <div className="flex items-start justify-between mb-4">
+              <div className="mb-4 flex items-start justify-between">
                 <div
                   className={cn(
-                    "p-3 rounded-2xl transition-transform group-hover:scale-110 duration-500",
+                    "rounded-2xl p-3 transition-transform duration-500 group-hover:scale-110",
                     partner.bg,
                     partner.color,
                   )}
@@ -127,7 +127,7 @@ export default function EcosystemPage() {
                 </div>
                 <Badge
                   variant="outline"
-                  className="font-bold text-[9px] uppercase tracking-widest bg-background/50 backdrop-blur-sm border-white/5"
+                  className="bg-background/50 border-white/5 text-[9px] font-bold tracking-widest uppercase backdrop-blur-sm"
                 >
                   {partner.category}
                 </Badge>
@@ -135,14 +135,14 @@ export default function EcosystemPage() {
               <CardTitle className="text-xl font-bold tracking-tight">
                 {partner.title}
               </CardTitle>
-              <CardDescription className="text-muted-foreground text-sm leading-relaxed mt-2 line-clamp-2">
+              <CardDescription className="text-muted-foreground mt-2 line-clamp-2 text-sm leading-relaxed">
                 {partner.description}
               </CardDescription>
             </CardHeader>
 
             <CardContent className="relative">
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-white/3 border border-white/5 group-hover:bg-white/5 transition-colors">
-                <Info className="size-4 text-muted-foreground/60" />
+              <div className="flex items-center gap-2 rounded-xl border border-white/5 bg-white/3 p-3 transition-colors group-hover:bg-white/5">
+                <Info className="text-muted-foreground/60 size-4" />
                 <span className="text-xs font-semibold tracking-tight">
                   {partner.benefit}
                 </span>
@@ -153,7 +153,7 @@ export default function EcosystemPage() {
               <Button
                 asChild
                 variant="outline"
-                className="w-full h-10 group/btn transition-all border-white/5 hover:bg-white hover:text-black font-bold text-xs uppercase tracking-widest"
+                className="group/btn h-10 w-full border-white/5 text-xs font-bold tracking-widest uppercase transition-all hover:bg-white hover:text-black"
               >
                 <a
                   href={partner.link}
@@ -162,7 +162,7 @@ export default function EcosystemPage() {
                   className="flex items-center justify-center gap-2"
                 >
                   {partner.cta}
-                  <ArrowUpRight className="size-3.5 opacity-50 group-hover/btn:opacity-100 transition-all group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5" />
+                  <ArrowUpRight className="size-3.5 opacity-50 transition-all group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 group-hover/btn:opacity-100" />
                 </a>
               </Button>
             </CardFooter>
@@ -170,28 +170,28 @@ export default function EcosystemPage() {
         ))}
       </div>
 
-      <Card className="border-dashed border-2 border-border/40 bg-muted/5 relative overflow-hidden">
-        <div className="absolute inset-0 bg-linear-to-b from-transparent to-primary/5 opacity-50" />
+      <Card className="border-border/40 bg-muted/5 relative overflow-hidden border-2 border-dashed">
+        <div className="to-primary/5 absolute inset-0 bg-linear-to-b from-transparent opacity-50" />
         <CardContent className="relative flex flex-col items-center justify-center py-16 text-center">
-          <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center mb-6 border border-primary/20">
-            <Puzzle className="size-6 text-primary" />
+          <div className="bg-primary/10 border-primary/20 mb-6 flex size-12 items-center justify-center rounded-full border">
+            <Puzzle className="text-primary size-6" />
           </div>
           <Badge
             variant="secondary"
-            className="mb-4 font-bold text-[9px] uppercase tracking-widest px-3 py-1 bg-primary/20 text-primary border-primary/20"
+            className="bg-primary/20 text-primary border-primary/20 mb-4 px-3 py-1 text-[9px] font-bold tracking-widest uppercase"
           >
             KnotEngine Labs
           </Badge>
-          <h3 className="text-2xl font-bold mb-3 tracking-tight">
+          <h3 className="mb-3 text-2xl font-bold tracking-tight">
             Want to partner with us?
           </h3>
-          <p className="text-muted-foreground max-w-sm mb-8 text-sm leading-relaxed antialiased">
+          <p className="text-muted-foreground mb-8 max-w-sm text-sm leading-relaxed antialiased">
             We are always looking for high-quality tools that help our merchants
             grow. If you build infrastructure for Web3, we&apos;d love to talk.
           </p>
           <Button
             variant="outline"
-            className="font-black text-xs uppercase tracking-widest h-11 px-8 rounded-full border-primary/20 hover:bg-primary/10 transition-colors"
+            className="border-primary/20 hover:bg-primary/10 h-11 rounded-full px-8 text-xs font-black tracking-widest uppercase transition-colors"
           >
             Contact Partnership Team
           </Button>

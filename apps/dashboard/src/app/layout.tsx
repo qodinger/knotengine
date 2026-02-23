@@ -57,7 +57,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body
-        className="antialiased min-h-screen bg-background text-foreground"
+        className="bg-background text-foreground min-h-screen antialiased"
         suppressHydrationWarning
       >
         <Providers>

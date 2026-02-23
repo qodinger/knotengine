@@ -92,11 +92,11 @@ export function PaymentEngineDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] border-border/50">
+      <DialogContent className="border-border/50 sm:max-w-[500px]">
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Settings2 className="size-5 text-primary" />
+              <Settings2 className="text-primary size-5" />
               Configure Payment Engine
             </DialogTitle>
             <DialogDescription>
@@ -106,16 +106,16 @@ export function PaymentEngineDialog({
 
           <div className="grid gap-6 py-6">
             {/* Fee Payer */}
-            <div className="space-y-3 p-4 border border-border/40 rounded-xl bg-muted/5">
+            <div className="border-border/40 bg-muted/5 space-y-3 rounded-xl border p-4">
               <div className="flex items-center justify-between">
                 <Label className="flex items-center gap-2">
-                  <UserCircle className="size-4 text-muted-foreground" />
+                  <UserCircle className="text-muted-foreground size-4" />
                   Who pays the commission?
                 </Label>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <HelpCircle className="size-3.5 text-muted-foreground cursor-help" />
+                      <HelpCircle className="text-muted-foreground size-3.5 cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs">
                       Choose whether the platform fee is deducted from your
@@ -148,7 +148,7 @@ export function PaymentEngineDialog({
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="expiration" className="flex items-center gap-2">
-                  <Clock className="size-4 text-muted-foreground" />
+                  <Clock className="text-muted-foreground size-4" />
                   Expiration
                 </Label>
                 <div className="relative">
@@ -160,12 +160,12 @@ export function PaymentEngineDialog({
                     })}
                     className="pr-12"
                   />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground uppercase">
+                  <div className="text-muted-foreground absolute top-1/2 right-3 -translate-y-1/2 text-[10px] font-bold uppercase">
                     Min
                   </div>
                 </div>
                 {errors.invoiceExpirationMinutes && (
-                  <p className="text-[10px] font-medium text-destructive">
+                  <p className="text-destructive text-[10px] font-medium">
                     {errors.invoiceExpirationMinutes.message}
                   </p>
                 )}
@@ -173,7 +173,7 @@ export function PaymentEngineDialog({
 
               <div className="grid gap-2">
                 <Label htmlFor="tolerance" className="flex items-center gap-2">
-                  <Percent className="size-4 text-muted-foreground" />
+                  <Percent className="text-muted-foreground size-4" />
                   Tolerance
                 </Label>
                 <div className="relative">
@@ -186,12 +186,12 @@ export function PaymentEngineDialog({
                     })}
                     className="pr-8"
                   />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground">
+                  <div className="text-muted-foreground absolute top-1/2 right-3 -translate-y-1/2 text-[10px] font-bold">
                     %
                   </div>
                 </div>
                 {errors.underpaymentTolerancePercentage && (
-                  <p className="text-[10px] font-medium text-destructive">
+                  <p className="text-destructive text-[10px] font-medium">
                     {errors.underpaymentTolerancePercentage.message}
                   </p>
                 )}
@@ -199,13 +199,13 @@ export function PaymentEngineDialog({
             </div>
 
             {/* BIP21 QR Mode */}
-            <div className="flex items-center justify-between p-4 border border-border/40 rounded-xl bg-muted/5">
+            <div className="border-border/40 bg-muted/5 flex items-center justify-between rounded-xl border p-4">
               <div className="space-y-0.5">
                 <Label className="flex items-center gap-2">
-                  <QrCode className="size-4 text-muted-foreground" />
+                  <QrCode className="text-muted-foreground size-4" />
                   Premium QR Mode (BIP21)
                 </Label>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-muted-foreground text-[10px]">
                   Include amount and label in QR codes for faster wallet
                   recognition.
                 </p>
@@ -224,14 +224,14 @@ export function PaymentEngineDialog({
 
             {/* Enabled Currencies */}
             <div className="space-y-3">
-              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+              <Label className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
                 Enabled Assets (Checkout)
               </Label>
               <div className="grid grid-cols-2 gap-2">
                 {SUPPORTED_CURRENCIES.map((c) => (
                   <div
                     key={c}
-                    className="flex items-center gap-2 p-2 border border-border/40 rounded-lg hover:bg-muted/10 transition-colors cursor-pointer"
+                    className="border-border/40 hover:bg-muted/10 flex cursor-pointer items-center gap-2 rounded-lg border p-2 transition-colors"
                     onClick={() => toggleCurrency(c)}
                   >
                     <Checkbox
@@ -241,7 +241,7 @@ export function PaymentEngineDialog({
                     />
                     <Label
                       htmlFor={`cur-${c}`}
-                      className="text-xs cursor-pointer"
+                      className="cursor-pointer text-xs"
                     >
                       {c.replace("_", " ")}
                     </Label>
@@ -249,7 +249,7 @@ export function PaymentEngineDialog({
                 ))}
               </div>
               {errors.enabledCurrencies && (
-                <p className="text-[10px] font-medium text-destructive">
+                <p className="text-destructive text-[10px] font-medium">
                   {errors.enabledCurrencies.message}
                 </p>
               )}
@@ -269,7 +269,7 @@ export function PaymentEngineDialog({
               type="submit"
               disabled={saving || !isValid || enabledCurrencies.length === 0}
             >
-              {saving && <Loader2 className="size-4 mr-2 animate-spin" />}
+              {saving && <Loader2 className="mr-2 size-4 animate-spin" />}
               Update Engine
             </Button>
           </DialogFooter>

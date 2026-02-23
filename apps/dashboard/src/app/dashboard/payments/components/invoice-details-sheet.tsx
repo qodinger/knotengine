@@ -52,22 +52,22 @@ export function InvoiceDetailsSheet({
         open={!!selectedInvoice}
         onOpenChange={(open) => !open && setSelectedInvoice(null)}
       >
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto p-6">
+        <SheetContent className="w-full overflow-y-auto p-6 sm:max-w-md">
           <SheetHeader>
-            <div className="flex items-center gap-2 mb-2">
+            <div className="mb-2 flex items-center gap-2">
               <Badge
                 variant="outline"
-                className="text-[10px] font-bold uppercase tracking-wider"
+                className="text-[10px] font-bold tracking-wider uppercase"
               >
                 Invoice Details
               </Badge>
               {selectedInvoice?.metadata?.isTestnet && (
-                <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-[9px]">
+                <Badge className="border-amber-500/20 bg-amber-500/10 text-[9px] text-amber-600">
                   TESTNET
                 </Badge>
               )}
             </div>
-            <SheetTitle className="text-xl font-bold font-mono">
+            <SheetTitle className="font-mono text-xl font-bold">
               {selectedInvoice?.invoice_id}
             </SheetTitle>
             <SheetDescription className="text-xs">
@@ -79,14 +79,14 @@ export function InvoiceDetailsSheet({
 
           <div className="mt-8 space-y-6">
             <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-xl border border-border/50 bg-muted/20 p-4">
-                <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-1">
+              <div className="border-border/50 bg-muted/20 rounded-xl border p-4">
+                <p className="text-muted-foreground mb-1 text-[10px] font-bold tracking-widest uppercase">
                   Status
                 </p>
                 <StatusBadge status={selectedInvoice?.status || "pending"} />
               </div>
-              <div className="rounded-xl border border-border/50 bg-muted/20 p-4">
-                <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-1">
+              <div className="border-border/50 bg-muted/20 rounded-xl border p-4">
+                <p className="text-muted-foreground mb-1 text-[10px] font-bold tracking-widest uppercase">
                   Total Amount
                 </p>
                 <p className="text-lg font-bold">
@@ -96,18 +96,18 @@ export function InvoiceDetailsSheet({
             </div>
 
             <div className="space-y-3">
-              <h3 className="text-sm font-bold flex items-center gap-2">
-                <ShieldCheck className="size-4 text-primary" />
+              <h3 className="flex items-center gap-2 text-sm font-bold">
+                <ShieldCheck className="text-primary size-4" />
                 Payment Info
               </h3>
               <div className="space-y-2">
-                <div className="flex justify-between items-center text-sm p-3 rounded-lg border border-border/50">
+                <div className="border-border/50 flex items-center justify-between rounded-lg border p-3 text-sm">
                   <span className="text-muted-foreground">Currency</span>
                   <span className="font-bold">
                     {selectedInvoice?.crypto_currency}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-sm p-3 rounded-lg border border-border/50">
+                <div className="border-border/50 flex items-center justify-between rounded-lg border p-3 text-sm">
                   <span className="text-muted-foreground">Crypto Amount</span>
                   <span className="font-mono">
                     {selectedInvoice?.crypto_amount}
@@ -118,7 +118,7 @@ export function InvoiceDetailsSheet({
                   selectedInvoice.crypto_amount_received > 0 && (
                     <div
                       className={cn(
-                        "flex justify-between items-center text-sm p-3 rounded-lg border border-border/50",
+                        "border-border/50 flex items-center justify-between rounded-lg border p-3 text-sm",
                         selectedInvoice.crypto_amount_received >=
                           selectedInvoice.crypto_amount
                           ? "bg-emerald-500/5"
@@ -153,8 +153,8 @@ export function InvoiceDetailsSheet({
                     </div>
                   )}
                 {selectedInvoice?.status === "partially_paid" && (
-                  <div className="flex justify-between items-center text-sm p-3 rounded-lg border border-border/50 bg-amber-500/10">
-                    <span className="text-amber-600 font-bold uppercase text-[10px] tracking-wider">
+                  <div className="border-border/50 flex items-center justify-between rounded-lg border bg-amber-500/10 p-3 text-sm">
+                    <span className="text-[10px] font-bold tracking-wider text-amber-600 uppercase">
                       Remaining
                     </span>
                     <span className="font-mono font-bold text-amber-600 dark:text-amber-400">
@@ -169,9 +169,9 @@ export function InvoiceDetailsSheet({
                   </div>
                 )}
                 {selectedInvoice?.status === "overpaid" && (
-                  <div className="flex flex-col gap-1.5 p-3 rounded-lg border border-emerald-500/20 bg-emerald-500/10">
+                  <div className="flex flex-col gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-emerald-600 font-bold uppercase text-[10px] tracking-wider">
+                      <span className="text-[10px] font-bold tracking-wider text-emerald-600 uppercase">
                         Overpaid Amount
                       </span>
                       <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
@@ -184,18 +184,18 @@ export function InvoiceDetailsSheet({
                         {selectedInvoice.crypto_currency}
                       </span>
                     </div>
-                    <p className="text-[10px] text-emerald-600/70 leading-relaxed font-medium">
+                    <p className="text-[10px] leading-relaxed font-medium text-emerald-600/70">
                       Customer sent more than required. You may need to handle a
                       manual refund for the excess funds.
                     </p>
                   </div>
                 )}
-                <div className="flex flex-col gap-1.5 p-3 rounded-lg border border-border/50">
-                  <span className="text-xs text-muted-foreground">
+                <div className="border-border/50 flex flex-col gap-1.5 rounded-lg border p-3">
+                  <span className="text-muted-foreground text-xs">
                     Destination Address
                   </span>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono break-all text-foreground/80">
+                    <span className="text-foreground/80 font-mono text-xs break-all">
                       {selectedInvoice?.pay_address}
                     </span>
                     <Button
@@ -223,17 +223,17 @@ export function InvoiceDetailsSheet({
             </div>
 
             <div className="space-y-4">
-              <h3 className="text-sm font-bold flex items-center gap-2">
-                <Clock className="size-4 text-primary" />
+              <h3 className="flex items-center gap-2 text-sm font-bold">
+                <Clock className="text-primary size-4" />
                 Activity History
               </h3>
 
-              <div className="relative pl-4 border-l border-border/50 ml-2 space-y-6 pb-2">
+              <div className="border-border/50 relative ml-2 space-y-6 border-l pb-2 pl-4">
                 {loadingTimeline ? (
                   Array.from({ length: 3 }).map((_, i) => (
                     <div key={i} className="relative">
-                      <div className="absolute -left-[21px] top-1 size-3 rounded-full bg-muted border-2 border-background" />
-                      <Skeleton className="h-4 w-32 mb-1" />
+                      <div className="bg-muted border-background absolute top-1 -left-[21px] size-3 rounded-full border-2" />
+                      <Skeleton className="mb-1 h-4 w-32" />
                       <Skeleton className="h-3 w-48" />
                     </div>
                   ))
@@ -243,7 +243,7 @@ export function InvoiceDetailsSheet({
                       <div key={event._id || idx} className="relative">
                         <div
                           className={cn(
-                            "absolute -left-[21px] top-1 size-3 rounded-full border-2 border-background",
+                            "border-background absolute top-1 -left-[21px] size-3 rounded-full border-2",
                             event.type === "success"
                               ? "bg-emerald-500"
                               : event.type === "error"
@@ -253,26 +253,26 @@ export function InvoiceDetailsSheet({
                                   : "bg-primary",
                           )}
                         />
-                        <div className="flex justify-between items-start">
+                        <div className="flex items-start justify-between">
                           <p className="text-xs font-bold">{event.title}</p>
-                          <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                          <span className="text-muted-foreground text-[10px] whitespace-nowrap">
                             {format(new Date(event.createdAt), "HH:mm:ss")}
                           </span>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                        <p className="text-muted-foreground mt-0.5 text-xs leading-relaxed">
                           {event.description}
                         </p>
                       </div>
                     ))}
 
                     <div className="relative">
-                      <div className="absolute -left-[21px] top-1 size-3 rounded-full bg-muted-foreground/30 border-2 border-background" />
-                      <div className="flex justify-between items-start">
+                      <div className="bg-muted-foreground/30 border-background absolute top-1 -left-[21px] size-3 rounded-full border-2" />
+                      <div className="flex items-start justify-between">
                         <p className="text-xs font-bold">
                           {selectedInvoice?.metadata?.isTestnet && "[TEST] "}
                           Invoice Created
                         </p>
-                        <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                        <span className="text-muted-foreground text-[10px] whitespace-nowrap">
                           {selectedInvoice &&
                             format(
                               new Date(selectedInvoice.created_at),
@@ -280,7 +280,7 @@ export function InvoiceDetailsSheet({
                             )}
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">
+                      <p className="text-muted-foreground mt-0.5 text-xs">
                         System generated invoice for $
                         {selectedInvoice?.amount_usd.toFixed(2)} USD.
                       </p>
@@ -293,7 +293,7 @@ export function InvoiceDetailsSheet({
             {selectedInvoice &&
               !["confirmed", "overpaid"].includes(selectedInvoice.status) && (
                 <Button
-                  className="w-full gap-2 h-10 font-bold uppercase tracking-wider text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white"
+                  className="h-10 w-full gap-2 bg-emerald-600 text-[11px] font-bold tracking-wider text-white uppercase hover:bg-emerald-700"
                   onClick={() => setShowConfirm(true)}
                 >
                   <Check className="size-3" />
@@ -304,7 +304,7 @@ export function InvoiceDetailsSheet({
             {selectedInvoice?.tx_hash && (
               <Button
                 asChild
-                className="w-full gap-2 h-10 font-bold uppercase tracking-wider text-[11px]"
+                className="h-10 w-full gap-2 text-[11px] font-bold tracking-wider uppercase"
                 variant="secondary"
               >
                 <a
@@ -331,7 +331,7 @@ export function InvoiceDetailsSheet({
             <DialogTitle>Confirm Manual Resolution</DialogTitle>
             <DialogDescription>
               Are you sure you want to resolve invoice{" "}
-              <span className="font-bold text-foreground">
+              <span className="text-foreground font-bold">
                 {selectedInvoice?.invoice_id}
               </span>{" "}
               manually?
@@ -347,7 +347,7 @@ export function InvoiceDetailsSheet({
               Cancel
             </Button>
             <Button
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 font-bold"
+              className="gap-2 bg-emerald-600 font-bold text-white hover:bg-emerald-700"
               onClick={() => {
                 if (selectedInvoice) onResolve(selectedInvoice.invoice_id);
                 setShowConfirm(false);

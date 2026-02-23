@@ -64,8 +64,8 @@ export function AnalyticsCharts({ invoices }: AnalyticsChartsProps) {
     .sort((a, b) => b.value - a.value);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
-      <Card className="lg:col-span-4 border shadow-sm">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-7">
+      <Card className="border shadow-sm lg:col-span-4">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div>
@@ -145,14 +145,14 @@ export function AnalyticsCharts({ invoices }: AnalyticsChartsProps) {
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-full text-muted-foreground/40 text-sm">
+            <div className="text-muted-foreground/40 flex h-full items-center justify-center text-sm">
               No volume data yet
             </div>
           )}
         </CardContent>
       </Card>
 
-      <Card className="lg:col-span-3 border shadow-sm">
+      <Card className="border shadow-sm lg:col-span-3">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold">
             Currency Breakdown
@@ -209,7 +209,7 @@ export function AnalyticsCharts({ invoices }: AnalyticsChartsProps) {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-full text-muted-foreground/40 text-sm">
+            <div className="text-muted-foreground/40 flex h-full items-center justify-center text-sm">
               No invoice data to analyze
             </div>
           )}

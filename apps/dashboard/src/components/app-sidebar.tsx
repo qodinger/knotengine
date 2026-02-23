@@ -73,7 +73,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r-0!">
-      <SidebarHeader className="h-(--header-height) flex flex-col justify-center border-b border-border/50 px-2">
+      <SidebarHeader className="border-border/50 flex h-(--header-height) flex-col justify-center border-b px-2">
         <SidebarMenu>
           <SidebarMenuItem>
             <MerchantSwitcher />
@@ -81,12 +81,12 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarContent className="mt-4 overflow-hidden group-data-[collapsible=icon]:px-0 px-2 pb-4">
+      <SidebarContent className="mt-4 overflow-hidden px-2 pb-4 group-data-[collapsible=icon]:px-0">
         <ScrollArea className="h-full pb-4">
           <div className="space-y-4">
             {navGroups.map((group) => (
               <SidebarGroup key={group.label} className="py-0">
-                <SidebarGroupLabel className="px-4 font-bold text-[10px] uppercase tracking-wider text-muted-foreground/30 mb-2 truncate group-data-[collapsible=icon]:hidden">
+                <SidebarGroupLabel className="text-muted-foreground/30 mb-2 truncate px-4 text-[10px] font-bold tracking-wider uppercase group-data-[collapsible=icon]:hidden">
                   {group.label}
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
@@ -97,7 +97,7 @@ export function AppSidebar() {
                           asChild
                           isActive={isActive(item.href)}
                           tooltip={item.label}
-                          className="font-medium h-9"
+                          className="h-9 font-medium"
                         >
                           <Link href={item.href}>
                             <item.icon className="size-4" />
@@ -114,8 +114,8 @@ export function AppSidebar() {
         </ScrollArea>
       </SidebarContent>
 
-      <SidebarFooter className="p-3 border-t border-border/50">
-        <div className="text-[10px] font-bold text-muted-foreground/15 uppercase tracking-widest group-data-[collapsible=icon]:hidden truncate text-center mt-1">
+      <SidebarFooter className="border-border/50 border-t p-3">
+        <div className="text-muted-foreground/15 mt-1 truncate text-center text-[10px] font-bold tracking-widest uppercase group-data-[collapsible=icon]:hidden">
           Build v{packageJson.version}
         </div>
       </SidebarFooter>

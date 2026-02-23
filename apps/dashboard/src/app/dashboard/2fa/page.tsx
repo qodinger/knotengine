@@ -53,11 +53,11 @@ export default function TwoFactorChallengePage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-sm border-border/50 shadow-2xl">
-        <CardHeader className="text-center pb-2">
-          <div className="mx-auto mb-4 size-16 rounded-2xl bg-primary/10 flex items-center justify-center">
-            <KeyRound className="size-8 text-primary" />
+    <div className="bg-background flex min-h-screen items-center justify-center p-4">
+      <Card className="border-border/50 w-full max-w-sm shadow-2xl">
+        <CardHeader className="pb-2 text-center">
+          <div className="bg-primary/10 mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl">
+            <KeyRound className="text-primary size-8" />
           </div>
           <CardTitle className="text-xl font-bold tracking-tight">
             Two-Factor Authentication
@@ -83,16 +83,16 @@ export default function TwoFactorChallengePage() {
                 setCode(e.target.value.replace(/\D/g, "").slice(0, 8))
               }
               onKeyDown={handleKeyDown}
-              className="text-center text-3xl font-mono tracking-[0.75em] h-14 bg-muted/30"
+              className="bg-muted/30 h-14 text-center font-mono text-3xl tracking-[0.75em]"
               autoFocus
             />
-            <p className="text-[10px] text-muted-foreground text-center">
+            <p className="text-muted-foreground text-center text-[10px]">
               You can also use a backup code.
             </p>
           </div>
 
           {error && (
-            <p className="text-xs text-destructive font-medium text-center bg-destructive/10 rounded-lg py-2 px-3">
+            <p className="text-destructive bg-destructive/10 rounded-lg px-3 py-2 text-center text-xs font-medium">
               {error}
             </p>
           )}
@@ -100,7 +100,7 @@ export default function TwoFactorChallengePage() {
           <Button
             onClick={handleVerify}
             disabled={code.length < 6 || loading}
-            className="w-full h-11 font-bold uppercase text-[11px] tracking-widest gap-2"
+            className="h-11 w-full gap-2 text-[11px] font-bold tracking-widest uppercase"
           >
             {loading ? (
               <Loader2 className="size-4 animate-spin" />

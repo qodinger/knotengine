@@ -43,7 +43,7 @@ export function DangerZoneCard({
 
   return (
     <>
-      <Card className="border-destructive/30 bg-destructive/5 shadow-none overflow-hidden mt-6">
+      <Card className="border-destructive/30 bg-destructive/5 mt-6 overflow-hidden shadow-none">
         <CardHeader>
           <CardTitle className="text-destructive flex items-center gap-2">
             <AlertTriangle className="size-5" />
@@ -54,10 +54,10 @@ export function DangerZoneCard({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between p-4 border border-destructive/20 rounded-lg bg-background/50">
+          <div className="border-destructive/20 bg-background/50 flex items-center justify-between rounded-lg border p-4">
             <div>
-              <div className="font-bold text-sm">Delete Merchant</div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-sm font-bold">Delete Merchant</div>
+              <div className="text-muted-foreground text-xs">
                 Permanently delete this merchant and all its data.
               </div>
             </div>
@@ -67,7 +67,7 @@ export function DangerZoneCard({
               className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
               onClick={() => setIsDeleteDialogOpen(true)}
             >
-              <Trash2 className="size-3 mr-2" />
+              <Trash2 className="mr-2 size-3" />
               Delete Merchant
             </Button>
           </div>
@@ -120,9 +120,9 @@ export function DangerZoneCard({
               }
             >
               {isDeleting ? (
-                <Loader2 className="size-4 mr-2 animate-spin" />
+                <Loader2 className="mr-2 size-4 animate-spin" />
               ) : (
-                <Trash2 className="size-4 mr-2" />
+                <Trash2 className="mr-2 size-4" />
               )}
               Delete Permanently
             </Button>

@@ -44,15 +44,15 @@ export default async function DashboardLayout({
   const hasMerchants = merchants.length > 0;
 
   return (
-    <div className="[--header-height:--spacing(14)] h-svh overflow-hidden flex flex-col">
+    <div className="flex h-svh flex-col overflow-hidden [--header-height:--spacing(14)]">
       <SidebarProvider
         defaultOpen={hasMerchants}
         className="flex-1 overflow-hidden"
       >
         {hasMerchants && <AppSidebar />}
-        <SidebarInset className="flex flex-col h-full overflow-hidden">
+        <SidebarInset className="flex h-full flex-col overflow-hidden">
           {hasMerchants && <SiteHeader />}
-          <ScrollArea className="flex-1 min-h-0">
+          <ScrollArea className="min-h-0 flex-1">
             <div className="p-4 md:p-6 lg:p-8">{children}</div>
           </ScrollArea>
         </SidebarInset>

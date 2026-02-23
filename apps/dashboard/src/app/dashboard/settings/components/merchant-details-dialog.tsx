@@ -100,11 +100,11 @@ export function MerchantDetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] border-border/50">
+      <DialogContent className="border-border/50 sm:max-w-[500px]">
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Store className="size-5 text-primary" />
+              <Store className="text-primary size-5" />
               Edit Merchant Details
             </DialogTitle>
             <DialogDescription>
@@ -114,12 +114,12 @@ export function MerchantDetailsDialog({
 
           <div className="flex flex-col gap-5 py-6">
             {/* Compact Logo Upload Section */}
-            <div className="flex items-center gap-5 p-4 border border-border/40 rounded-xl bg-muted/5">
+            <div className="border-border/40 bg-muted/5 flex items-center gap-5 rounded-xl border p-4">
               <div
-                className="relative group cursor-pointer shrink-0"
+                className="group relative shrink-0 cursor-pointer"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <Avatar className="size-16 rounded-xl border border-border/50 shadow-sm group-hover:opacity-80 transition-opacity">
+                <Avatar className="border-border/50 size-16 rounded-xl border shadow-sm transition-opacity group-hover:opacity-80">
                   <AvatarImage
                     src={logoUrl}
                     alt={businessName}
@@ -129,7 +129,7 @@ export function MerchantDetailsDialog({
                     <Store className="size-8" />
                   </AvatarFallback>
                 </Avatar>
-                <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 rounded-xl transition-opacity">
+                <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
                   <Camera className="size-5 text-white" />
                 </div>
                 <input
@@ -141,10 +141,10 @@ export function MerchantDetailsDialog({
                 />
               </div>
 
-              <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                 <div className="flex flex-col">
                   <span className="text-sm font-bold">Merchant Logo</span>
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                  <span className="text-muted-foreground text-[10px] tracking-wider uppercase">
                     Maximum size: 5MB
                   </span>
                 </div>
@@ -154,7 +154,7 @@ export function MerchantDetailsDialog({
                     type="button"
                     variant="secondary"
                     size="sm"
-                    className="h-7 text-[10px] gap-1.5 px-3"
+                    className="h-7 gap-1.5 px-3 text-[10px]"
                     onClick={() => fileInputRef.current?.click()}
                   >
                     <Upload className="size-3" />
@@ -165,7 +165,7 @@ export function MerchantDetailsDialog({
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="h-7 text-[10px] gap-1.5 px-3 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      className="text-destructive hover:bg-destructive/10 hover:text-destructive h-7 gap-1.5 px-3 text-[10px]"
                       onClick={removeLogo}
                     >
                       <Trash2 className="size-3" />
@@ -190,7 +190,7 @@ export function MerchantDetailsDialog({
                   )}
                 />
                 {errors.businessName && (
-                  <p className="text-[10px] font-medium text-destructive">
+                  <p className="text-destructive text-[10px] font-medium">
                     {errors.businessName.message}
                   </p>
                 )}
@@ -210,7 +210,7 @@ export function MerchantDetailsDialog({
                   )}
                 />
                 {errors.businessEmail && (
-                  <p className="text-[10px] font-medium text-destructive">
+                  <p className="text-destructive text-[10px] font-medium">
                     {errors.businessEmail.message}
                   </p>
                 )}
@@ -253,7 +253,7 @@ export function MerchantDetailsDialog({
             </Button>
             <Button type="submit" disabled={saving || uploading || !isValid}>
               {(saving || uploading) && (
-                <Loader2 className="size-4 mr-2 animate-spin" />
+                <Loader2 className="mr-2 size-4 animate-spin" />
               )}
               {uploading ? "Uploading..." : "Save Changes"}
             </Button>

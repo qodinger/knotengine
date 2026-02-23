@@ -34,7 +34,7 @@ interface VolumeChartProps {
 
 export function VolumeChart({ data, period, setPeriod }: VolumeChartProps) {
   return (
-    <Card className="lg:col-span-4 bg-card/40 border-border/50 backdrop-blur-md shadow-sm">
+    <Card className="bg-card/40 border-border/50 shadow-sm backdrop-blur-md lg:col-span-4">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
@@ -129,7 +129,7 @@ export function VolumeChart({ data, period, setPeriod }: VolumeChartProps) {
             </AreaChart>
           </ResponsiveContainer>
         ) : (
-          <div className="flex items-center justify-center h-full text-muted-foreground/50 text-sm font-medium">
+          <div className="text-muted-foreground/50 flex h-full items-center justify-center text-sm font-medium">
             No volume data yet. Create and settle invoices to see chart data.
           </div>
         )}

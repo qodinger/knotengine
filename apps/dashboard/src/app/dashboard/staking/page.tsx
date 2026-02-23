@@ -56,97 +56,97 @@ const stakingAssets = [
 export default function StakingPage() {
   return (
     <div className="flex flex-col gap-6 pb-10">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+      <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Staking & Yield</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <p className="text-muted-foreground mt-1 text-sm">
             Put your settled funds to work and earn passive rewards.
           </p>
         </div>
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
-            className="h-9 gap-2 text-xs font-bold uppercase tracking-widest"
+            className="h-9 gap-2 text-xs font-bold tracking-widest uppercase"
           >
             <History className="size-3.5" />
             Rewards History
           </Button>
-          <Button className="h-9 gap-2 text-xs font-bold uppercase tracking-widest bg-emerald-600 hover:bg-emerald-700">
+          <Button className="h-9 gap-2 bg-emerald-600 text-xs font-bold tracking-widest uppercase hover:bg-emerald-700">
             <Zap className="size-3.5" />
             Auto-Stake Settings
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="bg-background/50 backdrop-blur-sm border-border/40">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <Card className="bg-background/50 border-border/40 backdrop-blur-sm">
           <CardHeader className="pb-2">
-            <CardDescription className="text-[10px] font-bold uppercase tracking-[0.2em]">
+            <CardDescription className="text-[10px] font-bold tracking-[0.2em] uppercase">
               Total Value Staked
             </CardDescription>
-            <CardTitle className="text-2xl font-bold font-mono">
+            <CardTitle className="font-mono text-2xl font-bold">
               $0.00
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+            <div className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
               <TrendingUp className="size-3.5 text-emerald-500" />
               <span>0% growth this month</span>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-background/50 backdrop-blur-sm border-border/40">
+        <Card className="bg-background/50 border-border/40 backdrop-blur-sm">
           <CardHeader className="pb-2">
-            <CardDescription className="text-[10px] font-bold uppercase tracking-[0.2em]">
+            <CardDescription className="text-[10px] font-bold tracking-[0.2em] uppercase">
               Accrued Rewards
             </CardDescription>
-            <CardTitle className="text-2xl font-bold font-mono text-emerald-500">
+            <CardTitle className="font-mono text-2xl font-bold text-emerald-500">
               +$0.00
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+            <div className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
               <Clock className="size-3.5" />
               <span>Next payout in ~24h</span>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-background/50 backdrop-blur-sm border-border/40 overflow-hidden relative">
+        <Card className="bg-background/50 border-border/40 relative overflow-hidden backdrop-blur-sm">
           <div className="absolute top-0 right-0 p-4 opacity-10">
-            <Zap className="size-16 text-primary" />
+            <Zap className="text-primary size-16" />
           </div>
           <CardHeader className="pb-2">
-            <CardDescription className="text-[10px] font-bold uppercase tracking-[0.2em]">
+            <CardDescription className="text-[10px] font-bold tracking-[0.2em] uppercase">
               Yield Performance
             </CardDescription>
-            <CardTitle className="text-2xl font-bold font-mono">
+            <CardTitle className="font-mono text-2xl font-bold">
               2.8%{" "}
-              <span className="text-xs font-normal text-muted-foreground ml-1">
+              <span className="text-muted-foreground ml-1 text-xs font-normal">
                 Avg APR
               </span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-              <ShieldCheck className="size-3.5 text-primary" />
+            <div className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
+              <ShieldCheck className="text-primary size-3.5" />
               <span>Top-tier providers only</span>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2">
+      <div className="mt-2 grid grid-cols-1 gap-6 lg:grid-cols-2">
         {stakingAssets.map((asset) => (
           <Card
             key={asset.id}
-            className="group hover:border-border/80 transition-all bg-background/50 backdrop-blur-sm border-border/40 overflow-hidden"
+            className="group hover:border-border/80 bg-background/50 border-border/40 overflow-hidden backdrop-blur-sm transition-all"
           >
-            <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 bg-primary/5 blur-3xl rounded-full" />
+            <div className="bg-primary/5 absolute top-0 right-0 -mt-8 -mr-8 h-32 w-32 rounded-full blur-3xl" />
 
             <CardHeader className="relative pb-4">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <Avatar className="size-10 bg-transparent p-0 border border-white/5">
+                  <Avatar className="size-10 border border-white/5 bg-transparent p-0">
                     <AvatarImage src={asset.icon} className="object-contain" />
                     <AvatarFallback>{asset.symbol}</AvatarFallback>
                   </Avatar>
@@ -154,9 +154,9 @@ export default function StakingPage() {
                     <CardTitle className="text-lg font-bold tracking-tight">
                       {asset.name}
                     </CardTitle>
-                    <CardDescription className="text-xs flex items-center gap-1.5">
+                    <CardDescription className="flex items-center gap-1.5 text-xs">
                       via{" "}
-                      <span className="font-semibold text-foreground/80">
+                      <span className="text-foreground/80 font-semibold">
                         {asset.provider}
                       </span>
                     </CardDescription>
@@ -164,7 +164,7 @@ export default function StakingPage() {
                 </div>
                 <Badge
                   variant="outline"
-                  className="bg-primary/10 text-primary border-primary/20 font-bold px-2.5 py-0.5"
+                  className="bg-primary/10 text-primary border-primary/20 px-2.5 py-0.5 font-bold"
                 >
                   {asset.apr} APR
                 </Badge>
@@ -172,24 +172,24 @@ export default function StakingPage() {
             </CardHeader>
 
             <CardContent className="relative space-y-6">
-              <p className="text-sm text-muted-foreground leading-relaxed h-10 line-clamp-2">
+              <p className="text-muted-foreground line-clamp-2 h-10 text-sm leading-relaxed">
                 {asset.description}
               </p>
 
-              <div className="grid grid-cols-2 gap-4 p-4 rounded-xl bg-muted/30 border border-border/40">
+              <div className="bg-muted/30 border-border/40 grid grid-cols-2 gap-4 rounded-xl border p-4">
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
+                  <p className="text-muted-foreground/60 text-[10px] font-bold tracking-wider uppercase">
                     Balance
                   </p>
-                  <p className="text-sm font-mono font-bold">
+                  <p className="font-mono text-sm font-bold">
                     {asset.totalStaked} {asset.symbol}
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
+                  <p className="text-muted-foreground/60 text-[10px] font-bold tracking-wider uppercase">
                     Profit (Yield)
                   </p>
-                  <p className="text-sm font-mono font-bold text-emerald-500">
+                  <p className="font-mono text-sm font-bold text-emerald-500">
                     +{asset.rewardsEarned} {asset.symbol}
                   </p>
                 </div>
@@ -197,8 +197,8 @@ export default function StakingPage() {
 
               <div className="flex items-center justify-between px-1">
                 <div className="flex items-center gap-2">
-                  <Info className="size-3.5 text-muted-foreground" />
-                  <span className="text-[11px] text-muted-foreground">
+                  <Info className="text-muted-foreground size-3.5" />
+                  <span className="text-muted-foreground text-[11px]">
                     KnotEngine Commission:{" "}
                     <span className="font-bold">
                       {asset.commission} of rewards
@@ -211,11 +211,11 @@ export default function StakingPage() {
             <CardFooter className="relative gap-3 pt-2">
               <Button
                 variant="outline"
-                className="flex-1 h-10 font-bold text-[10px] uppercase tracking-widest border-white/5"
+                className="h-10 flex-1 border-white/5 text-[10px] font-bold tracking-widest uppercase"
               >
                 Manage
               </Button>
-              <Button className="flex-1 h-10 font-bold text-[10px] uppercase tracking-widest gap-2">
+              <Button className="h-10 flex-1 gap-2 text-[10px] font-bold tracking-widest uppercase">
                 <HandCoins className="size-3.5" />
                 Stake Now
               </Button>
@@ -224,23 +224,23 @@ export default function StakingPage() {
         ))}
       </div>
 
-      <Card className="border-dashed border-2 border-border/40 bg-muted/5">
+      <Card className="border-border/40 bg-muted/5 border-2 border-dashed">
         <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center mb-4 border border-primary/20">
-            <Zap className="size-5 text-primary" />
+          <div className="bg-primary/10 border-primary/20 mb-4 flex size-10 items-center justify-center rounded-full border">
+            <Zap className="text-primary size-5" />
           </div>
-          <h3 className="text-lg font-bold mb-2">Enable Auto-Stake</h3>
-          <p className="text-muted-foreground max-w-sm mb-6 text-xs leading-relaxed">
+          <h3 className="mb-2 text-lg font-bold">Enable Auto-Stake</h3>
+          <p className="text-muted-foreground mb-6 max-w-sm text-xs leading-relaxed">
             Never let your capital sit idle. Every time a payment is settled,
             we&apos;ll automatically move it to your preferred staking pool.
           </p>
-          <div className="flex items-center gap-2 mb-2">
+          <div className="mb-2 flex items-center gap-2">
             <div className="flex -space-x-2">
-              <CheckCircle2 className="size-4 text-emerald-500 relative z-30 bg-background rounded-full" />
-              <div className="size-4 rounded-full bg-primary relative z-20 border-2 border-background" />
-              <div className="size-4 rounded-full bg-blue-500 relative z-10 border-2 border-background" />
+              <CheckCircle2 className="bg-background relative z-30 size-4 rounded-full text-emerald-500" />
+              <div className="bg-primary border-background relative z-20 size-4 rounded-full border-2" />
+              <div className="border-background relative z-10 size-4 rounded-full border-2 bg-blue-500" />
             </div>
-            <span className="text-[11px] font-medium text-muted-foreground">
+            <span className="text-muted-foreground text-[11px] font-medium">
               Used by 42% of merchants
             </span>
           </div>

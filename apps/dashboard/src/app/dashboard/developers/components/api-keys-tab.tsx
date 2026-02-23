@@ -77,33 +77,33 @@ export function ApiKeysTab() {
           </CardDescription>
         </CardHeader>
         <CardContent className="px-6 pt-0">
-          <div className="border border-border/40 rounded-lg overflow-hidden shadow-sm">
+          <div className="border-border/40 overflow-hidden rounded-lg border shadow-sm">
             <Table>
               <TableHeader className="bg-muted/20">
-                <TableRow className="hover:bg-transparent border-border/30 h-12">
-                  <TableHead className="w-[160px] pl-6 text-[10px] font-bold uppercase tracking-wider">
+                <TableRow className="border-border/30 h-12 hover:bg-transparent">
+                  <TableHead className="w-[160px] pl-6 text-[10px] font-bold tracking-wider uppercase">
                     Name
                   </TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-wider">
+                  <TableHead className="text-[10px] font-bold tracking-wider uppercase">
                     Token
                   </TableHead>
-                  <TableHead className="text-[10px] font-bold uppercase tracking-wider">
+                  <TableHead className="text-[10px] font-bold tracking-wider uppercase">
                     Status
                   </TableHead>
-                  <TableHead className="text-right pr-6 text-[10px] font-bold uppercase tracking-wider">
+                  <TableHead className="pr-6 text-right text-[10px] font-bold tracking-wider uppercase">
                     Actions
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 <TableRow className="group">
-                  <TableCell className="font-medium pl-6 text-sm">
+                  <TableCell className="pl-6 text-sm font-medium">
                     <div className="flex items-center gap-2">
-                      <Key className="size-3.5 text-muted-foreground" />
+                      <Key className="text-muted-foreground size-3.5" />
                       Secret key
                     </div>
                   </TableCell>
-                  <TableCell className="font-mono text-muted-foreground tracking-wider text-sm">
+                  <TableCell className="text-muted-foreground font-mono text-sm tracking-wider">
                     <div className="flex items-center gap-2">
                       <span>
                         {session?.user?.apiKey
@@ -112,19 +112,19 @@ export function ApiKeysTab() {
                       </span>
                       <Badge
                         variant="outline"
-                        className="text-[9px] uppercase font-bold tracking-wide h-4 px-1"
+                        className="h-4 px-1 text-[9px] font-bold tracking-wide uppercase"
                       >
                         Live
                       </Badge>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span className="inline-flex items-center gap-1.5 text-xs text-emerald-500 font-medium">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-500">
                       <span className="size-1.5 rounded-full bg-emerald-500" />
                       Active
                     </span>
                   </TableCell>
-                  <TableCell className="text-right pr-6">
+                  <TableCell className="pr-6 text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -157,7 +157,7 @@ export function ApiKeysTab() {
                           Roll key...
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-xs text-destructive focus:text-destructive">
+                        <DropdownMenuItem className="text-destructive focus:text-destructive text-xs">
                           <AlertTriangle className="mr-2 h-3.5 w-3.5" />
                           Revoke key
                         </DropdownMenuItem>
@@ -171,10 +171,10 @@ export function ApiKeysTab() {
         </CardContent>
       </Card>
 
-      <div className="flex flex-col gap-6 mt-6 items-start w-full">
-        <Card className="border shadow-sm bg-[#0c0c0c] text-slate-50 relative overflow-hidden w-full group">
+      <div className="mt-6 flex w-full flex-col items-start gap-6">
+        <Card className="group relative w-full overflow-hidden border bg-[#0c0c0c] text-slate-50 shadow-sm">
           <CardContent className="p-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
               <div className="flex flex-col gap-10">
                 <div className="space-y-2">
                   <h3 className="text-sm font-bold text-slate-50">
@@ -192,14 +192,14 @@ export function ApiKeysTab() {
                       Create an invoice
                     </h4>
                   </div>
-                  <p className="text-[13px] text-slate-400 leading-relaxed max-w-sm">
+                  <p className="max-w-sm text-[13px] leading-relaxed text-slate-400">
                     Generate a new payment invoice instantly using our REST API
                     or the official Node.js SDK.
                   </p>
                   <div className="flex pt-2 text-xs">
                     <a
                       href="#"
-                      className="text-slate-300 hover:text-white inline-flex items-center gap-1.5 transition-colors font-medium"
+                      className="inline-flex items-center gap-1.5 font-medium text-slate-300 transition-colors hover:text-white"
                     >
                       API Reference <ExternalLink className="size-3" />
                     </a>
@@ -209,13 +209,13 @@ export function ApiKeysTab() {
 
               <div className="flex flex-col gap-4">
                 <div className="flex items-center">
-                  <div className="flex bg-white/5 p-1 rounded-lg border border-white/5">
+                  <div className="flex rounded-lg border border-white/5 bg-white/5 p-1">
                     <button
                       onClick={() => setSelectedIntegrationLanguage("nodejs")}
                       className={cn(
-                        "px-3 py-1 text-[10px] font-bold uppercase tracking-tight rounded-md transition-all",
+                        "rounded-md px-3 py-1 text-[10px] font-bold tracking-tight uppercase transition-all",
                         selectedIntegrationLanguage === "nodejs"
-                          ? "bg-[#0A0A0A] text-slate-100 shadow-sm border border-white/5"
+                          ? "border border-white/5 bg-[#0A0A0A] text-slate-100 shadow-sm"
                           : "text-slate-400 hover:text-slate-200",
                       )}
                     >
@@ -224,9 +224,9 @@ export function ApiKeysTab() {
                     <button
                       onClick={() => setSelectedIntegrationLanguage("curl")}
                       className={cn(
-                        "px-3 py-1 text-[10px] font-bold uppercase tracking-tight rounded-md transition-all",
+                        "rounded-md px-3 py-1 text-[10px] font-bold tracking-tight uppercase transition-all",
                         selectedIntegrationLanguage === "curl"
-                          ? "bg-[#0A0A0A] text-slate-100 shadow-sm border border-white/5"
+                          ? "border border-white/5 bg-[#0A0A0A] text-slate-100 shadow-sm"
                           : "text-slate-400 hover:text-slate-200",
                       )}
                     >
@@ -306,7 +306,7 @@ export function ApiKeysTab() {
               Copy your new API key now. You will not be able to see it again.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex items-center space-x-2 my-4">
+          <div className="my-4 flex items-center space-x-2">
             <Input
               readOnly
               value={newKey || ""}
@@ -326,7 +326,7 @@ export function ApiKeysTab() {
           </div>
           <Alert
             variant="default"
-            className="bg-amber-500/10 text-amber-600 border-amber-500/20 mb-4"
+            className="mb-4 border-amber-500/20 bg-amber-500/10 text-amber-600"
           >
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle className="text-sm">Save this key</AlertTitle>

@@ -48,24 +48,24 @@ function DevelopersContent() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+      <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Developers</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <p className="text-muted-foreground mt-1 text-sm">
             API keys, testing tools, and integration resources.
           </p>
         </div>
 
         {displayMerchantId && (
-          <div className="flex justify-end flex-col gap-1 shrink-0 sm:w-80">
-            <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
+          <div className="flex shrink-0 flex-col justify-end gap-1 sm:w-80">
+            <Label className="text-muted-foreground text-[10px] font-bold tracking-widest uppercase">
               Merchant ID
             </Label>
             <div className="flex items-center gap-2">
               <Input
                 readOnly
                 value={displayMerchantId}
-                className="bg-muted/30 font-mono text-xs h-9"
+                className="bg-muted/30 h-9 font-mono text-xs"
               />
               <Button
                 variant="outline"
@@ -92,7 +92,7 @@ function DevelopersContent() {
         <TabsList className="bg-muted/30 h-9 w-auto">
           <TabsTrigger
             value="api-keys"
-            className="text-xs font-medium gap-1.5 px-3"
+            className="gap-1.5 px-3 text-xs font-medium"
           >
             <Key className="size-3" />
             API Keys
@@ -100,14 +100,14 @@ function DevelopersContent() {
 
           <TabsTrigger
             value="testnet"
-            className="text-xs font-medium gap-1.5 px-3"
+            className="gap-1.5 px-3 text-xs font-medium"
           >
             <FlaskConical className="size-3" />
             Simulator
           </TabsTrigger>
           <TabsTrigger
             value="webhooks"
-            className="text-xs font-medium gap-1.5 px-3"
+            className="gap-1.5 px-3 text-xs font-medium"
           >
             <Webhook className="size-3" />
             Webhooks

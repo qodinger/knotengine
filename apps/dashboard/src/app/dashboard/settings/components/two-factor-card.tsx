@@ -25,12 +25,12 @@ export function TwoFactorCard({
   loading,
 }: TwoFactorCardProps) {
   return (
-    <Card className="bg-linear-to-br from-card to-card/50 border-border/50 shadow-sm">
+    <Card className="from-card to-card/50 border-border/50 bg-linear-to-br shadow-sm">
       <CardHeader>
         <div className="flex items-center justify-between gap-4">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <KeyRound className="size-5 text-primary" />
+              <KeyRound className="text-primary size-5" />
               Two-Factor Authentication
             </CardTitle>
             <CardDescription className="mt-1">
@@ -42,7 +42,7 @@ export function TwoFactorCard({
             variant={twoFactorEnabled ? "default" : "secondary"}
             className={
               twoFactorEnabled
-                ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-500"
                 : "bg-muted text-muted-foreground"
             }
           >
@@ -59,14 +59,14 @@ export function TwoFactorCard({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-wrap items-center justify-between p-4 border border-border/40 rounded-lg bg-muted/10 gap-4">
+        <div className="border-border/40 bg-muted/10 flex flex-wrap items-center justify-between gap-4 rounded-lg border p-4">
           <div>
-            <div className="font-bold text-sm">
+            <div className="text-sm font-bold">
               {twoFactorEnabled
                 ? "Two-Factor Authentication is Active"
                 : "Protect Your Account"}
             </div>
-            <div className="text-xs text-muted-foreground mt-0.5 max-w-md">
+            <div className="text-muted-foreground mt-0.5 max-w-md text-xs">
               {twoFactorEnabled
                 ? "Your account is secured with TOTP verification. A code is required for sensitive operations."
                 : "Enable 2FA to require an authenticator code when performing sensitive actions like changing wallet addresses or rotating API keys."}

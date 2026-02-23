@@ -33,12 +33,12 @@ export function MerchantDetailsCard({
 
   return (
     <>
-      <Card className="bg-linear-to-br from-card to-card/50 border-border/50 shadow-sm">
+      <Card className="from-card to-card/50 border-border/50 bg-linear-to-br shadow-sm">
         <CardHeader>
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Store className="size-5 text-primary" />
+              <div className="bg-primary/10 rounded-lg p-2">
+                <Store className="text-primary size-5" />
               </div>
               <div>
                 <CardTitle className="text-base font-bold">
@@ -52,7 +52,7 @@ export function MerchantDetailsCard({
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 gap-2 text-muted-foreground hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground h-8 gap-2"
               onClick={() => setIsEditDialogOpen(true)}
             >
               <Edit2 className="size-3.5" />
@@ -61,29 +61,29 @@ export function MerchantDetailsCard({
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5 p-3 border border-border/40 rounded-lg bg-muted/10">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="border-border/40 bg-muted/10 flex flex-col gap-1.5 rounded-lg border p-3">
+              <span className="text-muted-foreground flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase">
                 <Store className="size-3" />
                 Business Name
               </span>
-              <span className="text-sm font-semibold truncate">
+              <span className="truncate text-sm font-semibold">
                 {formData.businessName || "Not set"}
               </span>
             </div>
 
-            <div className="flex flex-col gap-1.5 p-3 border border-border/40 rounded-lg bg-muted/10">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+            <div className="border-border/40 bg-muted/10 flex flex-col gap-1.5 rounded-lg border p-3">
+              <span className="text-muted-foreground flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase">
                 <Mail className="size-3" />
                 Contact Email
               </span>
-              <span className="text-sm font-semibold truncate">
+              <span className="truncate text-sm font-semibold">
                 {formData.businessEmail || "Not set"}
               </span>
             </div>
 
-            <div className="flex flex-col gap-1.5 p-3 border border-border/40 rounded-lg bg-muted/10">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+            <div className="border-border/40 bg-muted/10 flex flex-col gap-1.5 rounded-lg border p-3">
+              <span className="text-muted-foreground flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase">
                 <ImageIcon className="size-3" />
                 Merchant Logo
               </span>
@@ -97,18 +97,18 @@ export function MerchantDetailsCard({
                     <ImageIcon className="size-3" />
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-xs text-muted-foreground truncate">
+                <span className="text-muted-foreground truncate text-xs">
                   {formData.logoUrl ? "Logo configured" : "No logo set"}
                 </span>
               </div>
             </div>
 
-            <div className="flex flex-col gap-1.5 p-3 border border-border/40 rounded-lg bg-muted/10">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+            <div className="border-border/40 bg-muted/10 flex flex-col gap-1.5 rounded-lg border p-3">
+              <span className="text-muted-foreground flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase">
                 <Link2 className="size-3" />
                 Return URL
               </span>
-              <span className="text-sm font-semibold truncate">
+              <span className="truncate text-sm font-semibold">
                 {formData.returnUrl || "Not set"}
               </span>
             </div>

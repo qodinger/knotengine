@@ -72,17 +72,17 @@ function LoginContent() {
 
   if (sent) {
     return (
-      <div className="text-center space-y-4 py-8 animate-in fade-in zoom-in duration-500">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/5 mx-auto border border-white/10">
-          <Command className="h-8 w-8 text-primary" />
+      <div className="animate-in fade-in zoom-in space-y-4 py-8 text-center duration-500">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-white/5">
+          <Command className="text-primary h-8 w-8" />
         </div>
         <div className="space-y-2">
           <h3 className="text-xl font-bold tracking-tight text-white">
             Check your inbox
           </h3>
-          <p className="text-sm text-zinc-500 max-w-[280px] mx-auto">
+          <p className="mx-auto max-w-[280px] text-sm text-zinc-500">
             We&apos;ve sent a magic link to{" "}
-            <span className="text-white font-medium">{email}</span>. Click it to
+            <span className="font-medium text-white">{email}</span>. Click it to
             sign in instantly.
           </p>
         </div>
@@ -106,7 +106,7 @@ function LoginContent() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="name@company.com"
-            className="flex h-11 w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm ring-offset-background placeholder:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-all hover:bg-white/10"
+            className="ring-offset-background focus-visible:ring-primary/50 flex h-11 w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm transition-all placeholder:text-zinc-600 hover:bg-white/10 focus-visible:ring-2 focus-visible:outline-none"
             required
             disabled={loadingProvider !== null}
           />
@@ -115,11 +115,11 @@ function LoginContent() {
           type="submit"
           variant="default"
           size="lg"
-          className="h-11 font-bold shadow-[0_0_20px_rgba(255,255,255,0.05)] rounded-lg"
+          className="h-11 rounded-lg font-bold shadow-[0_0_20px_rgba(255,255,255,0.05)]"
           disabled={loadingProvider !== null}
         >
           {loadingProvider === "email" ? (
-            <span className="h-4 w-4 rounded-full border-2 border-foreground/30 border-t-foreground animate-spin" />
+            <span className="border-foreground/30 border-t-foreground h-4 w-4 animate-spin rounded-full border-2" />
           ) : (
             "Continue with Email"
           )}
@@ -130,7 +130,7 @@ function LoginContent() {
         <div className="absolute inset-0 flex items-center">
           <span className="w-full border-t border-white/5" />
         </div>
-        <div className="relative flex justify-center text-[10px] font-bold uppercase tracking-[0.2em]">
+        <div className="relative flex justify-center text-[10px] font-bold tracking-[0.2em] uppercase">
           <span className="bg-black px-4 text-zinc-600">OR</span>
         </div>
       </div>
@@ -140,12 +140,12 @@ function LoginContent() {
           id="signin-google"
           variant="outline"
           size="lg"
-          className="gap-2 h-11 font-semibold bg-white/5 border-white/10 rounded-lg hover:bg-white/10 transition-all text-sm"
+          className="h-11 gap-2 rounded-lg border-white/10 bg-white/5 text-sm font-semibold transition-all hover:bg-white/10"
           disabled={loadingProvider !== null}
           onClick={() => handleSignIn("google")}
         >
           {loadingProvider === "google" ? (
-            <span className="h-4 w-4 rounded-full border-2 border-foreground/30 border-t-foreground animate-spin" />
+            <span className="border-foreground/30 border-t-foreground h-4 w-4 animate-spin rounded-full border-2" />
           ) : (
             <GoogleIcon />
           )}
@@ -156,12 +156,12 @@ function LoginContent() {
           id="signin-github"
           variant="outline"
           size="lg"
-          className="gap-2 h-11 font-semibold bg-white/5 border-white/10 rounded-lg hover:bg-white/10 transition-all text-sm"
+          className="h-11 gap-2 rounded-lg border-white/10 bg-white/5 text-sm font-semibold transition-all hover:bg-white/10"
           disabled={loadingProvider !== null}
           onClick={() => handleSignIn("github")}
         >
           {loadingProvider === "github" ? (
-            <span className="h-4 w-4 rounded-full border-2 border-foreground/30 border-t-foreground animate-spin" />
+            <span className="border-foreground/30 border-t-foreground h-4 w-4 animate-spin rounded-full border-2" />
           ) : (
             <Github className="h-4 w-4" />
           )}
@@ -174,16 +174,16 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <div className="container relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0">
+    <div className="relative container grid min-h-screen flex-col items-center justify-center lg:max-w-none lg:grid-cols-2 lg:px-0">
       {/* Left panel */}
-      <div className="relative hidden h-full flex-col bg-[#050505] p-10 text-white lg:flex dark:border-r overflow-hidden">
+      <div className="relative hidden h-full flex-col overflow-hidden bg-[#050505] p-10 text-white lg:flex dark:border-r">
         <AuthBackground />
 
-        <div className="relative z-20 flex items-center text-lg font-medium gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-[0_0_20px_rgba(255,255,255,0.15)]">
+        <div className="relative z-20 flex items-center gap-2 text-lg font-medium">
+          <div className="bg-primary text-primary-foreground flex h-10 w-10 items-center justify-center rounded-lg shadow-[0_0_20px_rgba(255,255,255,0.15)]">
             <Command className="h-6 w-6" />
           </div>
-          <span className="font-bold tracking-tight text-xl">
+          <span className="text-xl font-bold tracking-tight">
             KnotEngine Dashboard
           </span>
         </div>
@@ -193,7 +193,7 @@ export default function LoginPage() {
             <h2 className="text-3xl font-bold tracking-tight text-white/90">
               The Protocol for Commerce
             </h2>
-            <p className="text-zinc-500 text-lg max-w-[420px] leading-relaxed italic">
+            <p className="max-w-[420px] text-lg leading-relaxed text-zinc-500 italic">
               &ldquo;Institutional-grade infrastructure for secure,
               non-custodial stablecoin settlements.&rdquo;
             </p>
@@ -208,31 +208,31 @@ export default function LoginPage() {
             <h1 className="text-2xl font-semibold tracking-tight">
               Welcome to KnotEngine
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               Sign in to access your merchant dashboard
             </p>
           </div>
 
           <Suspense
             fallback={
-              <div className="h-28 w-full animate-pulse bg-muted rounded-md" />
+              <div className="bg-muted h-28 w-full animate-pulse rounded-md" />
             }
           >
             <LoginContent />
           </Suspense>
 
-          <p className="px-8 text-center text-xs text-muted-foreground leading-relaxed">
+          <p className="text-muted-foreground px-8 text-center text-xs leading-relaxed">
             By continuing, you agree to our{" "}
             <a
               href="/terms"
-              className="underline underline-offset-4 hover:text-primary"
+              className="hover:text-primary underline underline-offset-4"
             >
               Terms of Service
             </a>{" "}
             and{" "}
             <a
               href="/privacy"
-              className="underline underline-offset-4 hover:text-primary"
+              className="hover:text-primary underline underline-offset-4"
             >
               Privacy Policy
             </a>

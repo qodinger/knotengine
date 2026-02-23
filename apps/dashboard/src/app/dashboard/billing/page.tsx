@@ -54,13 +54,13 @@ export default function BillingPage() {
       <CreditBalanceCard stats={stats} loading={loading} />
 
       {!loading && isTopUpDisabled && (
-        <Card className="border-dashed border-2 border-border/40">
+        <Card className="border-border/40 border-2 border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-10 text-center">
-            <Coins className="size-8 text-muted-foreground/20 mb-3" />
-            <p className="text-sm font-medium text-muted-foreground/60 mb-1">
+            <Coins className="text-muted-foreground/20 mb-3 size-8" />
+            <p className="text-muted-foreground/60 mb-1 text-sm font-medium">
               No top-up wallets configured
             </p>
-            <p className="text-xs text-muted-foreground/40 max-w-xs">
+            <p className="text-muted-foreground/40 max-w-xs text-xs">
               Platform fee wallets have not been set up yet. Contact the
               platform administrator.
             </p>

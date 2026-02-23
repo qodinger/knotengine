@@ -55,25 +55,25 @@ export function StatsGrid({ stats, invoices, loading }: StatsGridProps) {
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
       {statItems.map((stat) => (
         <div
           key={stat.label}
-          className="flex items-center gap-3 rounded-xl border border-border/40 bg-card/50 p-4"
+          className="border-border/40 bg-card/50 flex items-center gap-3 rounded-xl border p-4"
         >
           <div
             className={cn(
-              "size-9 rounded-lg flex items-center justify-center bg-muted/50",
+              "bg-muted/50 flex size-9 items-center justify-center rounded-lg",
               stat.color,
             )}
           >
             <stat.icon className="size-4" />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground font-medium">
+            <p className="text-muted-foreground text-xs font-medium">
               {stat.label}
             </p>
-            <p className="text-lg font-bold tracking-tight leading-none mt-0.5">
+            <p className="mt-0.5 text-lg leading-none font-bold tracking-tight">
               {loading ? (
                 <span className="text-muted-foreground/30">—</span>
               ) : (

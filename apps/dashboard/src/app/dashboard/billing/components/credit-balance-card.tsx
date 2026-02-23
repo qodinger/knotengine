@@ -24,7 +24,7 @@ export function CreditBalanceCard({ stats, loading }: CreditBalanceCardProps) {
   return (
     <Card
       className={cn(
-        "border relative overflow-hidden",
+        "relative overflow-hidden border",
         creditHealth === "critical"
           ? "border-rose-500/30 bg-rose-500/3"
           : creditHealth === "warning"
@@ -44,7 +44,7 @@ export function CreditBalanceCard({ stats, loading }: CreditBalanceCardProps) {
       />
 
       <CardContent className="relative p-6 md:p-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2">
               <Coins
@@ -57,7 +57,7 @@ export function CreditBalanceCard({ stats, loading }: CreditBalanceCardProps) {
                       : "text-emerald-500",
                 )}
               />
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+              <span className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase">
                 Credit Balance
               </span>
               <Badge
@@ -68,7 +68,7 @@ export function CreditBalanceCard({ stats, loading }: CreditBalanceCardProps) {
                       ? "outline"
                       : "secondary"
                 }
-                className="text-[9px] font-bold uppercase tracking-wider ml-auto h-5 px-2"
+                className="ml-auto h-5 px-2 text-[9px] font-bold tracking-wider uppercase"
               >
                 {creditHealth === "critical"
                   ? "DEPLETED"
@@ -86,13 +86,13 @@ export function CreditBalanceCard({ stats, loading }: CreditBalanceCardProps) {
                   `$${creditBalance.toFixed(2)}`
                 )}
               </span>
-              <span className="text-sm text-muted-foreground font-medium">
+              <span className="text-muted-foreground text-sm font-medium">
                 USD
               </span>
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <div className="text-muted-foreground flex items-center justify-between text-xs">
                 <span>Balance Level</span>
                 <span className="font-medium">
                   {creditHealth === "critical"
@@ -116,7 +116,7 @@ export function CreditBalanceCard({ stats, loading }: CreditBalanceCardProps) {
             </div>
 
             {creditHealth === "critical" && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-500">
+              <div className="flex items-center gap-2 rounded-lg border border-rose-500/20 bg-rose-500/10 p-3 text-rose-500">
                 <AlertTriangle className="size-4 shrink-0" />
                 <p className="text-xs font-medium">
                   Your account is locked. Top up to resume creating invoices.
@@ -125,7 +125,7 @@ export function CreditBalanceCard({ stats, loading }: CreditBalanceCardProps) {
             )}
 
             {creditHealth === "warning" && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
+              <div className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-amber-600 dark:text-amber-400">
                 <AlertTriangle className="size-4 shrink-0" />
                 <p className="text-xs font-medium">
                   Low balance. Top up soon to avoid service interruption.
@@ -135,8 +135,8 @@ export function CreditBalanceCard({ stats, loading }: CreditBalanceCardProps) {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1 p-4 rounded-xl bg-background/60 border border-border/40">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold flex justify-between">
+            <div className="bg-background/60 border-border/40 flex flex-col gap-1 rounded-xl border p-4">
+              <span className="text-muted-foreground flex justify-between text-[10px] font-bold tracking-wider uppercase">
                 <span>Fee Rate</span>
                 {!loading && (
                   <span className="text-primary/60">{stats?.currentPlan}</span>
@@ -145,25 +145,25 @@ export function CreditBalanceCard({ stats, loading }: CreditBalanceCardProps) {
               <span className="text-xl font-bold">
                 {loading ? "—" : `${(feeRate * 100).toFixed(2)}%`}
               </span>
-              <span className="text-[10px] text-muted-foreground font-medium">
+              <span className="text-muted-foreground text-[10px] font-medium">
                 Per confirmed invoice
               </span>
             </div>
 
-            <div className="flex flex-col gap-1 p-4 rounded-xl bg-background/60 border border-border/40">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+            <div className="bg-background/60 border-border/40 flex flex-col gap-1 rounded-xl border p-4">
+              <span className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase">
                 Fees Paid
               </span>
               <span className="text-xl font-bold">
                 {loading ? "—" : `$${feesAccrued.toFixed(2)}`}
               </span>
-              <span className="text-[10px] text-muted-foreground font-medium">
+              <span className="text-muted-foreground text-[10px] font-medium">
                 Production usage
               </span>
             </div>
 
-            <div className="flex flex-col gap-1 p-4 rounded-xl bg-background/60 border border-border/40">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+            <div className="bg-background/60 border-border/40 flex flex-col gap-1 rounded-xl border p-4">
+              <span className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase">
                 Production Volume
               </span>
               <span className="text-lg font-bold">
@@ -171,16 +171,16 @@ export function CreditBalanceCard({ stats, loading }: CreditBalanceCardProps) {
                   ? "—"
                   : `$${totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
               </span>
-              <div className="flex items-center gap-1.5 mt-auto">
-                <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span className="text-[10px] text-muted-foreground font-medium">
+              <div className="mt-auto flex items-center gap-1.5">
+                <span className="size-1.5 shrink-0 rounded-full bg-emerald-500" />
+                <span className="text-muted-foreground text-[10px] font-medium">
                   Real settlements
                 </span>
               </div>
             </div>
 
-            <div className="flex flex-col gap-1 p-4 rounded-xl bg-background/60 border border-border/40">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+            <div className="bg-background/60 border-border/40 flex flex-col gap-1 rounded-xl border p-4">
+              <span className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase">
                 Testnet Volume
               </span>
               <span className="text-lg font-bold">
@@ -188,9 +188,9 @@ export function CreditBalanceCard({ stats, loading }: CreditBalanceCardProps) {
                   ? "—"
                   : `$${(stats?.testnetVolume ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
               </span>
-              <div className="flex items-center gap-1.5 mt-auto">
-                <span className="size-1.5 rounded-full bg-amber-500 shrink-0" />
-                <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+              <div className="mt-auto flex items-center gap-1.5">
+                <span className="size-1.5 shrink-0 rounded-full bg-amber-500" />
+                <span className="text-muted-foreground text-[10px] font-medium tracking-wider uppercase">
                   Simulation
                 </span>
               </div>

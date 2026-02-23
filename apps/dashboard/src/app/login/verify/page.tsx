@@ -51,14 +51,14 @@ function VerifyContent() {
   }, [searchParams, router, token, email]);
 
   return (
-    <div className="container relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0">
-      <div className="relative hidden h-full flex-col bg-[#050505] p-10 text-white lg:flex dark:border-r overflow-hidden">
+    <div className="relative container grid min-h-screen flex-col items-center justify-center lg:max-w-none lg:grid-cols-2 lg:px-0">
+      <div className="relative hidden h-full flex-col overflow-hidden bg-[#050505] p-10 text-white lg:flex dark:border-r">
         <AuthBackground />
-        <div className="relative z-20 flex items-center text-lg font-medium gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+        <div className="relative z-20 flex items-center gap-2 text-lg font-medium">
+          <div className="bg-primary text-primary-foreground flex h-10 w-10 items-center justify-center rounded-lg">
             <Command className="h-6 w-6" />
           </div>
-          <span className="font-bold tracking-tight text-xl">KnotEngine</span>
+          <span className="text-xl font-bold tracking-tight">KnotEngine</span>
         </div>
       </div>
 
@@ -68,21 +68,21 @@ function VerifyContent() {
             <h1 className="text-2xl font-bold tracking-tight">
               {error ? "Verification Failed" : "Verifying identity"}
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               {error ? error : "Please wait while we secure your session..."}
             </p>
           </div>
 
           {!error && (
             <div className="flex justify-center py-8">
-              <span className="h-8 w-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+              <span className="border-primary/30 border-t-primary h-8 w-8 animate-spin rounded-full border-2" />
             </div>
           )}
 
           {error && (
             <a
               href="/login"
-              className="text-center text-sm font-medium text-primary hover:underline"
+              className="text-primary text-center text-sm font-medium hover:underline"
             >
               Back to login
             </a>

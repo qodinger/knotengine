@@ -78,7 +78,7 @@ export function WebhooksTab() {
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <h3 className="text-sm font-semibold">Endpoint Configuration</h3>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             Set the URL where KnotEngine will send POST requests when events
             occur.
           </p>
@@ -87,7 +87,7 @@ export function WebhooksTab() {
           <Button
             variant="outline"
             size="sm"
-            className="h-8 text-[10px] font-bold uppercase tracking-wider gap-1.5"
+            className="h-8 gap-1.5 text-[10px] font-bold tracking-wider uppercase"
             onClick={handleTestWebhook}
             disabled={!webhookData.webhookUrl || testingWebhook}
           >
@@ -100,7 +100,7 @@ export function WebhooksTab() {
           </Button>
           <Button
             size="sm"
-            className="h-8 text-[10px] font-bold uppercase tracking-wider gap-1.5"
+            className="h-8 gap-1.5 text-[10px] font-bold tracking-wider uppercase"
             onClick={handleSubmit(onSave)}
             disabled={savingWebhooks || !isValid}
           >
@@ -119,7 +119,7 @@ export function WebhooksTab() {
           <div className="grid gap-2">
             <Label
               htmlFor="webhookUrl"
-              className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground"
+              className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase"
             >
               Endpoint URL
             </Label>
@@ -149,7 +149,7 @@ export function WebhooksTab() {
               )}
             />
             {errors.webhookUrl && (
-              <p className="text-[10px] font-medium text-destructive">
+              <p className="text-destructive text-[10px] font-medium">
                 {errors.webhookUrl.message}
               </p>
             )}
@@ -159,7 +159,7 @@ export function WebhooksTab() {
             <div className="flex items-center justify-between">
               <Label
                 htmlFor="secret"
-                className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground"
+                className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase"
               >
                 Signing Secret
               </Label>
@@ -168,7 +168,7 @@ export function WebhooksTab() {
                 size="sm"
                 onClick={handleRotateWebhookSecret}
                 disabled={rotatingWebhookSecret}
-                className="h-6 text-[9px] font-bold uppercase tracking-wider text-destructive hover:bg-destructive/5 hover:text-destructive"
+                className="text-destructive hover:bg-destructive/5 hover:text-destructive h-6 text-[9px] font-bold tracking-wider uppercase"
               >
                 {rotatingWebhookSecret ? "Rotating..." : "Rotate Secret"}
               </Button>
@@ -180,13 +180,13 @@ export function WebhooksTab() {
                   type={showWebhookSecret ? "text" : "password"}
                   value={webhookData.webhookSecret}
                   readOnly
-                  className="bg-background/50 font-mono text-xs pr-16 focus-visible:ring-0"
+                  className="bg-background/50 pr-16 font-mono text-xs focus-visible:ring-0"
                   placeholder="knot_wh_********************"
                 />
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="absolute right-0 top-0 h-full text-[10px] uppercase font-bold tracking-wider hover:bg-transparent text-muted-foreground hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground absolute top-0 right-0 h-full text-[10px] font-bold tracking-wider uppercase hover:bg-transparent"
                   onClick={() => setShowWebhookSecret(!showWebhookSecret)}
                   disabled={!webhookData.webhookSecret}
                 >
@@ -204,22 +204,22 @@ export function WebhooksTab() {
                 {copied === "secret" ? (
                   <Check className="size-4 text-emerald-500" />
                 ) : (
-                  <Copy className="size-4 text-muted-foreground" />
+                  <Copy className="text-muted-foreground size-4" />
                 )}
               </Button>
             </div>
           </div>
 
-          <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
-            <div className="flex items-center gap-2 mb-1.5">
+          <div className="rounded-lg border border-emerald-500/10 bg-emerald-500/5 p-3">
+            <div className="mb-1.5 flex items-center gap-2">
               <ShieldCheck className="size-3.5 text-emerald-500" />
-              <span className="text-[10px] font-bold uppercase tracking-tight text-emerald-600">
+              <span className="text-[10px] font-bold tracking-tight text-emerald-600 uppercase">
                 Security Policy
               </span>
             </div>
-            <p className="text-[10.5px] text-muted-foreground leading-relaxed">
+            <p className="text-muted-foreground text-[10.5px] leading-relaxed">
               Always verify the{" "}
-              <code className="text-emerald-600 font-mono">
+              <code className="font-mono text-emerald-600">
                 x-knot-signature
               </code>{" "}
               header using your secret before processing webhooks to ensure the
@@ -230,7 +230,7 @@ export function WebhooksTab() {
       </Card>
 
       <Card className="border shadow-sm">
-        <CardHeader className="pb-4 pt-6 px-6">
+        <CardHeader className="px-6 pt-6 pb-4">
           <CardTitle className="text-sm font-semibold">
             Event Subscriptions
           </CardTitle>
@@ -238,12 +238,12 @@ export function WebhooksTab() {
             Select the specific events you want to receive notifications for.
           </CardDescription>
         </CardHeader>
-        <CardContent className="px-6 pb-6 pt-0">
+        <CardContent className="px-6 pt-0 pb-6">
           <Controller
             name="webhookEvents"
             control={control}
             render={({ field }) => (
-              <div className="grid grid-cols-1 gap-1.5 mt-2">
+              <div className="mt-2 grid grid-cols-1 gap-1.5">
                 {[
                   {
                     id: "e-confirmed",
@@ -263,7 +263,7 @@ export function WebhooksTab() {
                 ].map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-start gap-3 p-2.5 rounded-lg border border-transparent hover:border-border/50 hover:bg-muted/30 transition-all group"
+                    className="hover:border-border/50 hover:bg-muted/30 group flex items-start gap-3 rounded-lg border border-transparent p-2.5 transition-all"
                   >
                     <Checkbox
                       id={item.id}
@@ -281,11 +281,11 @@ export function WebhooksTab() {
                     <div className="grid gap-0.5 leading-none">
                       <Label
                         htmlFor={item.id}
-                        className="text-xs font-bold cursor-pointer group-hover:text-primary transition-colors"
+                        className="group-hover:text-primary cursor-pointer text-xs font-bold transition-colors"
                       >
                         {item.key}
                       </Label>
-                      <p className="text-[10px] text-muted-foreground font-medium">
+                      <p className="text-muted-foreground text-[10px] font-medium">
                         {item.desc}
                       </p>
                     </div>
@@ -297,7 +297,7 @@ export function WebhooksTab() {
         </CardContent>
       </Card>
 
-      <Card className="border shadow-sm bg-[#0c0c0c] text-slate-50 relative overflow-hidden w-full">
+      <Card className="relative w-full overflow-hidden border bg-[#0c0c0c] text-slate-50 shadow-sm">
         <CardContent className="p-8">
           <div className="flex flex-col gap-6">
             <div className="space-y-2">
@@ -310,7 +310,7 @@ export function WebhooksTab() {
             </div>
             <CodeBlock
               language="json"
-              className="w-full h-[400px]"
+              className="h-[400px] w-full"
               code={dedent`
                 POST /webhooks HTTP/1.1
                 x-knot-signature: 8f...2a
@@ -345,9 +345,9 @@ export function WebhooksTab() {
         </CardContent>
       </Card>
 
-      <Card className="border shadow-sm mt-6 bg-[#0c0c0c] text-slate-50 relative overflow-hidden">
+      <Card className="relative mt-6 overflow-hidden border bg-[#0c0c0c] text-slate-50 shadow-sm">
         <CardContent className="p-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
             <div className="flex flex-col gap-10">
               <div className="space-y-2">
                 <h3 className="text-sm font-bold text-slate-50">
@@ -365,9 +365,9 @@ export function WebhooksTab() {
                     Signature verification
                   </h4>
                 </div>
-                <p className="text-[13px] text-slate-400 leading-relaxed max-w-sm">
+                <p className="max-w-sm text-[13px] leading-relaxed text-slate-400">
                   Webhooks are signed with a{" "}
-                  <code className="text-slate-300 bg-white/5 px-1 py-0.5 rounded text-xs select-none relative z-10 mx-1">
+                  <code className="relative z-10 mx-1 rounded bg-white/5 px-1 py-0.5 text-xs text-slate-300 select-none">
                     HMAC-SHA256
                   </code>{" "}
                   hash of the raw request body using your signing secret. We
@@ -377,7 +377,7 @@ export function WebhooksTab() {
                 <div className="flex pt-2">
                   <Button
                     variant="link"
-                    className="p-0 h-auto text-xs text-slate-300 hover:text-white"
+                    className="h-auto p-0 text-xs text-slate-300 hover:text-white"
                     asChild
                   >
                     <a href="#">
@@ -390,13 +390,13 @@ export function WebhooksTab() {
 
             <div className="flex flex-col gap-4">
               <div className="flex items-center">
-                <div className="flex bg-white/5 p-1 rounded-lg border border-white/5">
+                <div className="flex rounded-lg border border-white/5 bg-white/5 p-1">
                   <button
                     onClick={() => setSelectedLanguage("nodejs-sdk")}
                     className={cn(
-                      "px-3 py-1 text-[10px] font-bold uppercase tracking-tight rounded-md transition-all",
+                      "rounded-md px-3 py-1 text-[10px] font-bold tracking-tight uppercase transition-all",
                       selectedLanguage === "nodejs-sdk"
-                        ? "bg-[#0A0A0A] text-slate-100 shadow-sm border border-white/5"
+                        ? "border border-white/5 bg-[#0A0A0A] text-slate-100 shadow-sm"
                         : "text-slate-400 hover:text-slate-200",
                     )}
                   >
@@ -405,9 +405,9 @@ export function WebhooksTab() {
                   <button
                     onClick={() => setSelectedLanguage("nodejs")}
                     className={cn(
-                      "px-3 py-1 text-[10px] font-bold uppercase tracking-tight rounded-md transition-all",
+                      "rounded-md px-3 py-1 text-[10px] font-bold tracking-tight uppercase transition-all",
                       selectedLanguage === "nodejs"
-                        ? "bg-[#0A0A0A] text-slate-100 shadow-sm border border-white/5"
+                        ? "border border-white/5 bg-[#0A0A0A] text-slate-100 shadow-sm"
                         : "text-slate-400 hover:text-slate-200",
                     )}
                   >

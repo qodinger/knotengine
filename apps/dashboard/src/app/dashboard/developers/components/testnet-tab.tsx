@@ -125,7 +125,7 @@ export function TestnetTab() {
               variant="outline"
               size="sm"
               asChild
-              className="bg-background text-foreground hover:bg-background/80 border-destructive/30 text-xs h-7"
+              className="bg-background text-foreground hover:bg-background/80 border-destructive/30 h-7 text-xs"
             >
               <Link href="/dashboard/settings">Go to Settings</Link>
             </Button>
@@ -134,28 +134,28 @@ export function TestnetTab() {
       )}
 
       {/* Testnet Wallets Section */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="mb-2 flex items-center justify-between">
         <h2 className="text-sm font-semibold">Testnet Wallets</h2>
       </div>
 
       {wallets.length === 0 ? (
-        <Card className="border-dashed border-2 bg-muted/5">
+        <Card className="bg-muted/5 border-2 border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-8 text-center">
-            <ShieldCheck className="size-6 text-muted-foreground/30 mb-2" />
-            <p className="text-sm font-medium text-muted-foreground/60">
+            <ShieldCheck className="text-muted-foreground/30 mb-2 size-6" />
+            <p className="text-muted-foreground/60 text-sm font-medium">
               No Testnet Wallets
             </p>
           </CardContent>
         </Card>
       ) : (
-        <div className="flex flex-col gap-2 mb-8">
+        <div className="mb-8 flex flex-col gap-2">
           {wallets.map((wallet) => (
             <div
               key={wallet.id}
-              className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3 bg-card border rounded-xl shadow-sm"
+              className="bg-card flex flex-col justify-between gap-4 rounded-xl border p-3 shadow-sm sm:flex-row sm:items-center"
             >
-              <div className="flex items-center gap-4 min-w-0">
-                <Avatar className="size-10 bg-transparent p-0 shrink-0">
+              <div className="flex min-w-0 items-center gap-4">
+                <Avatar className="size-10 shrink-0 bg-transparent p-0">
                   <AvatarImage
                     src={wallet.iconUrl}
                     className="object-contain"
@@ -169,9 +169,9 @@ export function TestnetTab() {
                     {wallet.iconFallback}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex flex-col min-w-0">
+                <div className="flex min-w-0 flex-col">
                   <div className="flex items-center gap-2">
-                    <p className="font-semibold text-sm truncate">
+                    <p className="truncate text-sm font-semibold">
                       {wallet.label}
                     </p>
                     <Badge
@@ -181,16 +181,16 @@ export function TestnetTab() {
                       {wallet.type}
                     </Badge>
                   </div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <p className="text-xs text-muted-foreground whitespace-nowrap">
+                  <div className="mt-0.5 flex items-center gap-2">
+                    <p className="text-muted-foreground text-xs whitespace-nowrap">
                       {wallet.currency}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0 bg-muted/30 p-2 rounded-lg border border-border/30 w-full sm:w-auto">
-                <code className="text-xs font-mono text-muted-foreground truncate flex-1 sm:max-w-xs px-1">
+              <div className="bg-muted/30 border-border/30 flex w-full shrink-0 items-center gap-2 rounded-lg border p-2 sm:w-auto">
+                <code className="text-muted-foreground flex-1 truncate px-1 font-mono text-xs sm:max-w-xs">
                   {truncate(wallet.address)}
                 </code>
                 <Button
@@ -212,18 +212,18 @@ export function TestnetTab() {
       )}
 
       {/* Simulator Section */}
-      <div className="flex items-center justify-between mb-4 mt-8">
+      <div className="mt-8 mb-4 flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-semibold flex items-center gap-2">
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
             Simulation Pipeline
           </h2>
-          <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1.5">
+          <p className="text-muted-foreground mt-1.5 flex items-center gap-1.5 text-xs">
             <Zap className="size-3.5 text-amber-500" />
             Simulates a 3-step payment flow: Mempool → Confirming → Settled (~6
             seconds).
           </p>
         </div>
-        <div className="flex gap-2 items-start pt-1">
+        <div className="flex items-start gap-2 pt-1">
           <Button
             variant="outline"
             size="sm"
@@ -234,7 +234,7 @@ export function TestnetTab() {
               }
             }}
             disabled={testnetLoading || wallets.length === 0}
-            className="h-8 text-xs gap-1.5"
+            className="h-8 gap-1.5 text-xs"
           >
             <Plus className="size-3" />
             Create Test Invoice
@@ -253,24 +253,24 @@ export function TestnetTab() {
         </div>
       </div>
 
-      <Card className="border shadow-sm overflow-hidden py-0 gap-0">
+      <Card className="gap-0 overflow-hidden border py-0 shadow-sm">
         <CardContent className="p-0">
           <Table>
             <TableHeader className="bg-muted/20">
-              <TableRow className="hover:bg-transparent border-border/30 h-12">
-                <TableHead className="w-[180px] text-[10px] font-bold uppercase tracking-wider pl-6">
+              <TableRow className="border-border/30 h-12 hover:bg-transparent">
+                <TableHead className="w-[180px] pl-6 text-[10px] font-bold tracking-wider uppercase">
                   Invoice
                 </TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-wider">
+                <TableHead className="text-[10px] font-bold tracking-wider uppercase">
                   Amount
                 </TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-wider">
+                <TableHead className="text-[10px] font-bold tracking-wider uppercase">
                   Status
                 </TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-wider">
+                <TableHead className="text-[10px] font-bold tracking-wider uppercase">
                   Address
                 </TableHead>
-                <TableHead className="text-right text-[10px] font-bold uppercase tracking-wider pr-6">
+                <TableHead className="pr-6 text-right text-[10px] font-bold tracking-wider uppercase">
                   Actions
                 </TableHead>
               </TableRow>
@@ -280,14 +280,14 @@ export function TestnetTab() {
                 <TableRow>
                   <TableCell colSpan={5} className="h-64 text-center">
                     <div className="flex flex-col items-center gap-3">
-                      <div className="size-12 rounded-full bg-muted/30 flex items-center justify-center">
-                        <RefreshCw className="size-6 text-muted-foreground/20 animate-spin" />
+                      <div className="bg-muted/30 flex size-12 items-center justify-center rounded-full">
+                        <RefreshCw className="text-muted-foreground/20 size-6 animate-spin" />
                       </div>
                       <div className="space-y-1">
-                        <p className="text-sm font-semibold text-foreground">
+                        <p className="text-foreground text-sm font-semibold">
                           Loading...
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-muted-foreground text-xs">
                           Loading testnet invoices...
                         </p>
                       </div>
@@ -298,14 +298,14 @@ export function TestnetTab() {
                 <TableRow>
                   <TableCell colSpan={5} className="h-48 text-center">
                     <div className="flex flex-col items-center gap-3">
-                      <div className="size-12 rounded-full bg-muted/30 flex items-center justify-center">
-                        <FlaskConical className="size-6 text-muted-foreground/20" />
+                      <div className="bg-muted/30 flex size-12 items-center justify-center rounded-full">
+                        <FlaskConical className="text-muted-foreground/20 size-6" />
                       </div>
                       <div className="space-y-1">
-                        <p className="text-sm font-semibold text-foreground">
+                        <p className="text-foreground text-sm font-semibold">
                           No pending invoices
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-muted-foreground text-xs">
                           Create one to start testing.
                         </p>
                       </div>
@@ -323,7 +323,7 @@ export function TestnetTab() {
                         <span className="font-mono text-xs font-medium">
                           {inv.invoice_id}
                         </span>
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="text-muted-foreground text-[10px]">
                           {new Date(inv.created_at).toLocaleTimeString()}
                         </span>
                       </div>
@@ -331,30 +331,30 @@ export function TestnetTab() {
                     <TableCell>
                       <div className="flex flex-col gap-0.5">
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-sm">
+                          <span className="text-sm font-semibold">
                             {inv.crypto_amount}
                           </span>
                           <Badge
                             variant="secondary"
-                            className="text-[10px] h-4 px-1 py-0"
+                            className="h-4 px-1 py-0 text-[10px]"
                           >
                             {inv.crypto_currency}
                           </Badge>
                         </div>
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="text-muted-foreground text-[10px]">
                           ${inv.amount_usd.toFixed(2)} USD
                         </span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1.5">
-                        <code className="text-[10px] font-mono text-muted-foreground max-w-[140px] truncate">
+                        <code className="text-muted-foreground max-w-[140px] truncate font-mono text-[10px]">
                           {inv.pay_address}
                         </code>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
                           onClick={() =>
                             copyToClipboard(
                               inv.pay_address,
@@ -415,7 +415,7 @@ export function TestnetTab() {
                           <Badge
                             variant="outline"
                             className={cn(
-                              "text-[10px] font-bold h-5",
+                              "h-5 text-[10px] font-bold",
                               stage.className,
                               isSimulating && "animate-pulse",
                             )}
@@ -425,12 +425,12 @@ export function TestnetTab() {
                         );
                       })()}
                     </TableCell>
-                    <TableCell className="text-right pr-6">
+                    <TableCell className="pr-6 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="text-muted-foreground hover:text-foreground h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
                           onClick={() => {
                             const checkoutUrl =
                               process.env.NEXT_PUBLIC_CHECKOUT_URL ||
@@ -457,24 +457,24 @@ export function TestnetTab() {
                             setSimulateAmount(inv.crypto_amount.toString());
                           }}
                           className={cn(
-                            "h-7 text-[10px] font-bold uppercase tracking-wider transition-all w-28",
+                            "h-7 w-28 text-[10px] font-bold tracking-wider uppercase transition-all",
                             successId === inv.invoice_id
-                              ? "bg-emerald-500 hover:bg-emerald-600 text-white"
-                              : "bg-amber-500 hover:bg-amber-600 text-black",
+                              ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                              : "bg-amber-500 text-black hover:bg-amber-600",
                           )}
                         >
                           {simulating === inv.invoice_id ? (
                             <>
-                              <RefreshCw className="size-3 animate-spin mr-1.5" />
+                              <RefreshCw className="mr-1.5 size-3 animate-spin" />
                               Simulating
                             </>
                           ) : successId === inv.invoice_id ? (
                             <>
-                              <CheckCircle2 className="size-3 mr-1.5" /> Paid
+                              <CheckCircle2 className="mr-1.5 size-3" /> Paid
                             </>
                           ) : (
                             <>
-                              <Zap className="size-3 mr-1.5" /> Simulate
+                              <Zap className="mr-1.5 size-3" /> Simulate
                             </>
                           )}
                         </Button>
@@ -488,7 +488,7 @@ export function TestnetTab() {
         </CardContent>
       </Card>
 
-      <div className="flex justify-center mt-4">
+      <div className="mt-4 flex justify-center">
         <Button
           variant="link"
           size="sm"
@@ -517,7 +517,7 @@ export function TestnetTab() {
             <div className="grid grid-cols-4 items-center gap-4">
               <Label
                 htmlFor="amount"
-                className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                className="text-muted-foreground text-right text-xs font-semibold tracking-wider uppercase"
               >
                 Amount (USD)
               </Label>
@@ -534,7 +534,7 @@ export function TestnetTab() {
             <div className="grid grid-cols-4 items-center gap-4">
               <Label
                 htmlFor="currency"
-                className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                className="text-muted-foreground text-right text-xs font-semibold tracking-wider uppercase"
               >
                 Currency
               </Label>
@@ -591,35 +591,35 @@ export function TestnetTab() {
             <div className="grid grid-cols-4 items-center gap-4">
               <Label
                 htmlFor="simAmount"
-                className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground leading-tight"
+                className="text-muted-foreground text-right text-xs leading-tight font-semibold tracking-wider uppercase"
               >
                 Send Amount
               </Label>
-              <div className="col-span-3 relative">
+              <div className="relative col-span-3">
                 <Input
                   id="simAmount"
                   type="text"
                   value={simulateAmount}
                   onChange={(e) => setSimulateAmount(e.target.value)}
-                  className="font-mono pr-12"
+                  className="pr-12 font-mono"
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground">
+                <span className="text-muted-foreground absolute top-1/2 right-3 -translate-y-1/2 text-[10px] font-bold">
                   {simulateInvoice?.crypto_currency}
                 </span>
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <div />
-              <p className="col-span-3 text-[10px] text-muted-foreground flex items-center justify-between">
+              <p className="text-muted-foreground col-span-3 flex items-center justify-between text-[10px]">
                 <span>
                   Target:{" "}
-                  <span className="font-mono text-foreground">
+                  <span className="text-foreground font-mono">
                     {simulateInvoice?.crypto_amount}
                   </span>
                 </span>
                 <span>
                   Received:{" "}
-                  <span className="font-mono text-foreground">
+                  <span className="text-foreground font-mono">
                     {simulateInvoice?.crypto_amount_received || 0}
                   </span>
                 </span>
@@ -637,7 +637,7 @@ export function TestnetTab() {
                 simulatePayment(simulateInvoice, simulateAmount);
                 setSimulateInvoice(null);
               }}
-              className="bg-amber-500 hover:bg-amber-600 text-black gap-2 font-bold"
+              className="gap-2 bg-amber-500 font-bold text-black hover:bg-amber-600"
             >
               <Zap size={14} /> Simulate
             </Button>

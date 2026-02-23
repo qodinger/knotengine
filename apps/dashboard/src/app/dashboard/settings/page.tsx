@@ -45,7 +45,7 @@ export default function SettingsPage() {
       <SettingsHeader />
 
       <div className="space-y-6">
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <MerchantDetailsCard
             formData={formData}
             onSave={handleSave}

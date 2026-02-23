@@ -90,12 +90,12 @@ export function WalletSection({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-foreground">
+        <h2 className="text-foreground text-sm font-semibold">
           Settlement Wallets
         </h2>
         <Dialog open={isAddWalletOpen} onOpenChange={setIsAddWalletOpen}>
           <DialogTrigger asChild>
-            <Button size="sm" className="h-8 text-xs gap-2">
+            <Button size="sm" className="h-8 gap-2 text-xs">
               <Plus className="size-3" />
               Add Wallet
             </Button>
@@ -113,19 +113,19 @@ export function WalletSection({
                 <div className="relative">
                   <Input
                     id="address"
-                    className="w-full pr-10 font-mono text-sm h-11 bg-background/50 border-border/80"
+                    className="bg-background/50 border-border/80 h-11 w-full pr-10 font-mono text-sm"
                     placeholder="Paste your address here..."
                     value={newWalletAddress}
                     onChange={(e) => handleAddressChange(e.target.value)}
                     autoComplete="off"
                   />
                   {newWalletAddress && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500 animate-in fade-in zoom-in duration-300">
+                    <div className="animate-in fade-in zoom-in absolute top-1/2 right-3 -translate-y-1/2 text-emerald-500 duration-300">
                       <Wand2 className="size-4" />
                     </div>
                   )}
                 </div>
-                <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                <p className="text-muted-foreground flex items-center gap-1 text-[10px]">
                   <Wand2 className="size-2.5 opacity-50" />
                   Tip: Paste your wallet to auto-detect the network.
                 </p>
@@ -143,7 +143,7 @@ export function WalletSection({
                   >
                     <SelectTrigger
                       id="coin"
-                      className="w-full h-11! bg-background/50 border-border/80 [&>span]:flex [&>span]:items-center [&>span]:gap-2 [&>span_img]:shrink-0"
+                      className="bg-background/50 border-border/80 h-11! w-full [&>span]:flex [&>span]:items-center [&>span]:gap-2 [&>span_img]:shrink-0"
                     >
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
@@ -174,25 +174,25 @@ export function WalletSection({
                             disabled={isLocked}
                             className="h-10"
                           >
-                            <Avatar className="size-5 bg-transparent p-0 h-6!">
+                            <Avatar className="size-5 h-6! bg-transparent p-0">
                               <AvatarImage
                                 src={asset.icon}
                                 className="object-contain"
                               />
-                              <AvatarFallback className="text-[10px] text-white bg-slate-500">
+                              <AvatarFallback className="bg-slate-500 text-[10px] text-white">
                                 {asset.symbol}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex items-center gap-2">
-                              <span className="font-bold text-sm text-foreground">
+                              <span className="text-foreground text-sm font-bold">
                                 {asset.symbol}
                               </span>
-                              <span className="text-xs text-muted-foreground truncate font-normal">
+                              <span className="text-muted-foreground truncate text-xs font-normal">
                                 {asset.label}
                               </span>
                             </div>
                             {isLocked && (
-                              <span className="text-[9px] text-muted-foreground ml-auto opacity-50">
+                              <span className="text-muted-foreground ml-auto text-[9px] opacity-50">
                                 (Incompatible)
                               </span>
                             )}
@@ -212,7 +212,7 @@ export function WalletSection({
                   >
                     <SelectTrigger
                       id="network"
-                      className="w-full h-11! bg-background/50 border-border/80 disabled:opacity-40"
+                      className="bg-background/50 border-border/80 h-11! w-full disabled:opacity-40"
                     >
                       <SelectValue placeholder="Network" />
                     </SelectTrigger>
@@ -222,13 +222,13 @@ export function WalletSection({
                           <SelectItem
                             key={network.id}
                             value={network.id}
-                            className="h-auto py-2 w-full"
+                            className="h-auto w-full py-2"
                           >
-                            <div className="w-full flex items-center gap-2">
-                              <span className="font-bold text-sm text-foreground">
+                            <div className="flex w-full items-center gap-2">
+                              <span className="text-foreground text-sm font-bold">
                                 {network.networkSymbol}
                               </span>
-                              <span className="text-[11px] text-muted-foreground truncate font-normal">
+                              <span className="text-muted-foreground truncate text-[11px] font-normal">
                                 {network.networkName}
                               </span>
                             </div>
@@ -276,9 +276,9 @@ export function WalletSection({
                 const isXpub = selectedNet.merchantField === "btcXpub";
 
                 return (
-                  <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10 flex items-start gap-3">
-                    <ShieldCheck className="size-4 text-emerald-500 shrink-0 mt-0.5" />
-                    <p className="text-[10.5px] text-emerald-600 font-medium leading-relaxed">
+                  <div className="flex items-start gap-3 rounded-lg border border-emerald-500/10 bg-emerald-500/5 p-3">
+                    <ShieldCheck className="mt-0.5 size-4 shrink-0 text-emerald-500" />
+                    <p className="text-[10.5px] leading-relaxed font-medium text-emerald-600">
                       Smart Match: This network shares the same{" "}
                       {isXpub ? "master key (xPub)" : "address"} as your{" "}
                       {siblings.map((s) => s.label).join(", ")} wallet.
@@ -291,13 +291,13 @@ export function WalletSection({
               <Button
                 variant="outline"
                 onClick={() => setIsAddWalletOpen(false)}
-                className="h-10 font-bold uppercase text-[10px] tracking-widest"
+                className="h-10 text-[10px] font-bold tracking-widest uppercase"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleAddWallet}
-                className="h-10 font-bold uppercase text-[10px] tracking-widest"
+                className="h-10 text-[10px] font-bold tracking-widest uppercase"
                 disabled={
                   isAddingWallet ||
                   !newWalletAddress ||
@@ -353,13 +353,13 @@ export function WalletSection({
       </div>
 
       {wallets.length === 0 ? (
-        <Card className="border-dashed border-2 border-border/40">
+        <Card className="border-border/40 border-2 border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-10 text-center">
-            <Wallet className="size-8 text-muted-foreground/20 mb-3" />
-            <p className="text-sm font-medium text-muted-foreground/60 mb-1">
+            <Wallet className="text-muted-foreground/20 mb-3 size-8" />
+            <p className="text-muted-foreground/60 mb-1 text-sm font-medium">
               No wallets configured
             </p>
-            <p className="text-xs text-muted-foreground/40 max-w-xs mb-4">
+            <p className="text-muted-foreground/40 mb-4 max-w-xs text-xs">
               Add your BTC xPub or ETH address to receive non-custodial
               payments.
             </p>
@@ -368,7 +368,7 @@ export function WalletSection({
               size="sm"
               onClick={() => setIsAddWalletOpen(true)}
             >
-              <Plus className="size-3 mr-2" />
+              <Plus className="mr-2 size-3" />
               Add Wallet
             </Button>
           </CardContent>
@@ -378,10 +378,10 @@ export function WalletSection({
           {wallets.map((wallet) => (
             <div
               key={wallet.id}
-              className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3 bg-card border rounded-xl shadow-sm"
+              className="bg-card flex flex-col justify-between gap-4 rounded-xl border p-3 shadow-sm sm:flex-row sm:items-center"
             >
-              <div className="flex items-center gap-4 min-w-0">
-                <Avatar className="size-10 bg-transparent p-0 shrink-0">
+              <div className="flex min-w-0 items-center gap-4">
+                <Avatar className="size-10 shrink-0 bg-transparent p-0">
                   <AvatarImage
                     src={wallet.iconUrl}
                     className="object-contain"
@@ -395,9 +395,9 @@ export function WalletSection({
                     {wallet.iconFallback}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex flex-col min-w-0">
+                <div className="flex min-w-0 flex-col">
                   <div className="flex items-center gap-2">
-                    <p className="font-semibold text-sm truncate">
+                    <p className="truncate text-sm font-semibold">
                       {wallet.label}
                     </p>
                     <Badge
@@ -407,16 +407,16 @@ export function WalletSection({
                       {wallet.network}
                     </Badge>
                   </div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <p className="text-xs text-muted-foreground whitespace-nowrap">
+                  <div className="mt-0.5 flex items-center gap-2">
+                    <p className="text-muted-foreground text-xs whitespace-nowrap">
                       {wallet.type}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0 bg-muted/30 p-2 rounded-lg border border-border/30 w-full sm:w-auto">
-                <code className="text-xs font-mono text-muted-foreground truncate flex-1 sm:max-w-xs px-1">
+              <div className="bg-muted/30 border-border/30 flex w-full shrink-0 items-center gap-2 rounded-lg border p-2 sm:w-auto">
+                <code className="text-muted-foreground flex-1 truncate px-1 font-mono text-xs sm:max-w-xs">
                   {truncate(wallet.address)}
                 </code>
                 <Button
@@ -434,7 +434,7 @@ export function WalletSection({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="size-7 shrink-0 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+                  className="text-muted-foreground size-7 shrink-0 transition-colors hover:bg-rose-500/10 hover:text-rose-500"
                   onClick={() => setWalletToRemove(wallet.id)}
                 >
                   <Trash2 className="size-3.5" />
@@ -479,8 +479,8 @@ export function WalletSection({
         </DialogContent>
       </Dialog>
 
-      <div className="flex items-center gap-2 text-xs text-muted-foreground px-1">
-        <ShieldCheck className="size-3.5 text-emerald-500 shrink-0" />
+      <div className="text-muted-foreground flex items-center gap-2 px-1 text-xs">
+        <ShieldCheck className="size-3.5 shrink-0 text-emerald-500" />
         <span>
           Non-custodial — all payments settle directly to your wallets.
         </span>

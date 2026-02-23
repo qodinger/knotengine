@@ -70,7 +70,7 @@ export function StatusBadge({ status }: StatusBadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium",
+        "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium",
         config.className,
       )}
     >

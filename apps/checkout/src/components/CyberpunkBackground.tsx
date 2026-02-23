@@ -6,7 +6,7 @@ export function CyberpunkBackground() {
   return (
     <div className="absolute inset-0 z-0 overflow-hidden bg-[#050505]">
       <svg
-        className="absolute inset-0 w-full h-full opacity-40 mix-blend-screen"
+        className="absolute inset-0 h-full w-full opacity-40 mix-blend-screen"
         xmlns="http://www.w3.org/2000/svg"
       >
         <filter id="noiseFilter">
@@ -25,7 +25,7 @@ export function CyberpunkBackground() {
         />
 
         {/* Animated Mesh Gradients */}
-        <g className="animate-pulse duration-[10s] ease-in-out infinite">
+        <g className="infinite animate-pulse duration-[10s] ease-in-out">
           <circle cx="20%" cy="30%" r="40%" fill="url(#grad1)" />
           <circle cx="80%" cy="70%" r="45%" fill="url(#grad2)" />
           <circle cx="50%" cy="50%" r="35%" fill="url(#grad3)" />

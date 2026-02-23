@@ -55,59 +55,59 @@ const FAQS = [
 
 export default function SupportPage() {
   return (
-    <div className="flex flex-col gap-8 max-w-6xl mx-auto">
-      <div className="text-center space-y-2 py-8">
-        <h1 className="text-3xl font-bold tracking-tighter text-foreground sm:text-4xl">
+    <div className="mx-auto flex max-w-6xl flex-col gap-8">
+      <div className="space-y-2 py-8 text-center">
+        <h1 className="text-foreground text-3xl font-bold tracking-tighter sm:text-4xl">
           KnotEngine Merchant Center
         </h1>
-        <p className="text-muted-foreground font-medium text-lg">
+        <p className="text-muted-foreground text-lg font-medium">
           How can we help scale your non-custodial infrastructure today?
         </p>
-        <div className="max-w-2xl mx-auto mt-6 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground size-5" />
+        <div className="relative mx-auto mt-6 max-w-2xl">
+          <Search className="text-muted-foreground absolute top-1/2 left-4 size-5 -translate-y-1/2" />
           <Input
             placeholder="Search documentation, guides, or error codes..."
-            className="pl-12 h-14 text-lg bg-background/50 border-border/50 shadow-xl shadow-primary/5 focus:bg-background transition-all"
+            className="bg-background/50 border-border/50 shadow-primary/5 focus:bg-background h-14 pl-12 text-lg shadow-xl transition-all"
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         {HELP_CATEGORIES.map((cat) => (
           <Card
             key={cat.title}
-            className="border-none bg-background/50 border hover:bg-background/80 transition-all group cursor-pointer"
+            className="bg-background/50 hover:bg-background/80 group cursor-pointer border border-none transition-all"
           >
             <CardHeader>
               <div
-                className={`size-12 rounded-xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110 ${cat.color}`}
+                className={`mb-4 flex size-12 items-center justify-center rounded-xl transition-transform group-hover:scale-110 ${cat.color}`}
               >
                 <cat.icon className="size-6" />
               </div>
-              <CardTitle className="text-lg font-bold tracking-tight mb-1">
+              <CardTitle className="mb-1 text-lg font-bold tracking-tight">
                 {cat.title}
               </CardTitle>
-              <CardDescription className="text-sm font-medium leading-relaxed">
+              <CardDescription className="text-sm leading-relaxed font-medium">
                 {cat.description}
               </CardDescription>
             </CardHeader>
             <CardFooter className="pt-0">
               <Button
                 variant="ghost"
-                className="p-0 text-primary font-bold uppercase text-[10px] tracking-widest hover:bg-transparent group-hover:gap-3 transition-all"
+                className="text-primary p-0 text-[10px] font-bold tracking-widest uppercase transition-all group-hover:gap-3 hover:bg-transparent"
               >
                 Browse Guides
-                <ArrowRight className="size-3 ml-2" />
+                <ArrowRight className="ml-2 size-3" />
               </Button>
             </CardFooter>
           </Card>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-4">
+      <div className="mt-4 grid grid-cols-1 gap-8 lg:grid-cols-2">
         <div className="space-y-6">
-          <div className="flex items-center gap-2 mb-2">
-            <MessageSquare className="size-5 text-primary" />
+          <div className="mb-2 flex items-center gap-2">
+            <MessageSquare className="text-primary size-5" />
             <h2 className="text-lg font-bold tracking-tight">
               Frequently Asked Questions
             </h2>
@@ -116,28 +116,28 @@ export default function SupportPage() {
             {FAQS.map((faq) => (
               <div
                 key={faq}
-                className="flex items-center justify-between p-4 rounded-xl bg-background/40 border border-border/30 hover:border-primary/30 hover:bg-background/60 transition-all cursor-pointer group"
+                className="bg-background/40 border-border/30 hover:border-primary/30 hover:bg-background/60 group flex cursor-pointer items-center justify-between rounded-xl border p-4 transition-all"
               >
-                <span className="text-sm font-medium text-foreground/80 group-hover:text-foreground">
+                <span className="text-foreground/80 group-hover:text-foreground text-sm font-medium">
                   {faq}
                 </span>
-                <ChevronRight className="size-4 text-muted-foreground/40 group-hover:text-primary transition-colors" />
+                <ChevronRight className="text-muted-foreground/40 group-hover:text-primary size-4 transition-colors" />
               </div>
             ))}
           </div>
           <Button
             variant="link"
-            className="text-primary font-bold uppercase text-[10px] tracking-widest p-0 h-auto"
+            className="text-primary h-auto p-0 text-[10px] font-bold tracking-widest uppercase"
           >
             View All Documentation
-            <ExternalLink className="size-3 ml-2" />
+            <ExternalLink className="ml-2 size-3" />
           </Button>
         </div>
 
-        <Card className="border-none bg-primary/5 border border-primary/10 shadow-none overflow-hidden relative">
-          <div className="absolute -top-10 -right-10 size-40 bg-primary/5 rounded-full blur-3xl" />
+        <Card className="bg-primary/5 border-primary/10 relative overflow-hidden border border-none shadow-none">
+          <div className="bg-primary/5 absolute -top-10 -right-10 size-40 rounded-full blur-3xl" />
           <CardHeader>
-            <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-2">
+            <div className="bg-primary/10 text-primary mb-2 flex size-10 items-center justify-center rounded-full">
               <MessageCircle className="size-5" />
             </div>
             <CardTitle>Priority Support</CardTitle>
@@ -147,31 +147,31 @@ export default function SupportPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="p-4 rounded-xl bg-background/50 border border-primary/10 space-y-4">
+            <div className="bg-background/50 border-primary/10 space-y-4 rounded-xl border p-4">
               <div className="space-y-1">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-primary/60">
+                <p className="text-primary/60 text-[10px] font-bold tracking-widest uppercase">
                   Average Response Time
                 </p>
                 <div className="flex items-center gap-2">
                   <Badge
                     variant="outline"
-                    className="text-xs font-bold bg-emerald-500/10 text-emerald-500 border-none px-0 shadow-none"
+                    className="border-none bg-emerald-500/10 px-0 text-xs font-bold text-emerald-500 shadow-none"
                   >
                     Under 15 minutes
                   </Badge>
                 </div>
               </div>
-              <div className="h-px bg-primary/10" />
+              <div className="bg-primary/10 h-px" />
               <div className="space-y-1">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-primary/60">
+                <p className="text-primary/60 text-[10px] font-bold tracking-widest uppercase">
                   Active Sessions
                 </p>
-                <p className="font-bold text-sm">3 Engineers Available</p>
+                <p className="text-sm font-bold">3 Engineers Available</p>
               </div>
             </div>
           </CardContent>
           <CardFooter>
-            <Button className="w-full font-bold uppercase text-xs tracking-widest gap-2 bg-primary py-6 shadow-xl shadow-primary/20">
+            <Button className="bg-primary shadow-primary/20 w-full gap-2 py-6 text-xs font-bold tracking-widest uppercase shadow-xl">
               <Send className="size-4" />
               Start Support Session
             </Button>
@@ -179,10 +179,10 @@ export default function SupportPage() {
         </Card>
       </div>
 
-      <div className="bg-muted/30 rounded-3xl p-8 mt-4 flex flex-col md:flex-row items-center justify-between gap-6 border border-border/10">
+      <div className="bg-muted/30 border-border/10 mt-4 flex flex-col items-center justify-between gap-6 rounded-3xl border p-8 md:flex-row">
         <div className="flex items-center gap-6">
-          <div className="size-16 rounded-2xl bg-background flex items-center justify-center shadow-sm">
-            <LifeBuoy className="size-8 text-primary" />
+          <div className="bg-background flex size-16 items-center justify-center rounded-2xl shadow-sm">
+            <LifeBuoy className="text-primary size-8" />
           </div>
           <div>
             <h3 className="text-xl font-bold tracking-tight">
@@ -196,7 +196,7 @@ export default function SupportPage() {
         </div>
         <Button
           variant="outline"
-          className="font-bold uppercase text-[10px] tracking-widest px-8"
+          className="px-8 text-[10px] font-bold tracking-widest uppercase"
         >
           Upgrade for Enterprise
         </Button>
