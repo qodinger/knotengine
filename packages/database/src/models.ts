@@ -98,6 +98,12 @@ export interface IMerchant extends Document {
   spreadEnabled: boolean;
   customSpreadRate?: number;
   planStartedAt?: Date;
+  /** Track prorated billing for mid-month activations */
+  lastProratedAmount?: number;
+  lastProratedDate?: Date;
+  /** Grace period for insufficient balance */
+  gracePeriodStarted?: Date;
+  gracePeriodEnds?: Date;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -166,6 +172,10 @@ const MerchantSchema: Schema = new Schema(
     spreadEnabled: { type: Boolean, default: true },
     customSpreadRate: { type: Number, min: 0, max: 0.05 },
     planStartedAt: { type: Date, default: Date.now },
+    lastProratedAmount: { type: Number },
+    lastProratedDate: { type: Date },
+    gracePeriodStarted: { type: Date },
+    gracePeriodEnds: { type: Date },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true },

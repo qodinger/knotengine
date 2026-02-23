@@ -93,7 +93,7 @@ export function PaymentEngineDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-border/50 sm:max-w-125">
+      <DialogContent className="border-border/50 sm:max-w-150">
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -105,7 +105,7 @@ export function PaymentEngineDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-6 py-6">
+          <div className="space-y-4 py-4">
             {/* Fee Payer */}
             <div className="border-border/40 bg-muted/5 space-y-3 rounded-xl border p-4">
               <div className="flex items-center justify-between">
@@ -294,7 +294,7 @@ export function PaymentEngineDialog({
               <Label className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
                 Enabled Assets (Checkout)
               </Label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {SUPPORTED_CURRENCIES.map((c) => (
                   <div
                     key={c}

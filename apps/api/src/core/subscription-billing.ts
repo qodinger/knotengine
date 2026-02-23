@@ -105,6 +105,7 @@ export class SubscriptionBilling {
     charged: number;
     downgraded: boolean;
     reason?: string;
+    daysRemaining?: number;
   }> {
     const planCosts = {
       professional: 29,
@@ -127,24 +128,96 @@ export class SubscriptionBilling {
     // Check if user exists and is populated
     if (!user || !isPopulatedUser(user) || user.creditBalance < cost) {
       console.log(
-        "💸 Insufficient balance for ${merchant.merchantId} (${plan}) - downgrading to starter",
+        "💸 Insufficient balance for ${merchant.merchantId} (${plan}) - checking grace period",
       );
 
-      // Downgrade to starter plan
+      // Check if already in grace period
+      const gracePeriodDays = 7; // 7 days grace period
+
+      // First time insufficient balance - start grace period and send warning
+      if (!merchant.gracePeriodStarted) {
+        console.log(
+          "⏰ Starting grace period for ${merchant.merchantId} - ${gracePeriodDays} days until downgrade",
+        );
+
+        await Merchant.findByIdAndUpdate(merchant._id, {
+          $set: {
+            gracePeriodStarted: new Date(),
+            gracePeriodEnds: new Date(
+              Date.now() + gracePeriodDays * 24 * 60 * 60 * 1000,
+            ),
+          },
+        });
+
+        // Send initial warning
+        await NotificationService.create({
+          merchantId: merchant._id.toString(),
+          title: "Payment Required - Grace Period Started",
+          description: `Insufficient balance for ${plan} plan. You have ${gracePeriodDays} days to top up before automatic downgrade to Starter plan.`,
+          type: "warning",
+          link: "/dashboard/billing",
+        });
+
+        return {
+          success: false,
+          charged: 0,
+          downgraded: false,
+          reason: "Grace period started",
+        };
+      }
+
+      // Check if grace period has expired
+      const gracePeriodEnds = merchant.gracePeriodEnds;
+      if (gracePeriodEnds && new Date() < gracePeriodEnds) {
+        const daysRemaining = Math.ceil(
+          (gracePeriodEnds.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+        );
+
+        console.log(
+          "⏳ Grace period active for ${merchant.merchantId} - ${daysRemaining} days remaining",
+        );
+
+        // Send reminder if 3 days or less remaining
+        if (daysRemaining <= 3) {
+          await NotificationService.create({
+            merchantId: merchant._id.toString(),
+            title: `Payment Required - ${daysRemaining} days remaining`,
+            description: `Your ${plan} plan will be downgraded to Starter in ${daysRemaining} day${daysRemaining === 1 ? "" : "s"} due to insufficient balance.`,
+            type: "warning",
+            link: "/dashboard/billing",
+          });
+        }
+
+        return {
+          success: false,
+          charged: 0,
+          downgraded: false,
+          reason: "Grace period active",
+          daysRemaining,
+        };
+      }
+
+      // Grace period expired - downgrade now
+      console.log(
+        "⏰ Grace period expired for ${merchant.merchantId} - downgrading to starter",
+      );
+
       await Merchant.findByIdAndUpdate(merchant._id, {
         $set: {
           plan: "starter",
           spreadEnabled: true, // Enable spread for starter
           planStartedAt: new Date(),
+          gracePeriodStarted: null,
+          gracePeriodEnds: null,
         },
       });
 
-      // Send notification
+      // Send final notification
       await NotificationService.create({
         merchantId: merchant._id.toString(),
-        title: "Plan Downgraded",
-        description: `Insufficient balance for ${plan} plan. Downgraded to Starter. Top up to upgrade again.`,
-        type: "warning",
+        title: "Plan Downgraded - Grace Period Expired",
+        description: `Grace period expired. Downgraded to Starter plan due to insufficient balance. Top up to upgrade again.`,
+        type: "error",
         link: "/dashboard/billing",
       });
 
@@ -195,6 +268,8 @@ export class SubscriptionBilling {
     nextBillingDate: Date;
     monthlyCost: number;
     daysUntilBilling: number;
+    isProratedThisMonth?: boolean;
+    proratedAmount?: number;
   }> {
     const merchant = await Merchant.findOne({ merchantId });
 
@@ -209,12 +284,21 @@ export class SubscriptionBilling {
     };
 
     const planStartedAt = merchant.planStartedAt || new Date();
-    const nextBillingDate = new Date(planStartedAt);
-    nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+    const nextBillingDate = new Date();
     nextBillingDate.setDate(1); // Always bill on the 1st
+    if (nextBillingDate <= new Date()) {
+      nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+    }
 
     const daysUntilBilling = Math.ceil(
       (nextBillingDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+    );
+
+    // Check if this month was prorated
+    const isProratedThisMonth = !!(
+      merchant.lastProratedDate &&
+      merchant.lastProratedDate.getMonth() === new Date().getMonth() &&
+      merchant.lastProratedDate.getFullYear() === new Date().getFullYear()
     );
 
     return {
@@ -223,6 +307,8 @@ export class SubscriptionBilling {
       nextBillingDate,
       monthlyCost: planCosts[merchant.plan as keyof typeof planCosts],
       daysUntilBilling: Math.max(0, daysUntilBilling),
+      isProratedThisMonth,
+      proratedAmount: merchant.lastProratedAmount || undefined,
     };
   }
 

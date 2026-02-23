@@ -33,7 +33,7 @@ export function MerchantDetailsCard({
 
   return (
     <>
-      <Card className="from-card to-card/50 border-border/50 bg-linear-to-br shadow-sm">
+      <Card className="bg-card/40 border-border/50 hover:bg-card/60 hover:border-primary/30 group shadow-sm backdrop-blur-md transition-all">
         <CardHeader>
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">

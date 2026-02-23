@@ -37,7 +37,7 @@ export function PaymentEngineCard({
 
   return (
     <>
-      <Card className="from-card to-card/50 border-border/50 bg-linear-to-br shadow-sm">
+      <Card className="bg-card/40 border-border/50 hover:bg-card/60 hover:border-primary/30 group shadow-sm backdrop-blur-md transition-all">
         <CardHeader>
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -65,7 +65,7 @@ export function PaymentEngineCard({
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <div className="border-border/40 bg-muted/10 flex flex-col gap-1.5 rounded-lg border p-3">
               <span className="text-muted-foreground flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase">
                 <UserCircle className="size-3" />

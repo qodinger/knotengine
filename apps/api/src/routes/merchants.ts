@@ -794,26 +794,52 @@ export async function merchantRoutes(app: FastifyInstance) {
       };
 
       const cost = PLAN_COSTS[newPlan];
-
       const currentPlanCost =
         PLAN_COSTS[currentPlan as keyof typeof PLAN_COSTS] || 0;
 
-      // If upgrading to a paid plan, check balance for the first month
+      // Calculate prorated amount for mid-month activation
+      let chargeAmount = cost;
+      let isProrated = false;
+
       if (cost > 0 && cost > currentPlanCost) {
+        const today = new Date();
+        const lastDayOfMonth = new Date(
+          today.getFullYear(),
+          today.getMonth() + 1,
+          0,
+        );
+        const daysRemainingInMonth =
+          lastDayOfMonth.getDate() - today.getDate() + 1;
+        const totalDaysInMonth = lastDayOfMonth.getDate();
+
+        // Prorate if activating after the 1st of the month
+        if (today.getDate() > 1 && daysRemainingInMonth < totalDaysInMonth) {
+          chargeAmount = (cost * daysRemainingInMonth) / totalDaysInMonth;
+          isProrated = true;
+
+          console.log(
+            `📅 Prorated ${newPlan} plan: $${chargeAmount.toFixed(2)} for ${daysRemainingInMonth} days`,
+          );
+        }
+      }
+
+      // If upgrading to a paid plan, check balance
+      if (chargeAmount > 0) {
         const user = merchant.userId
           ? await User.findById(merchant.userId)
           : null;
-        if (!user || user.creditBalance < cost) {
+        if (!user || user.creditBalance < chargeAmount) {
           return reply.code(400).send({
-            error: `Insufficient balance to upgrade to ${newPlan}. You need at least $${cost.toFixed(2)} in credits.`,
-            required: cost,
+            error: `Insufficient balance to upgrade to ${newPlan}. You need at least $${chargeAmount.toFixed(2)} in credits${isProrated ? " (prorated for this month)" : ""}.`,
+            required: chargeAmount,
             currentBalance: user?.creditBalance || 0,
+            isProrated,
           });
         }
 
-        // Deduct first month immediately
+        // Deduct prorated amount immediately
         await User.findByIdAndUpdate(user._id, {
-          $inc: { creditBalance: -cost },
+          $inc: { creditBalance: -chargeAmount },
         });
 
         await Merchant.findByIdAndUpdate(merchant._id, {
@@ -821,14 +847,20 @@ export async function merchantRoutes(app: FastifyInstance) {
             plan: newPlan,
             planStartedAt: new Date(),
             spreadEnabled: true, // Default to true on upgrade
+            lastProratedAmount: isProrated ? chargeAmount : null,
+            lastProratedDate: isProrated ? new Date() : null,
           },
         });
 
         // Notify
+        const message = isProrated
+          ? `Upgraded to ${newPlan} plan for $${chargeAmount.toFixed(2)} (prorated for this month). Full billing starts next month on the 1st.`
+          : `Upgraded to ${newPlan} plan for $${chargeAmount.toFixed(2)}.`;
+
         NotificationService.create({
           merchantId: merchant._id.toString(),
           title: `Upgraded to ${newPlan.toUpperCase()}`,
-          description: `You have successfully upgraded your plan. $${cost.toFixed(2)} has been deducted for the first month.`,
+          description: message,
           type: "success",
           link: "/dashboard/billing",
         });
@@ -1106,6 +1138,53 @@ export async function merchantRoutes(app: FastifyInstance) {
           });
         }
 
+        // Check if merchant is in grace period and has sufficient balance now
+        if (
+          merchant.gracePeriodStarted &&
+          merchant.gracePeriodEnds &&
+          new Date() < merchant.gracePeriodEnds
+        ) {
+          const planCosts = {
+            professional: 29,
+            enterprise: 99,
+          };
+
+          const planCost =
+            planCosts[merchant.plan as keyof typeof planCosts] || 0;
+          const user = merchant.userId
+            ? await User.findById(merchant.userId)
+            : null;
+
+          if (user && user.creditBalance >= planCost) {
+            console.log(
+              `💳 Auto-charging ${merchant.plan} plan during grace period for ${merchant.merchantId}`,
+            );
+
+            // Charge for the subscription
+            await User.findByIdAndUpdate(user._id, {
+              $inc: { creditBalance: -planCost },
+            });
+
+            // Clear grace period and reset plan start date
+            await Merchant.findByIdAndUpdate(merchant._id, {
+              $set: {
+                gracePeriodStarted: null,
+                gracePeriodEnds: null,
+                planStartedAt: new Date(),
+              },
+            });
+
+            // Send success notification
+            await NotificationService.create({
+              merchantId: merchant._id.toString(),
+              title: "Payment Successful - Plan Maintained",
+              description: `Your ${merchant.plan} plan payment has been processed. Grace period cleared.`,
+              type: "success",
+              link: "/dashboard/billing",
+            });
+          }
+        }
+
         const user = merchant.userId
           ? await User.findById(merchant.userId)
           : null;
@@ -1259,6 +1338,87 @@ export async function merchantRoutes(app: FastifyInstance) {
       );
 
       return { success: true };
+    },
+  );
+
+  // ──────────────────────────────────────────────
+  // POST /v1/merchants/me/charge-plan — Charge for plan during grace period
+  // ──────────────────────────────────────────────
+  server.post(
+    "/v1/merchants/me/charge-plan",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const merchant = request.merchant;
+      if (!merchant) return reply.code(401).send({ error: "Unauthorized" });
+
+      // Check if merchant is in grace period
+      if (!merchant.gracePeriodStarted || !merchant.gracePeriodEnds) {
+        return reply.code(400).send({ error: "Not in grace period" });
+      }
+
+      if (new Date() >= merchant.gracePeriodEnds) {
+        return reply.code(400).send({ error: "Grace period expired" });
+      }
+
+      const planCosts = {
+        professional: 29,
+        enterprise: 99,
+      };
+
+      const planCost = planCosts[merchant.plan as keyof typeof planCosts] || 0;
+      if (planCost === 0) {
+        return reply.code(400).send({ error: "Starter plan has no cost" });
+      }
+
+      const user = merchant.userId
+        ? await User.findById(merchant.userId)
+        : null;
+
+      if (!user) {
+        return reply.code(400).send({ error: "User not found" });
+      }
+
+      if (user.creditBalance < planCost) {
+        return reply.code(400).send({
+          error: "Insufficient balance",
+          required: planCost,
+          currentBalance: user.creditBalance,
+        });
+      }
+
+      try {
+        // Charge for the subscription
+        await User.findByIdAndUpdate(user._id, {
+          $inc: { creditBalance: -planCost },
+        });
+
+        // Clear grace period and reset plan start date
+        await Merchant.findByIdAndUpdate(merchant._id, {
+          $set: {
+            gracePeriodStarted: null,
+            gracePeriodEnds: null,
+            planStartedAt: new Date(),
+          },
+        });
+
+        // Send success notification
+        await NotificationService.create({
+          merchantId: merchant._id.toString(),
+          title: "Payment Successful - Plan Maintained",
+          description: `Your ${merchant.plan} plan payment has been processed. Grace period cleared.`,
+          type: "success",
+          link: "/dashboard/billing",
+        });
+
+        return reply.send({
+          success: true,
+          charged: planCost,
+          newBalance: user.creditBalance - planCost,
+        });
+      } catch (error) {
+        console.error("Failed to charge plan:", error);
+        return reply.code(500).send({ error: "Failed to process payment" });
+      }
     },
   );
 

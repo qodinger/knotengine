@@ -41,17 +41,21 @@ export default function SettingsPage() {
   } = useSettings();
 
   return (
-    <div className="w-full space-y-4">
+    <div className="flex flex-col gap-6">
       <SettingsHeader />
 
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
+        {/* Merchant Details - Full width on large screens */}
+        <div className="lg:col-span-1 xl:col-span-2">
           <MerchantDetailsCard
             formData={formData}
             onSave={handleSave}
             saving={saving}
           />
+        </div>
 
+        {/* Two Factor Auth */}
+        <div className="lg:col-span-1 xl:col-span-1">
           <TwoFactorCard
             twoFactorEnabled={twoFactorEnabled}
             onEnable={handleSetup2FA}
@@ -62,14 +66,20 @@ export default function SettingsPage() {
             }}
             loading={twoFALoading}
           />
+        </div>
 
+        {/* Payment Engine - Full width */}
+        <div className="lg:col-span-2 xl:col-span-3">
           <PaymentEngineCard
             formData={formData}
             onSave={handleSave}
             saving={saving}
           />
         </div>
+      </div>
 
+      {/* Danger Zone - Always full width, separated */}
+      <div>
         <DangerZoneCard
           businessName={formData.businessName}
           isDeleteDialogOpen={deleteDialogOpen}

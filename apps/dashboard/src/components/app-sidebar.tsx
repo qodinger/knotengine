@@ -92,12 +92,12 @@ export function AppSidebar() {
                 <SidebarGroupContent>
                   <SidebarMenu>
                     {group.items.map((item) => (
-                      <SidebarMenuItem key={item.href}>
+                      <SidebarMenuItem key={item.href} className="group">
                         <SidebarMenuButton
                           asChild
                           isActive={isActive(item.href)}
                           tooltip={item.label}
-                          className="h-9 font-medium"
+                          className="h-9 font-medium transition-all duration-150 ease-in-out hover:scale-105"
                         >
                           <Link href={item.href}>
                             <item.icon className="size-4" />

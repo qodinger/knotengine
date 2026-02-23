@@ -43,7 +43,7 @@ export function DangerZoneCard({
 
   return (
     <>
-      <Card className="border-destructive/30 bg-destructive/5 mt-6 overflow-hidden shadow-none">
+      <Card className="border-destructive/30 bg-destructive/5 shadow-sm">
         <CardHeader>
           <CardTitle className="text-destructive flex items-center gap-2">
             <AlertTriangle className="size-5" />

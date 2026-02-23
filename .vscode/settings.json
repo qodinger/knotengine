@@ -1,6 +1,7 @@
 {
   "cSpell.words": [
     "bitcoinjs",
+    "checkmark",
     "cloudflared",
     "cooldown",
     "Derivator",
@@ -13,9 +14,11 @@
     "regtest",
     "serviceworker",
     "stablecoins",
+    "topup",
     "TOTP",
     "Turborepo",
     "UTXO",
+    "xmark",
     "Xpub"
   ]
 }

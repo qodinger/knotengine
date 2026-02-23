@@ -8,6 +8,13 @@ export function useBilling() {
   const [stats, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [insufficientBalance, setInsufficientBalance] = useState<{
+    open: boolean;
+    requiredAmount: number;
+    currentBalance: number;
+    planName: string;
+    isProrated: boolean;
+  } | null>(null);
 
   // Claiming State
   const [txHash, setTxHash] = useState("");
@@ -150,11 +157,66 @@ export function useBilling() {
       await fetchData();
     } catch (err: unknown) {
       console.error("Failed to update plan", err);
-      let errorResponse = "Failed to update plan";
       if (axios.isAxiosError(err)) {
-        errorResponse = err.response?.data?.error || errorResponse;
+        const errorData = err.response?.data;
+        if (errorData?.required && errorData?.currentBalance !== undefined) {
+          // Show insufficient balance warning
+          setInsufficientBalance({
+            open: true,
+            requiredAmount: errorData.required,
+            currentBalance: errorData.currentBalance,
+            planName: newPlan.charAt(0).toUpperCase() + newPlan.slice(1),
+            isProrated: errorData.isProrated || false,
+          });
+        } else {
+          alert(errorData?.error || "Failed to update plan");
+        }
+      } else {
+        alert("Failed to update plan");
       }
-      alert(errorResponse);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleWarningClose = async () => {
+    // Refresh data when warning is closed to get updated balance
+    await fetchData();
+  };
+
+  const handleChargePlan = async () => {
+    try {
+      setLoading(true);
+      const response = await api.post("/v1/merchants/me/charge-plan");
+
+      if (response.data.success) {
+        // Refresh data to show updated balance and cleared grace period
+        await fetchData();
+
+        // Show success message
+        alert(
+          `Payment successful! $${response.data.charged} charged. Your plan is now active.`,
+        );
+      }
+    } catch (err: unknown) {
+      console.error("Failed to charge plan", err);
+      if (axios.isAxiosError(err)) {
+        const errorData = err.response?.data;
+        if (errorData?.required && errorData?.currentBalance !== undefined) {
+          // Show insufficient balance warning
+          setInsufficientBalance({
+            open: true,
+            requiredAmount: errorData.required,
+            currentBalance: errorData.currentBalance,
+            planName: "Current Plan",
+            isProrated: false,
+          });
+        } else {
+          alert(errorData?.error || "Failed to process payment");
+        }
+      } else {
+        alert("Failed to process payment");
+      }
     } finally {
       setLoading(false);
     }
@@ -187,5 +249,9 @@ export function useBilling() {
     submitClaim,
     getWalletAddress,
     handleUpdatePlan,
+    insufficientBalance,
+    setInsufficientBalance,
+    handleWarningClose,
+    handleChargePlan,
   };
 }

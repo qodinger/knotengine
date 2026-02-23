@@ -7,6 +7,7 @@ import { BillingHeader } from "./components/billing-header";
 import { CreditBalanceCard } from "./components/credit-balance-card";
 import { TopUpDialog } from "./components/top-up-dialog";
 import { HowItWorks } from "./components/how-it-works";
+import { InsufficientBalanceWarning } from "./components/insufficient-balance-warning";
 
 export default function BillingPage() {
   const {
@@ -36,6 +37,9 @@ export default function BillingPage() {
     submitClaim,
     getWalletAddress,
     handleUpdatePlan,
+    insufficientBalance,
+    setInsufficientBalance,
+    handleWarningClose,
   } = useBilling();
 
   const isTopUpDisabled =
@@ -99,6 +103,23 @@ export default function BillingPage() {
         currentPlan={stats?.currentPlan}
         onPlanUpdate={handleUpdatePlan}
       />
+
+      {insufficientBalance && (
+        <InsufficientBalanceWarning
+          open={insufficientBalance.open}
+          onOpenChange={(open) => {
+            setInsufficientBalance(open ? insufficientBalance : null);
+            if (!open) {
+              handleWarningClose();
+            }
+          }}
+          requiredAmount={insufficientBalance.requiredAmount}
+          currentBalance={insufficientBalance.currentBalance}
+          planName={insufficientBalance.planName}
+          isProrated={insufficientBalance.isProrated}
+          onTopUp={handleOpenTopUp}
+        />
+      )}
     </div>
   );
 }

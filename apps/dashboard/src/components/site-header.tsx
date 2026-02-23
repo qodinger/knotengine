@@ -181,7 +181,7 @@ export function SiteHeader() {
                 size="icon"
                 className="hover:bg-muted/60 relative h-9 w-9 focus-visible:ring-0"
               >
-                <Bell className="size-[18px]" />
+                <Bell className="size-4.5" />
                 {unreadCount > 0 && (
                   <span className="bg-primary border-background absolute top-2.5 right-2.5 size-2 rounded-full border-2" />
                 )}
@@ -189,7 +189,7 @@ export function SiteHeader() {
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
-              className="bg-background/80 border-border/40 w-[380px] overflow-hidden rounded-2xl border p-0 shadow-2xl backdrop-blur-xl"
+              className="bg-background/80 border-border/40 w-95 overflow-hidden rounded-2xl border p-0 shadow-2xl backdrop-blur-xl"
             >
               <div className="bg-muted/20 flex items-center justify-between px-5 py-4">
                 <div className="flex items-center gap-2">
@@ -218,7 +218,7 @@ export function SiteHeader() {
                 )}
               </div>
               <DropdownMenuSeparator className="m-0" />
-              <ScrollArea className="h-[420px]">
+              <ScrollArea className="h-105">
                 <div className="border-border/20 flex flex-col border-t">
                   {notifications.length === 0 ? (
                     <div className="flex flex-col items-center justify-center space-y-3 p-12 text-center">
@@ -229,7 +229,7 @@ export function SiteHeader() {
                         <p className="text-sm font-semibold tracking-tight">
                           Clear for now
                         </p>
-                        <p className="text-muted-foreground/60 max-w-[180px] text-xs leading-relaxed">
+                        <p className="text-muted-foreground/60 max-w-45 text-xs leading-relaxed">
                           We&apos;ll ping you here when your merchant has news.
                         </p>
                       </div>

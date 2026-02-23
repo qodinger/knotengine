@@ -1,7 +1,4 @@
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
-import { SiteHeader } from "@/components/site-header";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { DashboardSidebarWrapper } from "@/components/dashboard-sidebar-wrapper";
 import React from "react";
 
 import { auth } from "@/auth";
@@ -45,18 +42,9 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-svh flex-col overflow-hidden [--header-height:--spacing(14)]">
-      <SidebarProvider
-        defaultOpen={hasMerchants}
-        className="flex-1 overflow-hidden"
-      >
-        {hasMerchants && <AppSidebar />}
-        <SidebarInset className="flex h-full flex-col overflow-hidden">
-          {hasMerchants && <SiteHeader />}
-          <ScrollArea className="min-h-0 flex-1">
-            <div className="p-4 md:p-6 lg:p-8">{children}</div>
-          </ScrollArea>
-        </SidebarInset>
-      </SidebarProvider>
+      <DashboardSidebarWrapper session={session} hasMerchants={hasMerchants}>
+        {children}
+      </DashboardSidebarWrapper>
     </div>
   );
 }
