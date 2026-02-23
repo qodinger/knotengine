@@ -114,12 +114,26 @@ export async function invoiceRoutes(app: FastifyInstance) {
         // Apply Spread:
         // 1. Starter plan = Always 1% spread
         // 2. Pro/Enterprise = Spread is optional (merchant.spreadEnabled)
-        // 3. Testnet = Always 0 spread
+        // 3. Enterprise can set custom spread rate (merchant.customSpreadRate)
+        // 4. Testnet = Always 0 spread
         const shouldApplySpread =
           !isTestnet && (merchant.plan === "starter" || merchant.spreadEnabled);
-        const platformSpread = shouldApplySpread
-          ? parseFloat(process.env.PLATFORM_SPREAD_RATE || "0.01")
-          : 0;
+
+        let platformSpread = 0;
+        if (shouldApplySpread) {
+          // Enterprise plan can use custom spread rate
+          if (
+            merchant.plan === "enterprise" &&
+            merchant.customSpreadRate !== undefined
+          ) {
+            platformSpread = merchant.customSpreadRate;
+          } else {
+            platformSpread = parseFloat(
+              process.env.PLATFORM_SPREAD_RATE || "0.01",
+            );
+          }
+        }
+
         const customerPrice = marketPrice * (1 - platformSpread);
 
         const cryptoAmountWithSpread = parseFloat(
@@ -357,8 +371,9 @@ export async function invoiceRoutes(app: FastifyInstance) {
           logoUrl?: string;
           returnUrl?: string;
           bip21Enabled: boolean;
+          plan: string;
         };
-      }>("merchantId", "name logoUrl returnUrl bip21Enabled");
+      }>("merchantId", "name logoUrl returnUrl bip21Enabled plan");
 
       if (!invoice) {
         return reply.code(404).send({ error: "Invoice not found" });
@@ -384,11 +399,16 @@ export async function invoiceRoutes(app: FastifyInstance) {
         }).exec();
 
         const tatumWebhookUrl = `${process.env.PUBLIC_URL}/v1/webhooks/tatum`;
+        const useDualProvider =
+          invoice.merchantId.plan === "professional" ||
+          invoice.merchantId.plan === "enterprise";
+
         BlockchainProviderPool.getInstance()
           .subscribeAddress(
             invoice.payAddress,
             invoice.cryptoCurrency,
             tatumWebhookUrl,
+            useDualProvider,
           )
           .then((result) => {
             if (result) {
@@ -578,14 +598,14 @@ export async function invoiceRoutes(app: FastifyInstance) {
       await Invoice.findByIdAndUpdate(invoice._id, { $set: updateData });
 
       // Emit socket update for real-time frontend reactivity
-      const SocketService = (await import("../infra/socket-service"))
+      const SocketService = (await import("../infra/socket-service.js"))
         .SocketService;
       SocketService.emitStatusUpdate(invoice.invoiceId, "confirmed", {
         cryptoAmountReceived: invoice.cryptoAmount,
       });
 
       // Trigger standard confirmation side-effects
-      const WebhookDispatcher = (await import("../infra/webhook-dispatcher"))
+      const WebhookDispatcher = (await import("../infra/webhook-dispatcher.js"))
         .WebhookDispatcher;
       WebhookDispatcher.dispatch(invoice.invoiceId, "invoice.confirmed");
 
@@ -606,7 +626,7 @@ export async function invoiceRoutes(app: FastifyInstance) {
       }
 
       const NotificationService = (
-        await import("../infra/notification-service")
+        await import("../infra/notification-service.js")
       ).NotificationService;
       await NotificationService.create({
         merchantId: invoice.merchantId.toString(),
