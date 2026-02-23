@@ -1,3 +1,11 @@
 {
-  "cSpell.words": ["bitcoinjs", "qodinger"]
+  "cSpell.words": [
+    "bitcoinjs",
+    "cloudflared",
+    "HMAC",
+    "knotengine",
+    "qodinger",
+    "TOTP",
+    "Turborepo"
+  ]
 }

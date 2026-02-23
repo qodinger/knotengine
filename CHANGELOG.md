@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-02-23
+
 ### Added
 
 - **Prettier Tailwind Plugin** — Integrated `prettier-plugin-tailwindcss` for automatic class sorting following official Tailwind recommended order.
@@ -89,6 +91,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **API Engine** — Improved error handling and performance optimizations for the core Knot server.
 - **Webhooks** — Enhanced payload security with HMAC signatures and unique event IDs (`evt_...`).
 
-[Unreleased]: https://github.com/qodinger/knotengine/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/qodinger/knotengine/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/qodinger/knotengine/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/qodinger/knotengine/releases/tag/v0.2.1
 [0.2.0]: https://github.com/qodinger/knotengine/releases/tag/v0.2.0

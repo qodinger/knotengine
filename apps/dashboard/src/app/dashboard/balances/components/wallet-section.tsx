@@ -100,7 +100,7 @@ export function WalletSection({
               Add Wallet
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-106.25">
             <DialogHeader>
               <DialogTitle>Add Settlement Wallet</DialogTitle>
               <DialogDescription>
@@ -449,7 +449,7 @@ export function WalletSection({
         open={!!walletToRemove}
         onOpenChange={(open) => !open && setWalletToRemove(null)}
       >
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-106.25">
           <DialogHeader>
             <DialogTitle>Remove Settlement Wallet?</DialogTitle>
             <DialogDescription>
