@@ -212,7 +212,7 @@ function AnimateIcon({
     setCurrentAnimation(typeof animate === "string" ? animate : animation);
     if (animate) startAnimation(animate as TriggerProp);
     else stopAnimation();
-  }, [animate]);
+  }, [animate, animation, startAnimation, stopAnimation]);
 
   React.useEffect(() => {
     return () => {
@@ -370,37 +370,68 @@ function AnimateIcon({
         loopDelayRef.current = null;
       }
     };
-  }, [localAnimate, controls]);
+  }, [
+    localAnimate,
+    controls,
+    completeOnStop,
+    initialOnAnimateEnd,
+    loop,
+    loopDelay,
+    persistOnAnimateEnd,
+    startAnim,
+    status,
+  ]);
 
   const childProps = (
     React.isValidElement(children) ? (children as React.ReactElement).props : {}
   ) as AnyProps;
 
-  const handleMouseEnter = composeEventHandlers<React.MouseEvent<HTMLElement>>(
-    childProps.onMouseEnter,
-    () => {
-      if (animateOnHover) startAnimation(animateOnHover);
+  const handleMouseEnter = React.useCallback(
+    (e: React.MouseEvent<HTMLElement>) => {
+      composeEventHandlers<React.MouseEvent<HTMLElement>>(
+        childProps.onMouseEnter,
+        () => {
+          if (animateOnHover) startAnimation(animateOnHover);
+        },
+      )(e);
     },
+    [childProps.onMouseEnter, animateOnHover, startAnimation],
   );
 
-  const handleMouseLeave = composeEventHandlers<React.MouseEvent<HTMLElement>>(
-    childProps.onMouseLeave,
-    () => {
-      if (animateOnHover || animateOnTap) stopAnimation();
+  const handleMouseLeave = React.useCallback(
+    (e: React.MouseEvent<HTMLElement>) => {
+      composeEventHandlers<React.MouseEvent<HTMLElement>>(
+        childProps.onMouseLeave,
+        () => {
+          if (animateOnHover || animateOnTap) stopAnimation();
+        },
+      )(e);
     },
+    [childProps.onMouseLeave, animateOnHover, animateOnTap, stopAnimation],
   );
 
-  const handlePointerDown = composeEventHandlers<
-    React.PointerEvent<HTMLElement>
-  >(childProps.onPointerDown, () => {
-    if (animateOnTap) startAnimation(animateOnTap);
-  });
-
-  const handlePointerUp = composeEventHandlers<React.PointerEvent<HTMLElement>>(
-    childProps.onPointerUp,
-    () => {
-      if (animateOnTap) stopAnimation();
+  const handlePointerDown = React.useCallback(
+    (e: React.PointerEvent<HTMLElement>) => {
+      composeEventHandlers<React.PointerEvent<HTMLElement>>(
+        childProps.onPointerDown,
+        () => {
+          if (animateOnTap) startAnimation(animateOnTap);
+        },
+      )(e);
     },
+    [childProps.onPointerDown, animateOnTap, startAnimation],
+  );
+
+  const handlePointerUp = React.useCallback(
+    (e: React.PointerEvent<HTMLElement>) => {
+      composeEventHandlers<React.PointerEvent<HTMLElement>>(
+        childProps.onPointerUp,
+        () => {
+          if (animateOnTap) stopAnimation();
+        },
+      )(e);
+    },
+    [childProps.onPointerUp, animateOnTap, stopAnimation],
   );
 
   const content = asChild ? (
@@ -615,7 +646,7 @@ function IconWrapper<T extends string>({
   );
 }
 
-function getVariants<
+function useGetVariants<
   V extends { default: T; [key: string]: T },
   T extends Record<string, Variants>,
 >(animations: V): T {
@@ -647,7 +678,7 @@ export {
   AnimateIcon,
   IconWrapper,
   useAnimateIconContext,
-  getVariants,
+  useGetVariants,
   type IconProps,
   type IconWrapperProps,
   type AnimateIconProps,
