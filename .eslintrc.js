@@ -17,5 +17,16 @@ module.exports = {
   env: {
     node: true,
     es2020: true,
+    serviceworker: true,
   },
+  overrides: [
+    {
+      files: ["**/public/sw.js"],
+      globals: {
+        self: "readonly",
+        caches: "readonly",
+        clients: "readonly",
+      },
+    },
+  ],
 };

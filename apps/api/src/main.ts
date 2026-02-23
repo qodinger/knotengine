@@ -1,5 +1,7 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import swagger from "@fastify/swagger";
+import swaggerUi from "@fastify/swagger-ui";
 import {
   serializerCompiler,
   validatorCompiler,
@@ -11,9 +13,12 @@ import { twoFactorRoutes } from "./routes/two-factor.js";
 import { configRoutes } from "./routes/config.js";
 import { authRoutes } from "./routes/auth.js";
 import { uploadRoutes } from "./routes/upload.js";
+import { floatRoutes } from "./routes/float.js";
 import { PriceOracle } from "./infra/price-feed.js";
 import { ConfirmationEngine } from "./core/confirmation-engine.js";
 import { WebhookDispatcher } from "./infra/webhook-dispatcher.js";
+import { SubscriptionBilling } from "./core/subscription-billing.js";
+import { FloatManager } from "./core/float-manager.js";
 import { Currency } from "@qodinger/knot-types";
 import { connectToDatabase } from "@qodinger/knot-database";
 import { SocketService } from "./infra/socket-service.js";
@@ -21,7 +26,12 @@ import { SocketService } from "./infra/socket-service.js";
 import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
 import packageJson from "../package.json";
+
+// Fix __dirname for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Load environment-specific .env file from monorepo root
 const envSuffix =
@@ -59,8 +69,7 @@ server.setValidatorCompiler(validatorCompiler);
 server.setSerializerCompiler(serializerCompiler);
 
 // Swagger Documentation
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-server.register(require("@fastify/swagger"), {
+server.register(swagger, {
   swagger: {
     info: {
       title: "KnotEngine API",
@@ -74,8 +83,7 @@ server.register(require("@fastify/swagger"), {
   },
 });
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-server.register(require("@fastify/swagger-ui"), {
+server.register(swaggerUi, {
   routePrefix: "/docs",
   uiConfig: {
     docExpansion: "list",
@@ -97,8 +105,8 @@ server.get("/health", async () => {
   return {
     status: "ok",
     engine: `Knot v${packageJson.version}`,
-    phase: "Phase 4 — Scaling & Compliance",
     timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
   };
 });
 
@@ -112,6 +120,7 @@ server.register(twoFactorRoutes);
 server.register(configRoutes);
 server.register(authRoutes);
 server.register(uploadRoutes);
+server.register(floatRoutes);
 
 // ──────────────────────────────────────────────
 // Price Oracle Endpoint (Phase 1)
@@ -144,6 +153,7 @@ server.get<{ Params: { currency: string } }>(
 // ──────────────────────────────────────────────
 let expirationInterval: NodeJS.Timeout;
 let webhookCatchupInterval: NodeJS.Timeout;
+let billingCheckInterval: NodeJS.Timeout;
 
 function startBackgroundJobs() {
   // Expire stale invoices every 60 seconds
@@ -167,7 +177,34 @@ function startBackgroundJobs() {
     5 * 60 * 1000,
   );
 
-  console.log("⏰ Background jobs started (expiration + webhook catchup)");
+  // Check for monthly billing every day at midnight
+  billingCheckInterval = setInterval(
+    async () => {
+      try {
+        await SubscriptionBilling.getInstance().checkAndProcessBilling();
+      } catch (err) {
+        console.error("Billing check error:", err);
+      }
+    },
+    24 * 60 * 60 * 1000, // Run daily
+  );
+
+  // Invest float and accrue yield daily
+  setInterval(
+    async () => {
+      try {
+        await FloatManager.getInstance().investFloat();
+        await FloatManager.getInstance().accrueYield();
+      } catch (err) {
+        console.error("Float management error:", err);
+      }
+    },
+    24 * 60 * 60 * 1000, // Run daily
+  );
+
+  console.log(
+    "⏰ Background jobs started (expiration + webhook catchup + billing)",
+  );
 }
 
 // ──────────────────────────────────────────────
@@ -194,6 +231,7 @@ const start = async () => {
     server.log.error(err);
     clearInterval(expirationInterval);
     clearInterval(webhookCatchupInterval);
+    clearInterval(billingCheckInterval);
     process.exit(1);
   }
 };

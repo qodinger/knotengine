@@ -43,7 +43,7 @@ const stakingAssets = [
     symbol: "LTC",
     provider: "KnotEngine Yield",
     apr: "1.2%",
-    commission: "10%",
+    commission: "5%",
     totalStaked: "0.00",
     rewardsEarned: "0.0000",
     status: "active",
@@ -135,6 +135,52 @@ export default function StakingPage() {
         </Card>
       </div>
 
+      <Card className="border-border/40 bg-muted/5">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg font-bold">
+            Why KnotEngine Staking?
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="flex items-start gap-3">
+              <ShieldCheck className="mt-0.5 size-4 text-emerald-500" />
+              <div>
+                <p className="text-sm font-medium">Fully Insured</p>
+                <p className="text-muted-foreground text-xs">
+                  Your staked assets are protected against platform failures
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <Zap className="text-primary mt-0.5 size-4" />
+              <div>
+                <p className="text-sm font-medium">Auto-Compounding</p>
+                <p className="text-muted-foreground text-xs">
+                  Rewards automatically reinvested for maximum growth
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <TrendingUp className="mt-0.5 size-4 text-blue-500" />
+              <div>
+                <p className="text-sm font-medium">Best Rates</p>
+                <p className="text-muted-foreground text-xs">
+                  We negotiate better rates than individual staking
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="border-border/40 border-t pt-3">
+            <p className="text-muted-foreground text-xs">
+              <span className="font-bold">5% commission</span> on rewards only -
+              no hidden fees. You keep 95% of all staking rewards while we
+              handle security, monitoring, and optimization.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="mt-2 grid grid-cols-1 gap-6 lg:grid-cols-2">
         {stakingAssets.map((asset) => (
           <Card
@@ -203,6 +249,12 @@ export default function StakingPage() {
                     <span className="font-bold">
                       {asset.commission} of rewards
                     </span>
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <ShieldCheck className="size-3 text-emerald-500" />
+                  <span className="text-[10px] font-medium text-emerald-500">
+                    Insured
                   </span>
                 </div>
               </div>

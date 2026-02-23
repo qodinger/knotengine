@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
 export * from "./models";
+export { mongoose };
 
 export const connectToDatabase = async (uri: string) => {
   try {

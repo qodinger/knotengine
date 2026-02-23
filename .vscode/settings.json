@@ -4,7 +4,9 @@
     "cloudflared",
     "HMAC",
     "knotengine",
+    "Litecoin",
     "qodinger",
+    "stablecoins",
     "TOTP",
     "Turborepo"
   ]

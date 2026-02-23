@@ -218,7 +218,7 @@ export class ConfirmationEngine {
         const webhookEvent = isTerminalSuccess
           ? "invoice.confirmed"
           : `invoice.${newStatus}`;
-        WebhookDispatcher.dispatch(invoice.invoiceId, webhookEvent as any);
+        WebhookDispatcher.dispatch(invoice.invoiceId, webhookEvent);
       }
 
       // 5.2 Notify Merchant (The NotificationService handles internal deduplication/updating)

@@ -310,7 +310,7 @@ export function WebhooksTab() {
             </div>
             <CodeBlock
               language="json"
-              className="h-[400px] w-full"
+              className="h-100 w-full"
               code={dedent`
                 POST /webhooks HTTP/1.1
                 x-knot-signature: 8f...2a
@@ -417,14 +417,14 @@ export function WebhooksTab() {
               </div>
 
               <CodeBlock
-                className="h-[400px]"
+                className="h-100"
                 language="typescript"
                 code={
                   selectedLanguage === "nodejs-sdk"
                     ? dedent`
-                        import { KnotEngine } from '@qodinger/knot-sdk';
+                        import { KnotClient } from '@qodinger/knot-sdk';
 
-                        const knot = new KnotEngine({
+                        const knot = new KnotClient({
                           apiKey: process.env.KNOT_API_KEY,
                           webhookSecret: process.env.KNOT_WEBHOOK_SECRET
                         });

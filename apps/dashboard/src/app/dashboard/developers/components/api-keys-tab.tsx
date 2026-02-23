@@ -81,7 +81,7 @@ export function ApiKeysTab() {
             <Table>
               <TableHeader className="bg-muted/20">
                 <TableRow className="border-border/30 h-12 hover:bg-transparent">
-                  <TableHead className="w-[160px] pl-6 text-[10px] font-bold tracking-wider uppercase">
+                  <TableHead className="w-40 pl-6 text-[10px] font-bold tracking-wider uppercase">
                     Name
                   </TableHead>
                   <TableHead className="text-[10px] font-bold tracking-wider uppercase">
@@ -181,7 +181,7 @@ export function ApiKeysTab() {
                     Integration Guide
                   </h3>
                   <p className="text-xs text-slate-400">
-                    The fastest way to test and integrate with TypePay.
+                    The fastest way to test and integrate with KnotEngine.
                   </p>
                 </div>
 
@@ -252,9 +252,9 @@ export function ApiKeysTab() {
                       language="typescript"
                       className="w-full"
                       code={dedent`
-                        import { KnotEngine } from '@qodinger/knot-sdk';
+                        import { KnotClient } from '@qodinger/knot-sdk';
 
-                        const knot = new KnotEngine({ apiKey: 'YOUR_KEY' });
+                        const knot = new KnotClient({ apiKey: 'YOUR_KEY' });
 
                         const invoice = await knot.createInvoice({
                           amount_usd: 100,
