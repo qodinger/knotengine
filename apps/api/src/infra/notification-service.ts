@@ -1,5 +1,5 @@
 import { Notification } from "@qodinger/knot-database";
-import { SocketService } from "./socket-service";
+import { SocketService } from "./socket-service.js";
 
 /**
  * 🔔 Notification Service

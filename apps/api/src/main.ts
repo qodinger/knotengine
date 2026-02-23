@@ -4,19 +4,19 @@ import {
   serializerCompiler,
   validatorCompiler,
 } from "fastify-type-provider-zod";
-import { merchantRoutes } from "./routes/merchants";
-import { invoiceRoutes } from "./routes/invoices";
-import { webhookRoutes } from "./routes/webhooks";
-import { twoFactorRoutes } from "./routes/two-factor";
-import { configRoutes } from "./routes/config";
-import { authRoutes } from "./routes/auth";
-import { uploadRoutes } from "./routes/upload";
-import { PriceOracle } from "./infra/price-feed";
-import { ConfirmationEngine } from "./core/confirmation-engine";
-import { WebhookDispatcher } from "./infra/webhook-dispatcher";
+import { merchantRoutes } from "./routes/merchants.js";
+import { invoiceRoutes } from "./routes/invoices.js";
+import { webhookRoutes } from "./routes/webhooks.js";
+import { twoFactorRoutes } from "./routes/two-factor.js";
+import { configRoutes } from "./routes/config.js";
+import { authRoutes } from "./routes/auth.js";
+import { uploadRoutes } from "./routes/upload.js";
+import { PriceOracle } from "./infra/price-feed.js";
+import { ConfirmationEngine } from "./core/confirmation-engine.js";
+import { WebhookDispatcher } from "./infra/webhook-dispatcher.js";
 import { Currency } from "@qodinger/knot-types";
 import { connectToDatabase } from "@qodinger/knot-database";
-import { SocketService } from "./infra/socket-service";
+import { SocketService } from "./infra/socket-service.js";
 
 import dotenv from "dotenv";
 import path from "path";

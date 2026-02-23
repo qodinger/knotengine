@@ -136,9 +136,12 @@ export function useTestnet() {
       });
       await fetchPendingInvoices();
       return true;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to create test invoice", err);
-      setError(err.response?.data?.error || "Failed to create invoice");
+      setError(
+        (err as { response?: { data?: { error?: string } } }).response?.data
+          ?.error || "Failed to create invoice",
+      );
       return false;
     } finally {
       setTestnetLoading(false);

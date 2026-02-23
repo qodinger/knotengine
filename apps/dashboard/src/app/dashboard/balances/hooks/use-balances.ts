@@ -29,9 +29,12 @@ export function useBalances() {
 
     // Iterate through all supported assets and their networks
     Object.entries(NETWORK_CONFIG).forEach(([coinId, networks]) => {
-      networks.forEach((net: any) => {
+      networks.forEach((net) => {
         if (enabled.includes(net.id)) {
-          const address = (merchant as any)[net.merchantField];
+          const address = merchant[net.merchantField] as
+            | string
+            | null
+            | undefined;
           if (address) {
             list.push({
               id: net.id,
@@ -122,8 +125,8 @@ export function useBalances() {
     try {
       // Find the network config to know which field to update
       let merchantField = "";
-      Object.values(NETWORK_CONFIG).forEach((nets: any) => {
-        const match = nets.find((n: any) => n.id === newWalletNetwork);
+      Object.values(NETWORK_CONFIG).forEach((nets) => {
+        const match = nets.find((n) => n.id === newWalletNetwork);
         if (match) merchantField = match.merchantField;
       });
 
@@ -164,8 +167,8 @@ export function useBalances() {
 
       // Find which field this wallet used
       let merchantField = "";
-      Object.values(NETWORK_CONFIG).forEach((nets: any) => {
-        const match = nets.find((n: any) => n.id === walletToRemove);
+      Object.values(NETWORK_CONFIG).forEach((nets) => {
+        const match = nets.find((n) => n.id === walletToRemove);
         if (match) merchantField = match.merchantField;
       });
 
@@ -173,10 +176,9 @@ export function useBalances() {
       if (merchantField) {
         const otherUses = updatedEnabled.some((currId) => {
           let field = "";
-          Object.values(NETWORK_CONFIG).forEach((nets: any) => {
+          Object.values(NETWORK_CONFIG).forEach((nets) => {
             if (
-              nets.find((n: any) => n.id === currId)?.merchantField ===
-              merchantField
+              nets.find((n) => n.id === currId)?.merchantField === merchantField
             ) {
               field = merchantField;
             }

@@ -119,7 +119,7 @@ export function PaymentEngineDialog({
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs">
                       Choose whether the platform fee is deducted from your
-                      balance (Merchant) or added to the customer's total
+                      balance (Merchant) or added to the customer&apos;s total
                       (Client).
                     </TooltipContent>
                   </Tooltip>

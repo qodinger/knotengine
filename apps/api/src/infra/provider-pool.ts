@@ -1,6 +1,6 @@
-import { IBlockchainProvider } from "./provider-interface";
-import { TatumProvider } from "./tatum-provider";
-import { AlchemyProvider } from "./alchemy-provider";
+import { IBlockchainProvider } from "./provider-interface.js";
+import { TatumProvider } from "./tatum-provider.js";
+import { AlchemyProvider } from "./alchemy-provider.js";
 
 export class BlockchainProviderPool {
   private static instance: BlockchainProviderPool;

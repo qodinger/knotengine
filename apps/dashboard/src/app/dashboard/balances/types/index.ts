@@ -7,6 +7,8 @@ export interface MerchantProfile {
   ethAddressTestnet: string | null;
   enabledCurrencies: string[];
   feesAccrued: { usd: number } | null;
+  // Index signature for dynamic wallet address fields
+  [key: string]: string | string[] | { usd: number } | null | undefined;
 }
 
 export interface StatsData {

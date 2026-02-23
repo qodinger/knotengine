@@ -18,8 +18,9 @@ export function FeaturedPartner() {
             <div>
               <h3 className="text-lg font-bold">Secure Your Merchant Funds</h3>
               <p className="text-muted-foreground text-sm max-w-md">
-                Don't leave your earnings on a hot wallet. Get a Ledger hardware
-                wallet and manage your funds with industry-leading security.
+                Don&apos;t leave your earnings on a hot wallet. Get a Ledger
+                hardware wallet and manage your funds with industry-leading
+                security.
               </p>
             </div>
           </div>

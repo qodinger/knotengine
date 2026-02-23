@@ -10,16 +10,16 @@ import {
 } from "@qodinger/knot-database";
 
 import * as crypto from "crypto";
-import { TxVerifier } from "../infra/tx-verifier";
-import { PriceOracle } from "../infra/price-feed";
+import { TxVerifier } from "../infra/tx-verifier.js";
+import { PriceOracle } from "../infra/price-feed.js";
 import * as bip39 from "bip39";
 import { BIP32Factory } from "bip32";
 import * as ecc from "tiny-secp256k1";
 import * as bitcoin from "bitcoinjs-lib";
 import { ethers } from "ethers";
 import { SUPPORTED_CURRENCIES } from "@qodinger/knot-types";
-import { WebhookDispatcher } from "../infra/webhook-dispatcher";
-import { NotificationService } from "../infra/notification-service";
+import { WebhookDispatcher } from "../infra/webhook-dispatcher.js";
+import { NotificationService } from "../infra/notification-service.js";
 
 const bip32 = BIP32Factory(ecc);
 

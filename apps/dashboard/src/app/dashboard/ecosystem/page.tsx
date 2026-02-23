@@ -187,7 +187,7 @@ export default function EcosystemPage() {
           </h3>
           <p className="text-muted-foreground max-w-sm mb-8 text-sm leading-relaxed antialiased">
             We are always looking for high-quality tools that help our merchants
-            grow. If you build infrastructure for Web3, we'd love to talk.
+            grow. If you build infrastructure for Web3, we&apos;d love to talk.
           </p>
           <Button
             variant="outline"

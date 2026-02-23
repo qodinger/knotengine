@@ -252,9 +252,9 @@ export function WalletSection({
                 );
                 if (!selectedNet) return null;
 
-                const currentSavedValue = (merchant as any)[
+                const currentSavedValue = merchant[
                   selectedNet.merchantField
-                ];
+                ] as string | null | undefined;
                 const inputMatchesSaved =
                   currentSavedValue &&
                   currentSavedValue === newWalletAddress.trim();
@@ -311,7 +311,7 @@ export function WalletSection({
                       if (match) field = match.merchantField;
                     });
                     const currentSaved = field
-                      ? (merchant as any)[field]
+                      ? (merchant[field] as string | null | undefined)
                       : undefined;
                     return (
                       currentSaved === newWalletAddress.trim() &&
@@ -334,7 +334,9 @@ export function WalletSection({
                     if (match) field = match.merchantField;
                   });
                   const currentSaved =
-                    field && merchant ? (merchant as any)[field] : undefined;
+                    field && merchant
+                      ? (merchant[field] as string | null | undefined)
+                      : undefined;
                   const isSameAddress =
                     currentSaved === newWalletAddress.trim();
 

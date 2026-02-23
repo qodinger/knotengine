@@ -45,7 +45,7 @@ export function useWebhooks() {
     fetchMerchantConfig();
   }, [fetchMerchantConfig]);
 
-  const handleSaveWebhooks = async (data?: any) => {
+  const handleSaveWebhooks = async (data?: Record<string, unknown>) => {
     setSavingWebhooks(true);
     setWebhookSuccess(false);
     try {

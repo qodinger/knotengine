@@ -1,7 +1,7 @@
 import { Invoice, IInvoice, Merchant } from "@qodinger/knot-database";
 import { Derivator } from "@qodinger/knot-crypto";
 import * as crypto from "crypto";
-import { NotificationService } from "./notification-service";
+import { NotificationService } from "./notification-service.js";
 
 /**
  * 📡 WebhookDispatcher

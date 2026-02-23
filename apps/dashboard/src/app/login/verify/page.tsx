@@ -1,22 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Command } from "lucide-react";
 import { AuthBackground } from "@/components/auth/auth-background";
 
 export default function VerifyPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <VerifyContent />
+    </Suspense>
+  );
+}
+
+function VerifyContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
+  const token = searchParams.get("token");
+  const email = searchParams.get("email");
+  const [error, setError] = useState<string | null>(
+    !token || !email ? "Missing verification details." : null,
+  );
 
   useEffect(() => {
-    const token = searchParams.get("token");
-    const email = searchParams.get("email");
-
     if (!token || !email) {
-      setError("Missing verification details.");
       return;
     }
 
@@ -40,7 +48,7 @@ export default function VerifyPage() {
     };
 
     verify();
-  }, [searchParams, router]);
+  }, [searchParams, router, token, email]);
 
   return (
     <div className="container relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0">

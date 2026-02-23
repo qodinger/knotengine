@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useTestnet } from "../hooks/use-testnet";
+import { TestnetInvoice } from "../types";
 
 export function TestnetTab() {
   const {
@@ -66,7 +67,9 @@ export function TestnetTab() {
   const [createAmount, setCreateAmount] = useState("10.00");
   const [createCurrency, setCreateCurrency] = useState("BTC");
 
-  const [simulateInvoice, setSimulateInvoice] = useState<any>(null);
+  const [simulateInvoice, setSimulateInvoice] = useState<TestnetInvoice | null>(
+    null,
+  );
   const [simulateAmount, setSimulateAmount] = useState("");
 
   const truncate = (addr: string) => {

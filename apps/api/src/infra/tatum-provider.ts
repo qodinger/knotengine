@@ -1,4 +1,4 @@
-import { IBlockchainProvider } from "./provider-interface";
+import { IBlockchainProvider } from "./provider-interface.js";
 
 /**
  * 🛰️ Tatum Blockchain Provider

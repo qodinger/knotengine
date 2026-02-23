@@ -23,7 +23,6 @@ interface HowItWorksProps {
 }
 
 export function HowItWorks({
-  feeRate: _feeRate,
   currentPlan = "starter",
   onPlanUpdate,
 }: HowItWorksProps) {

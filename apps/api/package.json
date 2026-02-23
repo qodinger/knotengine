@@ -1,5 +1,6 @@
 {
   "name": "api",
+  "type": "module",
   "author": "tyecode",
   "repository": {
     "type": "git",

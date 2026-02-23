@@ -225,7 +225,7 @@ export function TopUpDialog({
                     <SelectContent className="min-w-[320px]">
                       {selectedCoin &&
                         NETWORK_CONFIG[selectedCoin]
-                          ?.filter((_net) => !!stats?.platformFeeWallets?.EVM)
+                          ?.filter(() => !!stats?.platformFeeWallets?.EVM)
                           .map((net) => (
                             <SelectItem
                               key={net.id}

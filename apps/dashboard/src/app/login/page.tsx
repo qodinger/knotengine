@@ -81,7 +81,7 @@ function LoginContent() {
             Check your inbox
           </h3>
           <p className="text-sm text-zinc-500 max-w-[280px] mx-auto">
-            We've sent a magic link to{" "}
+            We&apos;ve sent a magic link to{" "}
             <span className="text-white font-medium">{email}</span>. Click it to
             sign in instantly.
           </p>

@@ -6,11 +6,11 @@ import {
   WebhookEvent,
   User,
 } from "@qodinger/knot-database";
-import { SocketService } from "../infra/socket-service";
-import { WebhookDispatcher } from "../infra/webhook-dispatcher";
+import { SocketService } from "../infra/socket-service.js";
+import { WebhookDispatcher } from "../infra/webhook-dispatcher.js";
 import { DEFAULT_CONFIRMATIONS, EVM_CURRENCIES } from "@qodinger/knot-types";
-import { BlockchainProviderPool } from "../infra/provider-pool";
-import { NotificationService } from "../infra/notification-service";
+import { BlockchainProviderPool } from "../infra/provider-pool.js";
+import { NotificationService } from "../infra/notification-service.js";
 
 /**
  * 🔒 ConfirmationEngine

@@ -5,17 +5,18 @@ import { CheckoutCard } from "@/components/CheckoutCard";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { io } from "socket.io-client";
+import { Invoice } from "@/types/invoice";
 
 interface CheckoutPageClientProps {
   invoiceId: string;
-  initialInvoice: any;
+  initialInvoice: Invoice | null;
 }
 
 export default function CheckoutPageClient({
   invoiceId,
   initialInvoice,
 }: CheckoutPageClientProps) {
-  const [invoice, setInvoice] = useState<any>(initialInvoice);
+  const [invoice, setInvoice] = useState<Invoice | null>(initialInvoice);
   const [loading, setLoading] = useState(!initialInvoice);
   const [error, setError] = useState<string | null>(null);
 
@@ -64,14 +65,17 @@ export default function CheckoutPageClient({
         txHash: string;
         cryptoAmountReceived?: number;
       }) => {
-        setInvoice((prev: any) => ({
-          ...prev,
-          status: data.status,
-          confirmations: data.confirmations,
-          tx_hash: data.txHash,
-          crypto_amount_received:
-            data.cryptoAmountReceived ?? prev.crypto_amount_received,
-        }));
+        setInvoice((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            status: data.status,
+            confirmations: data.confirmations,
+            tx_hash: data.txHash,
+            crypto_amount_received:
+              data.cryptoAmountReceived ?? prev.crypto_amount_received,
+          };
+        });
         // If we get a socket update, the connection is clearly working
         setError(null);
       },
@@ -121,6 +125,10 @@ export default function CheckoutPageClient({
         </div>
       </div>
     );
+  }
+
+  if (!invoice) {
+    return null;
   }
 
   return (
@@ -175,7 +183,7 @@ export default function CheckoutPageClient({
                       <span className="text-amber-500 font-bold">
                         {parseFloat(
                           (
-                            invoice.crypto_amount_received -
+                            (invoice.crypto_amount_received || 0) -
                             invoice.crypto_amount
                           ).toFixed(8),
                         )}{" "}
@@ -212,7 +220,9 @@ export default function CheckoutPageClient({
               {invoice.merchant?.return_url && (
                 <button
                   onClick={() => {
-                    let url = invoice.merchant.return_url!;
+                    const returnUrl = invoice.merchant?.return_url;
+                    if (!returnUrl) return;
+                    let url = returnUrl;
                     if (
                       !url.startsWith("http://") &&
                       !url.startsWith("https://") &&

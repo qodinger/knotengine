@@ -3,10 +3,10 @@ import { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { Invoice, Merchant, IInvoice, User } from "@qodinger/knot-database";
 import { Derivator } from "@qodinger/knot-crypto";
-import { PriceOracle } from "../infra/price-feed";
-import { ConfirmationEngine } from "../core/confirmation-engine";
+import { PriceOracle } from "../infra/price-feed.js";
+import { ConfirmationEngine } from "../core/confirmation-engine.js";
 import { Currency, SUPPORTED_CURRENCIES } from "@qodinger/knot-types";
-import { BlockchainProviderPool } from "../infra/provider-pool";
+import { BlockchainProviderPool } from "../infra/provider-pool.js";
 import * as crypto from "crypto";
 
 /**

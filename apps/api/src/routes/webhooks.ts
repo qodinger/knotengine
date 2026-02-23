@@ -1,6 +1,6 @@
 import { FastifyInstance } from "fastify";
 import * as crypto from "crypto";
-import { ConfirmationEngine } from "../core/confirmation-engine";
+import { ConfirmationEngine } from "../core/confirmation-engine.js";
 
 /**
  * 📡 Webhook Listener Routes
