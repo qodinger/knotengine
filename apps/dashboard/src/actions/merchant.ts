@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5050";
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET;
 
-export async function createMerchant(name: string) {
+export async function createMerchant(name: string, logoUrl?: string) {
   const session = await auth();
   const cookieStore = await cookies();
   const referralCode = cookieStore.get("knot_affiliate_id")?.value;
@@ -25,6 +25,7 @@ export async function createMerchant(name: string) {
     },
     body: JSON.stringify({
       name,
+      logoUrl,
       oauthId: session.user.oauthId,
       referredBy: referralCode,
     }),

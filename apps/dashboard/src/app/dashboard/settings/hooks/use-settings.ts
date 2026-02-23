@@ -94,6 +94,8 @@ export function useSettings() {
       if (newData) {
         setFormData(newData);
       }
+      // Refresh session so merchant switcher re-fetches and shows the new logo
+      await update();
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err: unknown) {
@@ -153,8 +155,8 @@ export function useSettings() {
       setTwoFactorEnabled(true);
     } catch (err: unknown) {
       const message =
-        (err as any)?.response?.data?.error ||
-        "Invalid code. Please try again.";
+        (err as { response?: { data?: { error?: string } } })?.response?.data
+          ?.error || "Invalid code. Please try again.";
       setTwoFAError(message);
     } finally {
       setTwoFALoading(false);
@@ -174,8 +176,8 @@ export function useSettings() {
       setTimeout(() => setSuccess(false), 3000);
     } catch (err: unknown) {
       const message =
-        (err as any)?.response?.data?.error ||
-        "Invalid code. Please try again.";
+        (err as { response?: { data?: { error?: string } } })?.response?.data
+          ?.error || "Invalid code. Please try again.";
       setTwoFAError(message);
     } finally {
       setTwoFALoading(false);

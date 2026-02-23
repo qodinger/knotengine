@@ -33,9 +33,13 @@ import { useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Cookies from "js-cookie";
 
+import { requestMagicLink } from "@/actions/auth";
+
 function LoginContent() {
   const searchParams = useSearchParams();
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
 
   useEffect(() => {
     const ref = searchParams.get("ref");
@@ -51,39 +55,119 @@ function LoginContent() {
     await signIn(provider, { callbackUrl: "/dashboard" });
   };
 
-  return (
-    <div className="grid gap-3">
-      <Button
-        id="signin-google"
-        variant="outline"
-        size="lg"
-        className="gap-3 h-11 font-medium"
-        disabled={loadingProvider !== null}
-        onClick={() => handleSignIn("google")}
-      >
-        {loadingProvider === "google" ? (
-          <span className="h-4 w-4 rounded-full border-2 border-foreground/30 border-t-foreground animate-spin" />
-        ) : (
-          <GoogleIcon />
-        )}
-        Continue with Google
-      </Button>
+  const handleEmailSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
 
-      <Button
-        id="signin-github"
-        variant="outline"
-        size="lg"
-        className="gap-3 h-11 font-medium"
-        disabled={loadingProvider !== null}
-        onClick={() => handleSignIn("github")}
-      >
-        {loadingProvider === "github" ? (
-          <span className="h-4 w-4 rounded-full border-2 border-foreground/30 border-t-foreground animate-spin" />
-        ) : (
-          <Github className="h-4 w-4" />
-        )}
-        Continue with GitHub
-      </Button>
+    setLoadingProvider("email");
+    try {
+      await requestMagicLink(email);
+      setSent(true);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to send magic link");
+    } finally {
+      setLoadingProvider(null);
+    }
+  };
+
+  if (sent) {
+    return (
+      <div className="text-center space-y-4 py-8 animate-in fade-in zoom-in duration-500">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/5 mx-auto border border-white/10">
+          <Command className="h-8 w-8 text-primary" />
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-xl font-bold tracking-tight text-white">
+            Check your inbox
+          </h3>
+          <p className="text-sm text-zinc-500 max-w-[280px] mx-auto">
+            We've sent a magic link to{" "}
+            <span className="text-white font-medium">{email}</span>. Click it to
+            sign in instantly.
+          </p>
+        </div>
+        <Button
+          variant="link"
+          className="text-zinc-500 hover:text-white"
+          onClick={() => setSent(false)}
+        >
+          Try another email
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-6">
+      <form onSubmit={handleEmailSignIn} className="grid gap-3">
+        <div className="space-y-2">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="name@company.com"
+            className="flex h-11 w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm ring-offset-background placeholder:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-all hover:bg-white/10"
+            required
+            disabled={loadingProvider !== null}
+          />
+        </div>
+        <Button
+          type="submit"
+          variant="default"
+          size="lg"
+          className="h-11 font-bold shadow-[0_0_20px_rgba(255,255,255,0.05)] rounded-lg"
+          disabled={loadingProvider !== null}
+        >
+          {loadingProvider === "email" ? (
+            <span className="h-4 w-4 rounded-full border-2 border-foreground/30 border-t-foreground animate-spin" />
+          ) : (
+            "Continue with Email"
+          )}
+        </Button>
+      </form>
+
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-white/5" />
+        </div>
+        <div className="relative flex justify-center text-[10px] font-bold uppercase tracking-[0.2em]">
+          <span className="bg-black px-4 text-zinc-600">OR</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Button
+          id="signin-google"
+          variant="outline"
+          size="lg"
+          className="gap-2 h-11 font-semibold bg-white/5 border-white/10 rounded-lg hover:bg-white/10 transition-all text-sm"
+          disabled={loadingProvider !== null}
+          onClick={() => handleSignIn("google")}
+        >
+          {loadingProvider === "google" ? (
+            <span className="h-4 w-4 rounded-full border-2 border-foreground/30 border-t-foreground animate-spin" />
+          ) : (
+            <GoogleIcon />
+          )}
+          Google
+        </Button>
+
+        <Button
+          id="signin-github"
+          variant="outline"
+          size="lg"
+          className="gap-2 h-11 font-semibold bg-white/5 border-white/10 rounded-lg hover:bg-white/10 transition-all text-sm"
+          disabled={loadingProvider !== null}
+          onClick={() => handleSignIn("github")}
+        >
+          {loadingProvider === "github" ? (
+            <span className="h-4 w-4 rounded-full border-2 border-foreground/30 border-t-foreground animate-spin" />
+          ) : (
+            <Github className="h-4 w-4" />
+          )}
+          GitHub
+        </Button>
+      </div>
     </div>
   );
 }
@@ -96,7 +180,7 @@ export default function LoginPage() {
         <AuthBackground />
 
         <div className="relative z-20 flex items-center text-lg font-medium gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-[0_0_20px_rgba(255,255,255,0.15)]">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-[0_0_20px_rgba(255,255,255,0.15)]">
             <Command className="h-6 w-6" />
           </div>
           <span className="font-bold tracking-tight text-xl">
@@ -104,25 +188,16 @@ export default function LoginPage() {
           </span>
         </div>
 
-        <div className="relative z-20 mt-auto backdrop-blur-sm bg-black/10 p-8 rounded-2xl border border-white/5 shadow-2xl">
-          <blockquote className="space-y-4">
-            <p className="text-xl font-medium leading-relaxed tracking-tight">
-              &ldquo;KnotEngine has completely transformed how we handle
-              cross-chain settlements. The non-custodial HD derivation is a game
-              changer for our infrastructure security.&rdquo;
+        <div className="relative z-20 mt-auto">
+          <div className="grid gap-2">
+            <h2 className="text-3xl font-bold tracking-tight text-white/90">
+              The Protocol for Commerce
+            </h2>
+            <p className="text-zinc-500 text-lg max-w-[420px] leading-relaxed italic">
+              &ldquo;Institutional-grade infrastructure for secure,
+              non-custodial stablecoin settlements.&rdquo;
             </p>
-            <footer className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-linear-to-tr from-emerald-500 to-blue-500" />
-              <div className="flex flex-col">
-                <span className="text-sm font-bold text-white">
-                  Sofia Davis
-                </span>
-                <span className="text-xs text-zinc-400 font-medium">
-                  CTO at Nexus Defi
-                </span>
-              </div>
-            </footer>
-          </blockquote>
+          </div>
         </div>
       </div>
 

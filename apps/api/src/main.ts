@@ -9,6 +9,8 @@ import { invoiceRoutes } from "./routes/invoices";
 import { webhookRoutes } from "./routes/webhooks";
 import { twoFactorRoutes } from "./routes/two-factor";
 import { configRoutes } from "./routes/config";
+import { authRoutes } from "./routes/auth";
+import { uploadRoutes } from "./routes/upload";
 import { PriceOracle } from "./infra/price-feed";
 import { ConfirmationEngine } from "./core/confirmation-engine";
 import { WebhookDispatcher } from "./infra/webhook-dispatcher";
@@ -57,6 +59,7 @@ server.setValidatorCompiler(validatorCompiler);
 server.setSerializerCompiler(serializerCompiler);
 
 // Swagger Documentation
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 server.register(require("@fastify/swagger"), {
   swagger: {
     info: {
@@ -71,6 +74,7 @@ server.register(require("@fastify/swagger"), {
   },
 });
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 server.register(require("@fastify/swagger-ui"), {
   routePrefix: "/docs",
   uiConfig: {
@@ -106,6 +110,8 @@ server.register(invoiceRoutes);
 server.register(webhookRoutes);
 server.register(twoFactorRoutes);
 server.register(configRoutes);
+server.register(authRoutes);
+server.register(uploadRoutes);
 
 // ──────────────────────────────────────────────
 // Price Oracle Endpoint (Phase 1)

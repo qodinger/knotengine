@@ -96,6 +96,8 @@ export interface IMerchant extends Document {
   bip21Enabled: boolean;
   plan: "starter" | "professional" | "enterprise";
   spreadEnabled: boolean;
+  customSpreadRate?: number;
+  planStartedAt?: Date;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -162,6 +164,7 @@ const MerchantSchema: Schema = new Schema(
       default: "starter",
     },
     spreadEnabled: { type: Boolean, default: true },
+    customSpreadRate: { type: Number, min: 0, max: 0.05 },
     planStartedAt: { type: Date, default: Date.now },
     isActive: { type: Boolean, default: true },
   },
@@ -436,4 +439,34 @@ NotificationSchema.index(
 export const Notification = mongoose.model<INotification>(
   "Notification",
   NotificationSchema,
+);
+
+// ============================================================
+// 🎫 VERIFICATION TOKEN MODEL
+// Stores temporary tokens for Magic Link and OTP verification.
+// ============================================================
+
+export interface IVerificationToken extends Document {
+  identifier: string; // email or user id
+  token: string;
+  expires: Date;
+  createdAt: Date;
+}
+
+const VerificationTokenSchema: Schema = new Schema(
+  {
+    identifier: { type: String, required: true },
+    token: { type: String, required: true, unique: true },
+    expires: { type: Date, required: true },
+  },
+  { timestamps: { createdAt: true, updatedAt: false } },
+);
+
+VerificationTokenSchema.index({ identifier: 1, token: 1 }, { unique: true });
+// Tokens expire automatically
+VerificationTokenSchema.index({ expires: 1 }, { expireAfterSeconds: 0 });
+
+export const VerificationToken = mongoose.model<IVerificationToken>(
+  "VerificationToken",
+  VerificationTokenSchema,
 );

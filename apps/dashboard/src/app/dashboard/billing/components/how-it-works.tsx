@@ -14,6 +14,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface HowItWorksProps {
   feeRate: number;
@@ -105,26 +106,47 @@ export function HowItWorks({
                 name: "Starter",
                 fee: "1.0%",
                 cost: "$0/mo",
-                features: ["1% Spread", "Single Provider"],
+                description: "Perfect for getting started",
+                features: [
+                  "$5 welcome credit",
+                  "1% spread (always on)",
+                  "Single provider monitoring",
+                  "Basic webhook events",
+                  "Real-time tracking",
+                ],
               },
               {
                 name: "Professional",
                 fee: "0.5%",
                 cost: "$29/mo",
-                features: ["Optional Spread", "Dual Monitoring", "Branding"],
+                description: "Best for growing businesses",
+                features: [
+                  "50% lower fees (0.5%)",
+                  "Toggle spread on/off",
+                  "Dual-provider redundancy",
+                  "Custom checkout logo",
+                  "All webhook events",
+                ],
                 popular: true,
               },
               {
                 name: "Enterprise",
                 fee: "0.25%",
                 cost: "$99/mo",
-                features: ["0.2% Spread", "Priority Support", "White-label"],
+                description: "For high-volume merchants",
+                features: [
+                  "Lowest fees (0.25%)",
+                  "Custom spread rates",
+                  "Dual-provider redundancy",
+                  "Full white-label branding",
+                  "Priority processing",
+                ],
               },
             ].map((plan) => (
               <div
                 key={plan.name}
                 className={cn(
-                  "relative p-4 rounded-xl border transition-all",
+                  "relative p-4 rounded-xl border transition-all flex flex-col",
                   plan.popular
                     ? "border-primary bg-primary/5 shadow-sm"
                     : "border-border/60 bg-muted/10",
@@ -139,10 +161,13 @@ export function HowItWorks({
                   <p className="text-xs font-bold">{plan.name}</p>
                   <p className="text-xs font-black text-primary">{plan.fee}</p>
                 </div>
-                <p className="text-[10px] text-muted-foreground mb-3">
+                <p className="text-[10px] text-muted-foreground mb-1">
                   {plan.cost}
                 </p>
-                <ul className="space-y-1 mb-4">
+                <p className="text-[9px] text-muted-foreground/70 mb-3">
+                  {plan.description}
+                </p>
+                <ul className="space-y-1 mb-4 flex-1">
                   {plan.features.map((f) => (
                     <li
                       key={f}
@@ -153,7 +178,7 @@ export function HowItWorks({
                     </li>
                   ))}
                 </ul>
-                <button
+                <Button
                   onClick={() =>
                     onPlanUpdate?.(
                       plan.name.toLowerCase() as
@@ -164,7 +189,7 @@ export function HowItWorks({
                   }
                   disabled={currentPlan === plan.name.toLowerCase()}
                   className={cn(
-                    "w-full py-1.5 rounded text-[9px] font-black uppercase tracking-widest transition-all",
+                    "w-full py-1.5 text-[9px] font-black uppercase tracking-widest transition-all",
                     currentPlan === plan.name.toLowerCase()
                       ? "bg-muted text-muted-foreground cursor-not-allowed"
                       : "bg-primary text-primary-foreground hover:opacity-90 active:scale-95 shadow-sm",
@@ -173,7 +198,7 @@ export function HowItWorks({
                   {currentPlan === plan.name.toLowerCase()
                     ? "Active Plan"
                     : "Select Plan"}
-                </button>
+                </Button>
               </div>
             ))}
           </div>

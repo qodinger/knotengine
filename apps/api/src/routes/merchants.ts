@@ -72,6 +72,94 @@ const generateReferralCode = async (): Promise<string> => {
 export async function merchantRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>();
 
+  // ──────────────────────────────────────────────
+  // Middleware: API Key Authentication for me/ routes
+  // ──────────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const authHook = async (request: FastifyRequest, reply: FastifyReply) => {
+    const apiKey = request.headers["x-api-key"] as string;
+
+    if (!apiKey) {
+      throw new Error("Missing API Key");
+    }
+
+    const apiKeyHash = crypto.createHash("sha256").update(apiKey).digest("hex");
+    const merchant = await Merchant.findOne({ apiKeyHash, isActive: true });
+
+    if (!merchant) {
+      return reply.code(401).send({ error: "Invalid API Key" });
+    }
+
+    // Attach to request
+    request.merchant = merchant;
+  };
+
+  // ──────────────────────────────────────────────
+  // Internal: OAuth session hook — authenticates via x-oauth-id header
+  // Used by the dashboard's server actions (not exposed publicly)
+  // ──────────────────────────────────────────────
+  const oauthHook = async (request: FastifyRequest, reply: FastifyReply) => {
+    const oauthId = request.headers["x-oauth-id"] as string;
+    const merchantId = request.headers["x-merchant-id"] as string;
+    const secret = request.headers["x-internal-secret"] as string;
+
+    if (!oauthId || secret !== process.env.INTERNAL_SECRET) {
+      return reply.code(401).send({ error: "Unauthorized" });
+    }
+
+    const query: Record<string, unknown> = {
+      oauthId: { $regex: new RegExp(`^${oauthId}(:|$)`) },
+      isActive: true,
+    };
+    if (merchantId) {
+      query._id = merchantId;
+    }
+
+    // If multiple merchants exist and no ID provided, this defaults to the first one found.
+    // Ideally, dashboard should always send x-merchant-id.
+    const merchant = await Merchant.findOne(query);
+
+    if (!merchant) {
+      return reply.code(401).send({ error: "Merchant not found" });
+    }
+
+    // Lazy Migration: Sync to User
+    if (!merchant.userId) {
+      let user = await User.findOne({ oauthId });
+      if (!user) {
+        user = await User.create({
+          oauthId,
+          creditBalance: parseFloat(
+            process.env.WELCOME_CREDIT_AMOUNT || "5.00",
+          ),
+          welcomeBonusClaimed: true,
+        });
+      }
+      await Merchant.findByIdAndUpdate(merchant._id, {
+        $set: { userId: user._id },
+      });
+      merchant.userId = user._id;
+    }
+
+    request.merchant = merchant;
+  };
+
+  // ──────────────────────────────────────────────
+  // Middleware: Unified Auth (API Key OR Internal OAuth)
+  // ──────────────────────────────────────────────
+  const requireAuth = async (request: FastifyRequest, reply: FastifyReply) => {
+    const apiKey = request.headers["x-api-key"];
+    if (apiKey) {
+      try {
+        await authHook(request, reply);
+      } catch {
+        return reply.code(401).send({ error: "Invalid API Key" });
+      }
+    } else {
+      await oauthHook(request, reply);
+    }
+  };
+
   server.post(
     "/v1/merchants",
     {
@@ -83,6 +171,7 @@ export async function merchantRoutes(app: FastifyInstance) {
           btcXpubTestnet: z.string().optional(),
           ethAddress: z.string().optional(),
           ethAddressTestnet: z.string().optional(),
+          logoUrl: z.string().optional(),
           webhookUrl: z.string().optional(),
           oauthId: z.string().optional(), // OAuth identity e.g. 'google:12345'
           referredBy: z.string().optional(), // Referral code from URL
@@ -97,6 +186,7 @@ export async function merchantRoutes(app: FastifyInstance) {
         btcXpubTestnet,
         ethAddress,
         ethAddressTestnet,
+        logoUrl,
         webhookUrl,
         oauthId,
         referredBy: referralCode,
@@ -131,12 +221,12 @@ export async function merchantRoutes(app: FastifyInstance) {
       );
 
       // 1. Resolve or Create User Identity (OAuth)
-      let userId: any = undefined;
+      let userId: typeof User.prototype._id | undefined = undefined;
       if (oauthId) {
         let user = await User.findOne({ oauthId });
         if (!user) {
           // Resolve Referrer for the new User
-          let referrerId: any = undefined;
+          let referrerId: typeof User.prototype._id | undefined = undefined;
           if (referralCode) {
             const referrer = await User.findOne({ referralCode });
             if (referrer) {
@@ -186,6 +276,7 @@ export async function merchantRoutes(app: FastifyInstance) {
         btcXpubTestnet: finalBtcXpubTestnet,
         ethAddress,
         ethAddressTestnet: finalEthAddressTestnet,
+        logoUrl,
         webhookUrl,
         webhookSecret,
       });
@@ -197,9 +288,53 @@ export async function merchantRoutes(app: FastifyInstance) {
         merchantId: newMerchant.merchantId,
         name: newMerchant.name,
         email: newMerchant.email,
+        logoUrl: newMerchant.logoUrl,
         webhookSecret,
         apiKey: apiKey ?? null, // null for OAuth merchants
       });
+    },
+  );
+
+  // ──────────────────────────────────────────────
+  // GET /v1/merchants — List all merchants for current user
+  // ──────────────────────────────────────────────
+  server.get(
+    "/v1/merchants",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const merchant = request.merchant;
+      if (!merchant?.oauthId)
+        return reply.code(401).send({ error: "Auth required" });
+      const { oauthId } = merchant;
+
+      // Clean base oauthId for lookup (e.g. google:123:456 -> google:123)
+      const baseOauthId = oauthId.split(":")[0] + ":" + oauthId.split(":")[1];
+
+      const merchants = await Merchant.find({
+        oauthId: { $regex: new RegExp(`^${baseOauthId}(:|$)`) },
+        isActive: true,
+      }).sort({ createdAt: 1 });
+
+      const results = [];
+      for (const merchant of merchants) {
+        const currentUser = merchant.userId
+          ? await User.findById(merchant.userId)
+          : null;
+
+        results.push({
+          id: merchant._id.toString(),
+          merchantId: merchant.merchantId,
+          name: merchant.name,
+          email: merchant.email,
+          logoUrl: merchant.logoUrl,
+          twoFactorEnabled: currentUser?.twoFactorEnabled || false,
+          referralCode: currentUser?.referralCode,
+          referralEarningsUsd: currentUser?.referralEarningsUsd || 0,
+          creditBalance: currentUser?.creditBalance || 0,
+        });
+      }
+
+      return results;
     },
   );
 
@@ -310,6 +445,7 @@ export async function merchantRoutes(app: FastifyInstance) {
           merchantId: merchant.merchantId,
           name: merchant.name,
           email: merchant.email,
+          logoUrl: merchant.logoUrl,
           apiKey: apiKey ?? null,
           hasApiKey: true,
           twoFactorEnabled: currentUser?.twoFactorEnabled || false,
@@ -322,93 +458,6 @@ export async function merchantRoutes(app: FastifyInstance) {
       return results;
     },
   );
-  // ──────────────────────────────────────────────
-  // Middleware: API Key Authentication for me/ routes
-  // ──────────────────────────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const authHook = async (request: FastifyRequest, reply: FastifyReply) => {
-    const apiKey = request.headers["x-api-key"] as string;
-
-    if (!apiKey) {
-      throw new Error("Missing API Key");
-    }
-
-    const apiKeyHash = crypto.createHash("sha256").update(apiKey).digest("hex");
-    const merchant = await Merchant.findOne({ apiKeyHash, isActive: true });
-
-    if (!merchant) {
-      return reply.code(401).send({ error: "Invalid API Key" });
-    }
-
-    // Attach to request
-    request.merchant = merchant;
-  };
-
-  // ──────────────────────────────────────────────
-  // Internal: OAuth session hook — authenticates via x-oauth-id header
-  // Used by the dashboard's server actions (not exposed publicly)
-  // ──────────────────────────────────────────────
-  const oauthHook = async (request: FastifyRequest, reply: FastifyReply) => {
-    const oauthId = request.headers["x-oauth-id"] as string;
-    const merchantId = request.headers["x-merchant-id"] as string;
-    const secret = request.headers["x-internal-secret"] as string;
-
-    if (!oauthId || secret !== process.env.INTERNAL_SECRET) {
-      return reply.code(401).send({ error: "Unauthorized" });
-    }
-
-    const query: Record<string, unknown> = {
-      oauthId: { $regex: new RegExp(`^${oauthId}(:|$)`) },
-      isActive: true,
-    };
-    if (merchantId) {
-      query._id = merchantId;
-    }
-
-    // If multiple merchants exist and no ID provided, this defaults to the first one found.
-    // Ideally, dashboard should always send x-merchant-id.
-    const merchant = await Merchant.findOne(query);
-
-    if (!merchant) {
-      return reply.code(401).send({ error: "Merchant not found" });
-    }
-
-    // Lazy Migration: Sync to User
-    if (!merchant.userId) {
-      let user = await User.findOne({ oauthId });
-      if (!user) {
-        user = await User.create({
-          oauthId,
-          creditBalance: parseFloat(
-            process.env.WELCOME_CREDIT_AMOUNT || "5.00",
-          ),
-          welcomeBonusClaimed: true,
-        });
-      }
-      await Merchant.findByIdAndUpdate(merchant._id, {
-        $set: { userId: user._id },
-      });
-      merchant.userId = user._id as any;
-    }
-
-    request.merchant = merchant;
-  };
-
-  // ──────────────────────────────────────────────
-  // Middleware: Unified Auth (API Key OR Internal OAuth)
-  // ──────────────────────────────────────────────
-  const requireAuth = async (request: FastifyRequest, reply: FastifyReply) => {
-    const apiKey = request.headers["x-api-key"];
-    if (apiKey) {
-      try {
-        await authHook(request, reply);
-      } catch {
-        return reply.code(401).send({ error: "Invalid API Key" });
-      }
-    } else {
-      await oauthHook(request, reply);
-    }
-  };
 
   // ──────────────────────────────────────────────
   // GET /v1/merchants/me — Get Profile

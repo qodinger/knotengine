@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
+import Credentials from "next-auth/providers/credentials";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5050";
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET;
@@ -16,6 +17,44 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       clientId: process.env.GITHUB_CLIENT_ID!,
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
     }),
+    Credentials({
+      id: "magic-link",
+      name: "Magic Link",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        token: { label: "Token", type: "text" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.token) return null;
+
+        try {
+          // Verify with Backend API
+          const res = await fetch(`${API_BASE_URL}/v1/auth/verify`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: credentials.email,
+              token: credentials.token,
+            }),
+          });
+
+          if (!res.ok) return null;
+
+          const data = await res.json();
+          if (data.success) {
+            return {
+              id: data.oauthId,
+              email: data.email,
+              oauthId: data.oauthId,
+            };
+          }
+        } catch (error) {
+          console.error("[Auth] Magic Link verification failed:", error);
+        }
+
+        return null;
+      },
+    }),
   ],
 
   // Enable debug logs to see exact session failure reasons
@@ -30,7 +69,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
      * On first login, creates a Merchant account via the API and saves
      * the generated API key in the JWT so all dashboard requests can use it.
      */
-    async jwt({ token, account, profile, trigger, session }) {
+    async jwt({ token, user, account, trigger, session }) {
       // Helper to fresh fetch merchants
       const fetchMerchants = async (oauthId: string) => {
         try {
@@ -47,48 +86,60 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return [];
       };
 
-      // 1. Initial Login
-      if (account && profile) {
-        const oauthId = `${account.provider}:${account.providerAccountId}`;
-        token.oauthId = oauthId;
+      // 1. Initial Login (OAuth or Credentials)
+      if (trigger === "signIn" || (account && user)) {
+        // For OAuth providers like Google/GitHub
+        let oauthId = token.oauthId as string;
 
-        const merchants = await fetchMerchants(oauthId);
-
-        if (merchants.length === 0) {
-          console.log(
-            `[Auth] No merchants found. User must create first merchant manually.`,
-          );
+        if (account?.provider === "magic-link") {
+          // @ts-expect-error - oauthId is custom field on user returned from authorize
+          oauthId = user.oauthId;
+        } else if (account && account.providerAccountId) {
+          oauthId = `${account.provider}:${account.providerAccountId}`;
         }
 
-        token.merchants = merchants.map(
-          (m: {
-            id: string;
-            merchantId: string;
-            name?: string;
-            twoFactorEnabled?: boolean;
-            referralCode?: string;
-            referralEarningsUsd?: number;
-          }) => ({
-            id: m.id,
-            merchantId: m.merchantId,
-            name: m.name || "Untitled Merchant",
-            referralCode: m.referralCode,
-            referralEarningsUsd: m.referralEarningsUsd || 0,
-          }),
-        );
-        if (merchants.length > 0) {
-          if (!token.merchantId) token.merchantId = merchants[0].id;
-          if (!token.publicMerchantId)
-            token.publicMerchantId = merchants[0].merchantId;
+        if (oauthId) {
+          token.oauthId = oauthId;
+          const merchants = await fetchMerchants(oauthId);
 
-          const activeMerchant =
-            merchants.find((m: { id: string }) => m.id === token.merchantId) ||
-            merchants[0];
+          if (merchants.length === 0) {
+            console.log(
+              `[Auth] No merchants found. User must create first merchant manually.`,
+            );
+          }
 
-          token.referralCode = activeMerchant.referralCode;
-          token.referralEarningsUsd = activeMerchant.referralEarningsUsd || 0;
-          token.twoFactorRequired = activeMerchant.twoFactorEnabled || false;
-          token.twoFactorVerified = false;
+          token.merchants = merchants.map(
+            (m: {
+              id: string;
+              merchantId: string;
+              name?: string;
+              twoFactorEnabled?: boolean;
+              referralCode?: string;
+              referralEarningsUsd?: number;
+            }) => ({
+              id: m.id,
+              merchantId: m.merchantId,
+              name: m.name || "Untitled Merchant",
+              referralCode: m.referralCode,
+              referralEarningsUsd: m.referralEarningsUsd || 0,
+            }),
+          );
+
+          if (merchants.length > 0) {
+            if (!token.merchantId) token.merchantId = merchants[0].id;
+            if (!token.publicMerchantId)
+              token.publicMerchantId = merchants[0].merchantId;
+
+            const activeMerchant =
+              merchants.find(
+                (m: { id: string }) => m.id === token.merchantId,
+              ) || merchants[0];
+
+            token.referralCode = activeMerchant.referralCode;
+            token.referralEarningsUsd = activeMerchant.referralEarningsUsd || 0;
+            token.twoFactorRequired = activeMerchant.twoFactorEnabled || false;
+            token.twoFactorVerified = false;
+          }
         }
       }
 
@@ -101,6 +152,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             id: string;
             merchantId: string;
             name?: string;
+            logoUrl?: string;
             referralCode?: string;
             referralEarningsUsd?: number;
           }) => ({

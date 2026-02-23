@@ -12,6 +12,7 @@ import {
   Activity,
   Puzzle,
   Users,
+  Zap,
 } from "lucide-react";
 
 import {
@@ -47,6 +48,7 @@ const navGroups = [
   {
     label: "Network",
     items: [
+      { icon: Zap, label: "Staking", href: "/dashboard/staking" },
       { icon: Puzzle, label: "Ecosystem", href: "/dashboard/ecosystem" },
       { icon: Users, label: "Referrals", href: "/dashboard/referrals" },
       { icon: Code2, label: "Developers", href: "/dashboard/developers" },

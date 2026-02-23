@@ -5,8 +5,14 @@ import React from "react";
 export function AuthBackground() {
   return (
     <div className="absolute inset-0 z-0 overflow-hidden bg-[#050505]">
+      {/* Premium Base Texture */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-60 mix-blend-luminosity scale-[1.02] animate-pulse duration-[15s]"
+        style={{ backgroundImage: "url('/auth-bg.png')" }}
+      />
+
       <svg
-        className="absolute inset-0 w-full h-full opacity-40 mix-blend-screen"
+        className="absolute inset-0 w-full h-full opacity-30 mix-blend-screen"
         xmlns="http://www.w3.org/2000/svg"
       >
         <filter id="noiseFilter">
@@ -24,82 +30,34 @@ export function AuthBackground() {
           opacity="0.1"
         />
 
-        {/* Animated Mesh Gradients - Slow, hypnotic pulse */}
-        <g className="animate-pulse duration-[10s] ease-in-out infinite">
-          <circle cx="20%" cy="30%" r="40%" fill="url(#grad1)" />
-          <circle cx="80%" cy="70%" r="45%" fill="url(#grad2)" />
-          <circle cx="50%" cy="50%" r="35%" fill="url(#grad3)" />
-        </g>
-
-        {/* Floating Data Particles - Simulated Blockchain Nodes */}
-        <g className="opacity-60">
-          <circle
-            cx="15%"
-            cy="25%"
-            r="2"
-            fill="#10b981"
-            className="animate-ping duration-[4s] delay-[1s] infinite"
-          />
-          <circle
-            cx="85%"
-            cy="75%"
-            r="2"
-            fill="#3b82f6"
-            className="animate-ping duration-[5s] delay-[2s] infinite"
-          />
-          <circle
-            cx="55%"
-            cy="45%"
-            r="2"
-            fill="#8b5cf6"
-            className="animate-ping duration-[6s] delay-[0s] infinite"
-          />
-          <circle
-            cx="35%"
-            cy="65%"
-            r="1.5"
-            fill="#fff"
-            className="animate-pulse duration-[3s] infinite"
-          />
-          <circle
-            cx="65%"
-            cy="35%"
-            r="1.5"
-            fill="#fff"
-            className="animate-pulse duration-[4s] infinite"
-          />
-        </g>
-
+        {/* Neutral mesh accents for depth */}
         <defs>
           <radialGradient id="grad1" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#10b981" stopOpacity="0.2" />
-            <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
-          </radialGradient>
-          <radialGradient id="grad2" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.2" />
-            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
-          </radialGradient>
-          <radialGradient id="grad3" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.15" />
-            <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0" />
+            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.05" />
+            <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
           </radialGradient>
         </defs>
+
+        <g className="animate-pulse duration-[10s] ease-in-out infinite">
+          <circle cx="50%" cy="50%" r="50%" fill="url(#grad1)" />
+        </g>
       </svg>
 
       {/* Cyberpunk Grid Overlay */}
       <div
-        className="absolute inset-0 opacity-[0.06]"
+        className="absolute inset-0 opacity-[0.04]"
         style={{
           backgroundImage:
             "linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)",
-          backgroundSize: "60px 60px",
+          backgroundSize: "80px 80px",
           maskImage:
-            "radial-gradient(circle at center, transparent 30%, black 100%)", // Inverse vignette for the grid centers validity
+            "radial-gradient(circle at center, transparent 20%, black 100%)",
         }}
       />
 
-      {/* Deep Vignette for Focus */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#000_120%)] opacity-80" />
+      {/* Deep Vignette for Text Clarity */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#000_140%)] opacity-90" />
+      <div className="absolute inset-0 bg-linear-to-t from-black via-transparent to-transparent opacity-60" />
     </div>
   );
 }

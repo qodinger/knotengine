@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Store, Upload, Trash2, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { merchantSettingsSchema, MerchantSettings } from "../types";
+import { uploadLogo } from "@/actions/upload";
 
 interface MerchantDetailsDialogProps {
   open: boolean;
@@ -34,6 +35,7 @@ export function MerchantDetailsDialog({
   onSave,
   saving,
 }: MerchantDetailsDialogProps) {
+  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -80,7 +82,19 @@ export function MerchantDetailsDialog({
   };
 
   const onSubmit = async (data: MerchantSettings) => {
-    await onSave(data);
+    let finalLogoUrl = data.logoUrl;
+
+    // If it's a new base64 image, upload to Cloudinary first
+    if (data.logoUrl?.startsWith("data:image")) {
+      setUploading(true);
+      try {
+        finalLogoUrl = await uploadLogo(data.logoUrl, data.merchantId);
+      } finally {
+        setUploading(false);
+      }
+    }
+
+    await onSave({ ...data, logoUrl: finalLogoUrl });
     onOpenChange(false);
   };
 
@@ -237,9 +251,11 @@ export function MerchantDetailsDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={saving || !isValid}>
-              {saving && <Loader2 className="size-4 mr-2 animate-spin" />}
-              Save Changes
+            <Button type="submit" disabled={saving || uploading || !isValid}>
+              {(saving || uploading) && (
+                <Loader2 className="size-4 mr-2 animate-spin" />
+              )}
+              {uploading ? "Uploading..." : "Save Changes"}
             </Button>
           </DialogFooter>
         </form>
