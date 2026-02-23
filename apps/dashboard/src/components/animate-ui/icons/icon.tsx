@@ -1,6 +1,5 @@
 "use client";
 
-/* eslint-disable react-hooks/exhaustive-deps, react-hooks/rules-of-hooks */
 import * as React from "react";
 import {
   motion,
