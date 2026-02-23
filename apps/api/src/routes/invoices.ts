@@ -1,4 +1,4 @@
-import { FastifyInstance } from "fastify";
+import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { Invoice, Merchant, IInvoice, User } from "@qodinger/knot-database";
@@ -362,7 +362,10 @@ export async function invoiceRoutes(app: FastifyInstance) {
   // ──────────────────────────────────────────────
   server.get<{ Params: { id: string } }>(
     "/v1/invoices/:id",
-    async (request, reply) => {
+    async (
+      request: FastifyRequest<{ Params: { id: string } }>,
+      reply: FastifyReply,
+    ) => {
       const { id } = request.params;
 
       const invoice = await Invoice.findOne({ invoiceId: id }).populate<{

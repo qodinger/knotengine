@@ -100,7 +100,7 @@ export function MerchantDetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-border/50 sm:max-w-[500px]">
+      <DialogContent className="border-border/50 sm:max-w-125">
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">

@@ -80,7 +80,7 @@ function LoginContent() {
           <h3 className="text-xl font-bold tracking-tight text-white">
             Check your inbox
           </h3>
-          <p className="mx-auto max-w-[280px] text-sm text-zinc-500">
+          <p className="mx-auto max-w-70 text-sm text-zinc-500">
             We&apos;ve sent a magic link to{" "}
             <span className="font-medium text-white">{email}</span>. Click it to
             sign in instantly.
@@ -193,7 +193,7 @@ export default function LoginPage() {
             <h2 className="text-3xl font-bold tracking-tight text-white/90">
               The Protocol for Commerce
             </h2>
-            <p className="max-w-[420px] text-lg leading-relaxed text-zinc-500 italic">
+            <p className="max-w-105 text-lg leading-relaxed text-zinc-500 italic">
               &ldquo;Institutional-grade infrastructure for secure,
               non-custodial stablecoin settlements.&rdquo;
             </p>
@@ -203,7 +203,7 @@ export default function LoginPage() {
 
       {/* Right panel */}
       <div className="lg:p-8">
-        <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+        <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-87.5">
           <div className="flex flex-col space-y-2 text-center">
             <h1 className="text-2xl font-semibold tracking-tight">
               Welcome to KnotEngine

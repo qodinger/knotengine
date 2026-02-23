@@ -96,7 +96,7 @@ export function TopUpDialog({
         if (!open && !isClaiming) onOpenChange(false);
       }}
     >
-      <DialogContent className="bg-background overflow-hidden p-0 sm:max-w-[420px]">
+      <DialogContent className="bg-background overflow-hidden p-0 sm:max-w-105">
         <div className="p-6">
           <DialogHeader className="mb-6">
             <DialogTitle className="flex items-center gap-2 font-mono text-xl font-bold">
@@ -219,7 +219,7 @@ export function TopUpDialog({
                     }
                     disabled={!selectedCoin}
                   >
-                    <SelectTrigger className="bg-background/50 border-border/80 h-auto min-h-[44px] w-full items-center py-2 shadow-sm disabled:opacity-40">
+                    <SelectTrigger className="bg-background/50 border-border/80 h-auto min-h-11 w-full items-center py-2 shadow-sm disabled:opacity-40">
                       <SelectValue placeholder="Select a network" />
                     </SelectTrigger>
                     <SelectContent className="min-w-[320px]">

@@ -2,13 +2,20 @@
   "cSpell.words": [
     "bitcoinjs",
     "cloudflared",
+    "cooldown",
+    "Derivator",
     "HMAC",
     "knotengine",
     "Litecoin",
+    "nums",
     "qodinger",
+    "qrcode",
+    "regtest",
     "serviceworker",
     "stablecoins",
     "TOTP",
-    "Turborepo"
+    "Turborepo",
+    "UTXO",
+    "Xpub"
   ]
 }

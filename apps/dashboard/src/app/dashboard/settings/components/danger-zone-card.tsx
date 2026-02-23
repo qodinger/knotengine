@@ -75,7 +75,7 @@ export function DangerZoneCard({
       </Card>
 
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-106.25">
           <DialogHeader>
             <DialogTitle className="text-destructive flex items-center gap-2">
               <AlertTriangle className="size-5" />

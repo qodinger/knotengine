@@ -258,7 +258,7 @@ export function TestnetTab() {
           <Table>
             <TableHeader className="bg-muted/20">
               <TableRow className="border-border/30 h-12 hover:bg-transparent">
-                <TableHead className="w-[180px] pl-6 text-[10px] font-bold tracking-wider uppercase">
+                <TableHead className="w-45 pl-6 text-[10px] font-bold tracking-wider uppercase">
                   Invoice
                 </TableHead>
                 <TableHead className="text-[10px] font-bold tracking-wider uppercase">
@@ -348,7 +348,7 @@ export function TestnetTab() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1.5">
-                        <code className="text-muted-foreground max-w-[140px] truncate font-mono text-[10px]">
+                        <code className="text-muted-foreground max-w-35 truncate font-mono text-[10px]">
                           {inv.pay_address}
                         </code>
                         <Button
@@ -505,7 +505,7 @@ export function TestnetTab() {
         </Button>
       </div>
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-106.25">
           <DialogHeader>
             <DialogTitle>Create Test Invoice</DialogTitle>
             <DialogDescription>
@@ -580,7 +580,7 @@ export function TestnetTab() {
         open={!!simulateInvoice}
         onOpenChange={(open) => !open && setSimulateInvoice(null)}
       >
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-106.25">
           <DialogHeader>
             <DialogTitle>Simulate Payment Details</DialogTitle>
             <DialogDescription>
