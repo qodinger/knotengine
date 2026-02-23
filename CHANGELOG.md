@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **CSS Import Types** — Added CSS module declarations to resolve TypeScript "Cannot find module or type declarations" error for CSS imports in dashboard layout.
+
 ## [0.3.0] - 2026-02-23
 
 ### Added
