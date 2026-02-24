@@ -54,16 +54,20 @@ export async function authRoutes(app: FastifyInstance) {
               <meta charset="utf-8">
               <meta name="viewport" content="width=device-width, initial-scale=1.0">
               <title>Sign in to KnotEngine</title>
+              <link rel="preconnect" href="https://fonts.googleapis.com">
+              <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+              <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
             </head>
-            <body style="margin: 0; padding: 0; background-color: #000000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+            <body style="margin: 0; padding: 0; background-color: #050505; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
               <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: fixed;">
                 <tr>
-                  <td align="center" style="padding: 40px 0;">
-                    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 500px; background-color: #0a0a0a; border: 1px solid #222; border-radius: 16px; overflow: hidden;">
-                      <!-- Header/Logo Area -->
+                  <td align="center" style="padding: 60px 20px;">
+                    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 480px; background-color: #0c0c0c; border: 1px solid #1a1a1a; border-radius: 24px; overflow: hidden; box-shadow: 0 40px 100px -20px rgba(0,0,0,0.5);">
+                      
+                      <!-- Header -->
                       <tr>
-                        <td align="center" style="padding: 40px 40px 20px 40px;">
-                          <div style="font-size: 24px; font-weight: 800; letter-spacing: -0.5px; color: #ffffff;">
+                        <td align="center" style="padding: 48px 40px 32px 40px;">
+                          <div style="font-size: 20px; font-weight: 800; letter-spacing: 0.1em; color: #ffffff; text-transform: uppercase;">
                             KNOT<span style="color: #6366f1;">ENGINE</span>
                           </div>
                         </td>
@@ -71,28 +75,32 @@ export async function authRoutes(app: FastifyInstance) {
                       
                       <!-- Main Content -->
                       <tr>
-                        <td style="padding: 20px 40px 40px 40px; text-align: center;">
-                          <h1 style="color: #ffffff; font-size: 22px; font-weight: 600; margin: 0 0 16px 0;">Magic Link Login</h1>
-                          <p style="color: #a1a1aa; font-size: 16px; line-height: 24px; margin: 0 0 32px 0;">
-                            Click the button below to sign in to your merchant dashboard securely. This link is valid for 15 minutes.
+                        <td style="padding: 0 48px 48px 48px; text-align: center;">
+                          <h1 style="color: #ffffff; font-size: 24px; font-weight: 700; margin: 0 0 12px 0; letter-spacing: -0.02em;">Your dashboard is ready.</h1>
+                          <p style="color: #888888; font-size: 16px; line-height: 24px; margin: 0 0 32px 0;">
+                            Securely sign in to your workspace to manage global payments and settlements.
                           </p>
                           
                           <!-- Action Button -->
-                          <a href="${magicLink}" style="display: inline-block; background-color: #ffffff; color: #000000; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; transition: all 0.2s ease;">
-                            Sign in to Dashboard
-                          </a>
+                          <div style="margin-bottom: 40px;">
+                            <a href="${magicLink}" style="display: inline-block; background-color: #ffffff; color: #000000; padding: 16px 36px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 15px; letter-spacing: -0.01em;">
+                              Sign in to Dashboard
+                            </a>
+                          </div>
                           
-                          <p style="color: #52525b; font-size: 13px; margin-top: 40px; line-height: 20px;">
-                            If you didn't request this email, you can safely ignore it. For your security, please do not forward this email to anyone.
+                          <div style="height: 1px; background-color: #1a1a1a; margin-bottom: 32px;"></div>
+                          
+                          <p style="color: #444444; font-size: 13px; line-height: 20px; margin: 0;">
+                            This link expires in 15 minutes. Did not request this? You can safely ignore this email.
                           </p>
                         </td>
                       </tr>
                       
                       <!-- Footer -->
                       <tr>
-                        <td align="center" style="padding: 20px 40px; background-color: #111; border-top: 1px solid #222;">
-                          <p style="color: #71717a; font-size: 12px; margin: 0;">
-                            &copy; ${new Date().getFullYear()} KnotEngine. All rights reserved.
+                        <td align="center" style="padding: 24px 40px; background-color: #080808; border-top: 1px solid #1a1a1a;">
+                          <p style="color: #333333; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">
+                            &copy; ${new Date().getFullYear()} KnotEngine Protocol
                           </p>
                         </td>
                       </tr>

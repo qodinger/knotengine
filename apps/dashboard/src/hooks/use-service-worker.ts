@@ -22,33 +22,46 @@ export function useServiceWorker() {
   useEffect(() => {
     if (!isSupported) return;
 
-    // Register service worker
-    navigator.serviceWorker
-      .register("/sw.js")
-      .then((registration) => {
-        console.log("Service Worker registered:", registration);
-        setIsRegistered(true);
+    // Check if service worker is accessible before registering
+    fetch("/api/sw", { method: "HEAD" })
+      .then((response) => {
+        if (!response.ok) {
+          console.warn("Service worker API endpoint not available");
+          return;
+        }
 
-        // Check for updates
-        registration.addEventListener("updatefound", () => {
-          const newWorker = registration.installing;
-          if (newWorker) {
-            newWorker.addEventListener("statechange", () => {
-              if (
-                newWorker.state === "installed" &&
-                navigator.serviceWorker.controller
-              ) {
-                // New version available
-                if (confirm("New version available! Reload to update?")) {
-                  window.location.reload();
-                }
+        // Register service worker using API endpoint
+        navigator.serviceWorker
+          .register("/api/sw", { scope: "/" })
+          .then((registration) => {
+            console.log("Service Worker registered:", registration);
+            setIsRegistered(true);
+
+            // Check for updates
+            registration.addEventListener("updatefound", () => {
+              const newWorker = registration.installing;
+              if (newWorker) {
+                newWorker.addEventListener("statechange", () => {
+                  if (
+                    newWorker.state === "installed" &&
+                    navigator.serviceWorker.controller
+                  ) {
+                    // New version available
+                    if (confirm("New version available! Reload to update?")) {
+                      window.location.reload();
+                    }
+                  }
+                });
               }
             });
-          }
-        });
+          })
+          .catch((error) => {
+            console.error("Service Worker registration failed:", error);
+            // Don't show error to user, just log it
+          });
       })
       .catch((error) => {
-        console.error("Service Worker registration failed:", error);
+        console.error("Failed to check service worker availability:", error);
       });
 
     // Listen for install prompt

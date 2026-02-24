@@ -5,7 +5,14 @@ export default auth((req) => {
   const { pathname } = req.nextUrl;
 
   // Public routes — always accessible
-  const publicPaths = ["/login", "/register", "/api/auth"];
+  const publicPaths = [
+    "/login",
+    "/register",
+    "/api/auth",
+    "/api/sw",
+    "/manifest.json",
+    "/offline",
+  ];
   const isPublic = publicPaths.some((p) => pathname.startsWith(p));
 
   if (isPublic) return NextResponse.next();

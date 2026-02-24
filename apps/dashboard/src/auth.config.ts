@@ -5,7 +5,7 @@ export default auth((req) => {
   const { pathname } = req.nextUrl;
 
   // Public routes — always accessible
-  const publicPaths = ["/login", "/register", "/api/auth"];
+  const publicPaths = ["/login", "/register", "/api/auth", "/sw.js", "/api/sw"];
   const isPublic = publicPaths.some((p) => pathname.startsWith(p));
 
   if (isPublic) return NextResponse.next();
@@ -27,7 +27,8 @@ export const config = {
      * - _next/image (image optimization)
      * - favicon.ico
      * - public folder
+     * - service worker
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sw\\.js|api/sw|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
