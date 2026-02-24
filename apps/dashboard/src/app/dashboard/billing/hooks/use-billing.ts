@@ -156,8 +156,7 @@ export function useBilling() {
       await api.post("/v1/merchants/me/plan", { plan: newPlan });
       await fetchData();
     } catch (err: unknown) {
-      console.error("Failed to update plan", err);
-      if (axios.isAxiosError(err)) {
+      if (axios.isAxiosError(err) && err.response?.status === 400) {
         const errorData = err.response?.data;
         if (errorData?.required && errorData?.currentBalance !== undefined) {
           // Show insufficient balance warning
@@ -168,9 +167,14 @@ export function useBilling() {
             planName: newPlan.charAt(0).toUpperCase() + newPlan.slice(1),
             isProrated: errorData.isProrated || false,
           });
-        } else {
-          alert(errorData?.error || "Failed to update plan");
+          setLoading(false);
+          return; // Handled, don't log to console
         }
+      }
+
+      console.error("Failed to update plan", err);
+      if (axios.isAxiosError(err)) {
+        alert(err.response?.data?.error || "Failed to update plan");
       } else {
         alert("Failed to update plan");
       }
@@ -199,8 +203,7 @@ export function useBilling() {
         );
       }
     } catch (err: unknown) {
-      console.error("Failed to charge plan", err);
-      if (axios.isAxiosError(err)) {
+      if (axios.isAxiosError(err) && err.response?.status === 400) {
         const errorData = err.response?.data;
         if (errorData?.required && errorData?.currentBalance !== undefined) {
           // Show insufficient balance warning
@@ -211,9 +214,14 @@ export function useBilling() {
             planName: "Current Plan",
             isProrated: false,
           });
-        } else {
-          alert(errorData?.error || "Failed to process payment");
+          setLoading(false);
+          return; // Handled, don't log to console
         }
+      }
+
+      console.error("Failed to charge plan", err);
+      if (axios.isAxiosError(err)) {
+        alert(err.response?.data?.error || "Failed to process payment");
       } else {
         alert("Failed to process payment");
       }

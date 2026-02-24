@@ -1,14 +1,14 @@
 "use client";
 
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
 
 interface InsufficientBalanceWarningProps {
@@ -35,48 +35,55 @@ export function InsufficientBalanceWarning({
     : `Insufficient balance to upgrade to ${planName}. You need at least $${requiredAmount.toFixed(2)} in credits.`;
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
           <div className="flex items-center gap-2">
             <AlertTriangle className="size-5 text-orange-500" />
-            <AlertDialogTitle>Insufficient Balance</AlertDialogTitle>
+            <DialogTitle>Insufficient Balance</DialogTitle>
           </div>
-          <AlertDialogDescription className="text-sm">
-            {description}
-            <div className="bg-muted mt-3 rounded-md p-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Current Balance:</span>
-                <span className="font-medium">
-                  ${currentBalance.toFixed(2)}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Required:</span>
-                <span className="font-medium text-orange-600">
-                  ${requiredAmount.toFixed(2)}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm font-medium">
-                <span>Shortfall:</span>
-                <span className="text-red-600">
-                  ${(requiredAmount - currentBalance).toFixed(2)}
-                </span>
+          <DialogDescription className="text-sm" asChild>
+            <div>
+              {description}
+              <div className="bg-muted mt-3 rounded-md p-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    Current Balance:
+                  </span>
+                  <span className="font-medium">
+                    ${currentBalance.toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Required:</span>
+                  <span className="font-medium text-orange-600">
+                    ${requiredAmount.toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm font-medium">
+                  <span>Shortfall:</span>
+                  <span className="text-red-600">
+                    ${(requiredAmount - currentBalance).toFixed(2)}
+                  </span>
+                </div>
               </div>
             </div>
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogAction
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
             onClick={() => {
               onOpenChange(false);
               onTopUp?.();
             }}
           >
             Top Up Now
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
