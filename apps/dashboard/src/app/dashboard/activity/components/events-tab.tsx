@@ -202,7 +202,7 @@ export function EventsTab() {
         onOpenChange={(open) => !open && setSelectedEvent(null)}
       >
         <SheetContent className="w-[450px] px-0 sm:w-[540px]">
-          <SheetHeader className="border-b px-8 pb-6">
+          <SheetHeader className="border-b px-8 pt-8 pb-6">
             <div className="mb-2 flex items-center gap-3">
               {selectedEvent && <EventIcon type={selectedEvent.type} />}
               <Badge

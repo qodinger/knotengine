@@ -1,18 +1,24 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertTriangle, Clock } from "lucide-react";
+import { AlertTriangle, Clock, Zap, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface GracePeriodStatusProps {
   isActive: boolean;
   daysRemaining?: number;
   planName: string;
+  onActivate?: () => void;
+  isCharging?: boolean;
 }
 
 export function GracePeriodStatus({
   isActive,
   daysRemaining,
   planName,
+  onActivate,
+  isCharging,
 }: GracePeriodStatusProps) {
   if (!isActive) return null;
 
@@ -48,16 +54,37 @@ export function GracePeriodStatus({
               </p>
             ) : (
               <>
-                <p
-                  className={`${isUrgent ? "text-orange-600" : "text-yellow-600"} mt-1 text-sm`}
-                >
-                  {daysRemaining && (
-                    <>
-                      {daysRemaining} day{daysRemaining === 1 ? "" : "s"}{" "}
-                      remaining until automatic downgrade to Starter plan.
-                    </>
-                  )}
-                </p>
+                <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                  <p
+                    className={`${isUrgent ? "text-orange-600" : "text-yellow-600"} mt-1 text-sm`}
+                  >
+                    {daysRemaining !== undefined && (
+                      <>
+                        {daysRemaining} day{daysRemaining === 1 ? "" : "s"}{" "}
+                        remaining until automatic downgrade to Starter plan.
+                      </>
+                    )}
+                  </p>
+
+                  <Button
+                    size="sm"
+                    onClick={onActivate}
+                    disabled={isCharging}
+                    className={cn(
+                      "h-8 gap-1.5 text-[10px] font-bold tracking-wider uppercase",
+                      isUrgent
+                        ? "bg-orange-600 hover:bg-orange-700"
+                        : "bg-yellow-600 hover:bg-yellow-700",
+                    )}
+                  >
+                    {isCharging ? (
+                      <Loader2 className="size-3 animate-spin" />
+                    ) : (
+                      <Zap className="size-3" />
+                    )}
+                    Activate Plan
+                  </Button>
+                </div>
                 {daysRemaining && daysRemaining <= 3 && (
                   <div className="mt-3 rounded border border-current/20 bg-white/50 p-2">
                     <p className="text-xs font-medium text-current">

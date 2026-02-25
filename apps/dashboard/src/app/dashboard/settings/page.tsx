@@ -1,7 +1,7 @@
 "use client";
 
+import { useState } from "react";
 import { useSettings } from "./hooks/use-settings";
-import { SettingsHeader } from "./components/settings-header";
 import { MerchantDetailsCard } from "./components/merchant-details-card";
 import { TwoFactorCard } from "./components/two-factor-card";
 import { PaymentEngineCard } from "./components/payment-engine-card";
@@ -9,6 +9,15 @@ import { TwoFASetupDialog } from "./components/two-fa-setup-dialog";
 import { TwoFADisableDialog } from "./components/two-fa-disable-dialog";
 import { DangerZoneCard } from "./components/danger-zone-card";
 import { SuccessToast } from "./components/success-toast";
+import { SubNavLayout } from "@/components/sub-nav-layout";
+import { Store, ShieldCheck, Sliders, Trash2 } from "lucide-react";
+
+const sections = [
+  { label: "Merchant Details", value: "merchant", icon: Store },
+  { label: "Security", value: "security", icon: ShieldCheck },
+  { label: "Payment Engine", value: "payment", icon: Sliders },
+  { label: "Danger Zone", value: "danger", icon: Trash2 },
+];
 
 export default function SettingsPage() {
   const {
@@ -40,22 +49,26 @@ export default function SettingsPage() {
     handleDisable2FA,
   } = useSettings();
 
-  return (
-    <div className="flex flex-col gap-6">
-      <SettingsHeader />
+  const [activeSection, setActiveSection] = useState("merchant");
 
-      <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
-        {/* Merchant Details - Full width on large screens */}
-        <div className="lg:col-span-1 xl:col-span-2">
+  return (
+    <>
+      <SubNavLayout
+        title="Settings"
+        description="Manage your merchant configuration and preferences."
+        items={sections}
+        activeSection={activeSection}
+        onSectionChange={setActiveSection}
+      >
+        {activeSection === "merchant" && (
           <MerchantDetailsCard
             formData={formData}
             onSave={handleSave}
             saving={saving}
           />
-        </div>
+        )}
 
-        {/* Two Factor Auth */}
-        <div className="lg:col-span-1 xl:col-span-1">
+        {activeSection === "security" && (
           <TwoFactorCard
             twoFactorEnabled={twoFactorEnabled}
             onEnable={handleSetup2FA}
@@ -66,30 +79,28 @@ export default function SettingsPage() {
             }}
             loading={twoFALoading}
           />
-        </div>
+        )}
 
-        {/* Payment Engine - Full width */}
-        <div className="lg:col-span-2 xl:col-span-3">
+        {activeSection === "payment" && (
           <PaymentEngineCard
             formData={formData}
             onSave={handleSave}
             saving={saving}
           />
-        </div>
-      </div>
+        )}
 
-      {/* Danger Zone - Always full width, separated */}
-      <div>
-        <DangerZoneCard
-          businessName={formData.businessName}
-          isDeleteDialogOpen={deleteDialogOpen}
-          setIsDeleteDialogOpen={setDeleteDialogOpen}
-          deleteConfirmationName={deleteConfirmationName}
-          setDeleteConfirmationName={setDeleteConfirmationName}
-          onDelete={handleDeleteMerchant}
-          isDeleting={deleting}
-        />
-      </div>
+        {activeSection === "danger" && (
+          <DangerZoneCard
+            businessName={formData.businessName}
+            isDeleteDialogOpen={deleteDialogOpen}
+            setIsDeleteDialogOpen={setDeleteDialogOpen}
+            deleteConfirmationName={deleteConfirmationName}
+            setDeleteConfirmationName={setDeleteConfirmationName}
+            onDelete={handleDeleteMerchant}
+            isDeleting={deleting}
+          />
+        )}
+      </SubNavLayout>
 
       <TwoFASetupDialog
         open={twoFASetupDialogOpen}
@@ -115,6 +126,6 @@ export default function SettingsPage() {
       />
 
       <SuccessToast show={success} />
-    </div>
+    </>
   );
 }

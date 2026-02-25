@@ -12,4 +12,6 @@ export interface StatsData {
     LTC: string | null;
     EVM: string | null;
   };
+  isGracePeriod?: boolean;
+  gracePeriodEnds?: string;
 }

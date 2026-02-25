@@ -4,28 +4,31 @@ import { Suspense, useCallback, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Key, FlaskConical, Webhook, Copy, Check } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { SubNavLayout } from "@/components/sub-nav-layout";
 
 import { ApiKeysTab } from "./components/api-keys-tab";
 import { TestnetTab } from "./components/testnet-tab";
 import { WebhooksTab } from "./components/webhooks-tab";
+
+const sections = [
+  { label: "API Keys", value: "api-keys", icon: Key },
+  { label: "Simulator", value: "testnet", icon: FlaskConical },
+  { label: "Webhooks", value: "webhooks", icon: Webhook },
+];
 
 function DevelopersContent() {
   const searchParams = useSearchParams();
   const initialTab = searchParams.get("tab") || "api-keys";
 
   const { data: session } = useSession();
-  const [activeTab, setActiveTab] = useState(initialTab);
+  const [activeSection, setActiveSection] = useState(initialTab);
   const [copied, setCopied] = useState(false);
 
   const user = session?.user as
-    | {
-        publicMerchantId?: string;
-        merchantId?: string;
-      }
+    | { publicMerchantId?: string; merchantId?: string }
     | undefined;
   const displayMerchantId = user?.publicMerchantId || user?.merchantId || "";
 
@@ -36,27 +39,24 @@ function DevelopersContent() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Sync state if URL changes organically (e.g. user hits back button)
   useEffect(() => {
-    setActiveTab(initialTab);
+    setActiveSection(initialTab);
   }, [initialTab]);
 
-  const handleTabChange = useCallback((value: string) => {
-    setActiveTab(value);
+  const handleSectionChange = useCallback((value: string) => {
+    setActiveSection(value);
     window.history.replaceState(null, "", `?tab=${value}`);
   }, []);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Developers</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            API keys, testing tools, and integration resources.
-          </p>
-        </div>
-
-        {displayMerchantId && (
+    <SubNavLayout
+      title="Developers"
+      description="API keys, testing tools, and integration resources."
+      items={sections}
+      activeSection={activeSection}
+      onSectionChange={handleSectionChange}
+      headerExtra={
+        displayMerchantId ? (
           <div className="flex shrink-0 flex-col justify-end gap-1 sm:w-80">
             <Label className="text-muted-foreground text-[10px] font-bold tracking-widest uppercase">
               Merchant ID
@@ -81,52 +81,13 @@ function DevelopersContent() {
               </Button>
             </div>
           </div>
-        )}
-      </div>
-
-      <Tabs
-        value={activeTab}
-        onValueChange={handleTabChange}
-        className="w-full"
-      >
-        <TabsList className="bg-muted/30 h-9 w-auto">
-          <TabsTrigger
-            value="api-keys"
-            className="gap-1.5 px-3 text-xs font-medium"
-          >
-            <Key className="size-3" />
-            API Keys
-          </TabsTrigger>
-
-          <TabsTrigger
-            value="testnet"
-            className="gap-1.5 px-3 text-xs font-medium"
-          >
-            <FlaskConical className="size-3" />
-            Simulator
-          </TabsTrigger>
-          <TabsTrigger
-            value="webhooks"
-            className="gap-1.5 px-3 text-xs font-medium"
-          >
-            <Webhook className="size-3" />
-            Webhooks
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="api-keys" className="mt-6 space-y-6">
-          <ApiKeysTab />
-        </TabsContent>
-
-        <TabsContent value="testnet" className="mt-6 space-y-6">
-          <TestnetTab />
-        </TabsContent>
-
-        <TabsContent value="webhooks" className="mt-6 space-y-6">
-          <WebhooksTab />
-        </TabsContent>
-      </Tabs>
-    </div>
+        ) : undefined
+      }
+    >
+      {activeSection === "api-keys" && <ApiKeysTab />}
+      {activeSection === "testnet" && <TestnetTab />}
+      {activeSection === "webhooks" && <WebhooksTab />}
+    </SubNavLayout>
   );
 }
 

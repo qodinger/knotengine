@@ -73,11 +73,16 @@ const navGroups = [
     ],
   },
   {
-    label: "Network",
+    label: "Growth",
     items: [
       { icon: Zap, label: "Staking", href: "/dashboard/staking" },
-      { icon: Puzzle, label: "Ecosystem", href: "/dashboard/ecosystem" },
       { icon: Users, label: "Referrals", href: "/dashboard/referrals" },
+      { icon: Puzzle, label: "Ecosystem", href: "/dashboard/ecosystem" },
+    ],
+  },
+  {
+    label: "Developer",
+    items: [
       { icon: Code2, label: "Developers", href: "/dashboard/developers" },
     ],
   },
