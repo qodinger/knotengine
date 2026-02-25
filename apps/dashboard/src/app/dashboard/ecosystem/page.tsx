@@ -84,10 +84,10 @@ import { EcosystemHeader } from "./components/ecosystem-header";
 
 export default function EcosystemPage() {
   return (
-    <div className="flex flex-col gap-6 pb-10">
+    <div className="flex flex-col gap-6">
       <EcosystemHeader />
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         {partners.map((partner) => (
           <Card
             key={partner.id}

@@ -72,7 +72,7 @@ export default function SupportPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
         {HELP_CATEGORIES.map((cat) => (
           <Card
             key={cat.title}
@@ -104,7 +104,7 @@ export default function SupportPage() {
         ))}
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-8 lg:grid-cols-2">
+      <div className="mt-4 grid grid-cols-1 gap-8 xl:grid-cols-2">
         <div className="space-y-6">
           <div className="mb-2 flex items-center gap-2">
             <MessageSquare className="text-primary size-5" />
