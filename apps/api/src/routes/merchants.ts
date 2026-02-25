@@ -1295,15 +1295,15 @@ export async function merchantRoutes(app: FastifyInstance) {
               if (referrerMerchant) {
                 await NotificationService.create({
                   merchantId: referrerMerchant._id.toString(),
-                  title: "Referral Bonus Received! 🎁",
-                  description: `You earned $${referralBonus.toFixed(2)} from a user top-up.`,
+                  title: "Affiliate Commission Received! 🎁",
+                  description: `You earned $${referralBonus.toFixed(2)} from an affiliate top-up.`,
                   type: "success",
-                  link: "/dashboard/referrals",
+                  link: "/dashboard/affiliates",
                 });
               }
 
               server.log.info(
-                `🎁 Referral Bonus: User(${user.referredBy}) +$${referralBonus} (From User(${user._id}))`,
+                `🎁 Affiliate Commission: User(${user.referredBy}) +$${referralBonus} (From User(${user._id}))`,
               );
             }
           }

@@ -55,7 +55,7 @@ const animatedIconsMap: Record<string, React.ElementType> = {
   Billing: HandCoinsIcon,
   Staking: ZapIcon,
   Ecosystem: BlocksIcon,
-  Referrals: UsersIcon,
+  "Affiliate Program": UsersIcon,
   Developers: TerminalIcon,
   Settings: SettingsIcon,
   "Help & Support": MessageCircleIcon,
@@ -81,7 +81,11 @@ const navGroups = [
         href: "/dashboard/staking",
         disabled: true,
       },
-      { icon: Users, label: "Referrals", href: "/dashboard/referrals" },
+      {
+        icon: Users,
+        label: "Affiliate Program",
+        href: "/dashboard/affiliates",
+      },
       {
         icon: Puzzle,
         label: "Ecosystem",
