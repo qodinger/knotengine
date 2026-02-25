@@ -30,7 +30,7 @@ interface RecentInvoicesProps {
 
 export function RecentInvoices({ invoices }: RecentInvoicesProps) {
   return (
-    <Card className="bg-card/40 border-border/50 flex flex-col shadow-sm backdrop-blur-md lg:col-span-3">
+    <Card className="bg-card/40 border-border/50 flex flex-col shadow-sm backdrop-blur-md xl:col-span-3">
       <CardHeader>
         <CardTitle>Recent Invoices</CardTitle>
         <CardDescription>Latest invoices from your account.</CardDescription>

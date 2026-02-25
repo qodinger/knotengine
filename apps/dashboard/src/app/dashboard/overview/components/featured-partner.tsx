@@ -10,7 +10,7 @@ export function FeaturedPartner() {
     <Card className="relative overflow-hidden border-emerald-500/20 bg-emerald-500/5">
       <div className="absolute top-0 right-0 -mt-8 -mr-8 h-32 w-32 bg-emerald-500/10 blur-3xl" />
       <CardContent className="p-6">
-        <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
+        <div className="flex flex-col items-center justify-between gap-6 lg:flex-row">
           <div className="flex items-center gap-4">
             <div className="rounded-2xl bg-emerald-500/10 p-3 text-emerald-500">
               <ShieldCheck className="size-6" />

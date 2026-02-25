@@ -34,7 +34,7 @@ interface VolumeChartProps {
 
 export function VolumeChart({ data, period, setPeriod }: VolumeChartProps) {
   return (
-    <Card className="bg-card/40 border-border/50 shadow-sm backdrop-blur-md lg:col-span-4">
+    <Card className="bg-card/40 border-border/50 shadow-sm backdrop-blur-md xl:col-span-4">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>

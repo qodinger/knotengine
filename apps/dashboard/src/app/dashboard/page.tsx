@@ -20,7 +20,7 @@ export default function DashboardOverview() {
 
       <OverviewStats data={data} loading={loading} />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-7">
+      <div className="grid gap-4 xl:grid-cols-7">
         <VolumeChart data={data} period={period} setPeriod={setPeriod} />
         <RecentInvoices invoices={recentInvoices} />
       </div>
