@@ -36,8 +36,8 @@ export default function AffiliatesPage() {
   const affiliateEarningsUsd = session?.user?.referralEarningsUsd || 0;
 
   const affiliateLink = affiliateCode
-    ? `https://knotengine.com/register?ref=${affiliateCode}`
-    : "https://knotengine.com/register?ref=...";
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/register?ref=${affiliateCode}`
+    : `${typeof window !== "undefined" ? window.location.origin : ""}/register?ref=...`;
 
   const copyToClipboard = () => {
     if (!affiliateCode) return;
