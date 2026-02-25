@@ -12,14 +12,22 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export function useServiceWorker() {
-  const isSupported =
-    typeof window !== "undefined" && "serviceWorker" in navigator;
+  const isSupported = false; // Disable service worker to prevent caching issues
   const [isRegistered, setIsRegistered] = useState(false);
   const [installPrompt, setInstallPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [canInstall, setCanInstall] = useState(false);
 
   useEffect(() => {
+    // Unregister any existing service workers that might be causing ERR_FAILED
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (const registration of registrations) {
+          registration.unregister();
+        }
+      });
+    }
+
     if (!isSupported) return;
 
     // Check if service worker is accessible before registering

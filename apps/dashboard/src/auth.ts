@@ -106,6 +106,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             console.log(
               `[Auth] No merchants found. User must create first merchant manually.`,
             );
+            token.hasNoMerchants = true;
+          } else {
+            token.hasNoMerchants = false;
           }
 
           token.merchants = merchants.map(
@@ -147,6 +150,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (trigger === "update" && token.oauthId) {
         // Refresh list to pick up new creations
         const merchants = await fetchMerchants(token.oauthId as string);
+        token.hasNoMerchants = merchants.length === 0;
         token.merchants = merchants.map(
           (m: {
             id: string;
@@ -219,9 +223,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
 
       // 3. Proactive Refresh (If missing critical data but allowed)
-      if (!token.publicMerchantId && token.oauthId && trigger !== "update") {
+      if (
+        !token.publicMerchantId &&
+        !token.hasNoMerchants &&
+        token.oauthId &&
+        trigger !== "update"
+      ) {
         const merchants = await fetchMerchants(token.oauthId as string);
-        if (merchants.length > 0) {
+        if (merchants.length === 0) {
+          token.hasNoMerchants = true;
+        } else {
+          token.hasNoMerchants = false;
           const activeId = token.merchantId || merchants[0].id;
           const activeMerchant =
             merchants.find((m: { id: string }) => m.id === activeId) ||

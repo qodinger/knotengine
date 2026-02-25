@@ -8,6 +8,7 @@ import { CreditBalanceCard } from "./components/credit-balance-card";
 import { TopUpDialog } from "./components/top-up-dialog";
 import { HowItWorks } from "./components/how-it-works";
 import { InsufficientBalanceWarning } from "./components/insufficient-balance-warning";
+import { PromoCodeCard } from "./components/promo-code-card";
 
 export default function BillingPage() {
   const {
@@ -40,6 +41,7 @@ export default function BillingPage() {
     insufficientBalance,
     setInsufficientBalance,
     handleWarningClose,
+    fetchData,
   } = useBilling();
 
   const isTopUpDisabled =
@@ -56,6 +58,8 @@ export default function BillingPage() {
       />
 
       <CreditBalanceCard stats={stats} loading={loading} />
+
+      <PromoCodeCard onSuccess={fetchData} />
 
       {!loading && isTopUpDisabled && (
         <Card className="border-border/40 border-2 border-dashed">

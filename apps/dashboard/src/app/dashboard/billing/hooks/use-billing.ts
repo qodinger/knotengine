@@ -261,5 +261,6 @@ export function useBilling() {
     setInsufficientBalance,
     handleWarningClose,
     handleChargePlan,
+    fetchData,
   };
 }

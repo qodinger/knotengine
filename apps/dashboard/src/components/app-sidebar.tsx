@@ -14,6 +14,19 @@ import {
   Users,
   Zap,
 } from "lucide-react";
+import {
+  HomeIcon,
+  CircleDollarSignIcon,
+  DollarSignIcon,
+  TerminalIcon,
+  SettingsIcon,
+  MessageCircleIcon,
+  ActivityIcon,
+  BlocksIcon,
+  UsersIcon,
+  ZapIcon,
+  HandCoinsIcon,
+} from "lucide-animated";
 
 import {
   Sidebar,
@@ -33,6 +46,20 @@ import Link from "next/link";
 import { MerchantSwitcher } from "./merchant-switcher";
 import { usePathname } from "next/navigation";
 import packageJson from "../../package.json";
+
+const animatedIconsMap: Record<string, React.ElementType> = {
+  Dashboard: HomeIcon,
+  Payments: CircleDollarSignIcon,
+  "Activity Log": ActivityIcon,
+  Balances: DollarSignIcon,
+  Billing: HandCoinsIcon,
+  Staking: ZapIcon,
+  Ecosystem: BlocksIcon,
+  Referrals: UsersIcon,
+  Developers: TerminalIcon,
+  Settings: SettingsIcon,
+  "Help & Support": MessageCircleIcon,
+};
 
 const navGroups = [
   {
@@ -63,6 +90,45 @@ const navGroups = [
   },
 ];
 
+type NavItem = {
+  icon: React.ElementType;
+  label: string;
+  href: string;
+};
+
+function SidebarNavItem({ item, active }: { item: NavItem; active: boolean }) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const iconRef = React.useRef<any>(null);
+  const AnimatedIcon = animatedIconsMap[item.label];
+  const Icon = AnimatedIcon || item.icon;
+
+  return (
+    <SidebarMenuItem className="group">
+      <SidebarMenuButton
+        asChild
+        isActive={active}
+        tooltip={item.label}
+        className="h-9 font-medium transition-all duration-150 ease-in-out"
+        onMouseEnter={() => iconRef.current?.startAnimation?.()}
+        onMouseLeave={() => iconRef.current?.stopAnimation?.()}
+      >
+        <Link href={item.href}>
+          {AnimatedIcon ? (
+            <Icon
+              ref={iconRef}
+              size={16}
+              className="flex size-4 shrink-0 items-center justify-center"
+            />
+          ) : (
+            <Icon className="size-4 shrink-0" />
+          )}
+          <span>{item.label}</span>
+        </Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+}
+
 export function AppSidebar() {
   const pathname = usePathname();
 
@@ -92,19 +158,11 @@ export function AppSidebar() {
                 <SidebarGroupContent>
                   <SidebarMenu>
                     {group.items.map((item) => (
-                      <SidebarMenuItem key={item.href} className="group">
-                        <SidebarMenuButton
-                          asChild
-                          isActive={isActive(item.href)}
-                          tooltip={item.label}
-                          className="h-9 font-medium transition-all duration-150 ease-in-out hover:scale-105"
-                        >
-                          <Link href={item.href}>
-                            <item.icon className="size-4" />
-                            <span>{item.label}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
+                      <SidebarNavItem
+                        key={item.href}
+                        item={item}
+                        active={isActive(item.href)}
+                      />
                     ))}
                   </SidebarMenu>
                 </SidebarGroupContent>
