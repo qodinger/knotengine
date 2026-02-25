@@ -233,6 +233,9 @@ export async function merchantRoutes(app: FastifyInstance) {
       const welcomeCredit = parseFloat(
         process.env.WELCOME_CREDIT_AMOUNT || "5.00",
       );
+      const affiliateSignupBonus = parseFloat(
+        process.env.AFFILIATE_SIGNUP_BONUS || "5.00",
+      );
 
       // 1. Resolve or Create User Identity (OAuth)
       let userId: typeof User.prototype._id | undefined = undefined;
@@ -241,23 +244,30 @@ export async function merchantRoutes(app: FastifyInstance) {
         if (!user) {
           // Resolve Referrer for the new User
           let referrerId: typeof User.prototype._id | undefined = undefined;
+          let isAffiliatSignup = false;
           if (referralCode) {
             const referrer = await User.findOne({ referralCode });
             if (referrer) {
               referrerId = referrer._id;
+              isAffiliatSignup = true;
             }
           }
+
+          // Affiliate signups get an extra bonus on top of the welcome credit
+          const startingCredit = isAffiliatSignup
+            ? welcomeCredit + affiliateSignupBonus
+            : welcomeCredit;
 
           user = await User.create({
             oauthId,
             email,
-            creditBalance: welcomeCredit,
+            creditBalance: startingCredit,
             welcomeBonusClaimed: true,
             referralCode: await generateReferralCode(),
             referredBy: referrerId,
           });
           server.log.info(
-            `👤 New User Identity created: ${oauthId} (+$${welcomeCredit} bonus)`,
+            `👤 New User Identity created: ${oauthId} (+$${startingCredit} credit${isAffiliatSignup ? ` [affiliate bonus included]` : ""})`,
           );
         }
         userId = user._id;

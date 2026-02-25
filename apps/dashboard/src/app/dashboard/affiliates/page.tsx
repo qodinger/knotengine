@@ -128,6 +128,23 @@ export default function AffiliatesPage() {
                 </CardDescription>
               </div>
             </div>
+            {/* Affiliate incentive highlight */}
+            <div className="flex items-center gap-3 rounded-xl border border-emerald-500/15 bg-emerald-500/8 p-3">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/15">
+                <Gift className="size-4 text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-white/90">
+                  Your affiliate gets{" "}
+                  <span className="text-emerald-400">$10 credit</span> — double
+                  the standard bonus
+                </p>
+                <p className="text-muted-foreground mt-0.5 text-[10px]">
+                  Standard signup is $5. With your link: $10. That&apos;s your
+                  pitch.
+                </p>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="relative flex-1 space-y-6">
             <div className="flex gap-2">
@@ -219,11 +236,11 @@ export default function AffiliatesPage() {
                 },
                 {
                   step: "2",
-                  text: "They register under your link and perform a Stablecoin top-up.",
+                  text: "They register and get $10 credit (double the standard $5) — then perform a Stablecoin top-up.",
                 },
                 {
                   step: "3",
-                  text: "You receive 10% of their deposit as credit — tracked forever.",
+                  text: "You receive 10% of their deposit as credit — tracked and paid forever.",
                 },
               ].map((item, i) => (
                 <div
@@ -247,14 +264,14 @@ export default function AffiliatesPage() {
                 Commission Example
               </h4>
               <p className="text-muted-foreground text-xs leading-relaxed antialiased">
-                If your affiliate tops up{" "}
-                <span className="font-bold text-white">$1,000 USDT</span>, they
-                receive their credits, and{" "}
+                Your affiliate signs up and gets{" "}
+                <span className="font-bold text-white">$10 credit</span>{" "}
+                (instead of the normal $5). When they top up{" "}
+                <span className="font-bold text-white">$1,000 USDT</span>,{" "}
                 <span className="font-bold text-emerald-500">
                   you instantly receive $100
                 </span>
-                . Refer 10 merchants doing the same, and your processing fees
-                stay free forever.
+                . Refer 10 merchants and your processing fees stay free forever.
               </p>
             </div>
           </CardContent>
