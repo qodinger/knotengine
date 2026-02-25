@@ -22,6 +22,7 @@ import { SUPPORTED_CURRENCIES } from "@qodinger/knot-types";
 import { WebhookDispatcher } from "../infra/webhook-dispatcher.js";
 import { NotificationService } from "../infra/notification-service.js";
 import { ipAllowlistMiddleware } from "../infra/ip-allowlist.js";
+import { AuditLogger } from "../core/audit-logger.js";
 
 const bip32 = BIP32Factory(ecc);
 
@@ -295,6 +296,19 @@ export async function merchantRoutes(app: FastifyInstance) {
       });
 
       server.log.info(`Merchant created: ${newMerchant.id}`);
+
+      // Audit log merchant creation
+      if (userId) {
+        await AuditLogger.account(
+          userId.toString(),
+          "merchant_created",
+          request,
+          {
+            merchantId: newMerchant.merchantId,
+            name,
+          },
+        );
+      }
 
       return reply.code(201).send({
         id: newMerchant.merchantId,
@@ -629,6 +643,14 @@ export async function merchantRoutes(app: FastifyInstance) {
 
       server.log.info(`[Settings] Updated DB result name: '${updated?.name}'`);
 
+      // Audit log profile update
+      await AuditLogger.settings(
+        merchant.userId?.toString() || merchant._id.toString(),
+        "profile_updated",
+        request,
+        { fields: Object.keys(updates) },
+      );
+
       return {
         id: updated.merchantId,
         merchantId: updated.merchantId,
@@ -738,6 +760,13 @@ export async function merchantRoutes(app: FastifyInstance) {
       });
 
       server.log.warn(`⚠️ API Key rotated for merchant: ${merchant._id}`);
+
+      // Audit log key rotation
+      await AuditLogger.security(
+        merchant.userId?.toString() || merchant._id.toString(),
+        "api_key_generated", // We use generated as the action for rotation too
+        request,
+      );
 
       return reply.code(200).send({
         message: "API Key rotated successfully. Old key is now invalid.",
@@ -1673,7 +1702,6 @@ export async function merchantRoutes(app: FastifyInstance) {
       });
 
       // Audit log
-      const AuditLogger = (await import("../core/audit-logger.js")).AuditLogger;
       await AuditLogger.security(
         merchant.userId?.toString() || merchant._id.toString(),
         "ip_allowlist_updated",
@@ -1741,7 +1769,8 @@ export async function merchantRoutes(app: FastifyInstance) {
 // ──────────────────────────────────────────────
 function ipInCidr(ip: string, cidr: string): boolean {
   const [range, bits] = cidr.split("/");
-  const mask = ~(~0 << parseInt(bits));
+  const bitCount = parseInt(bits, 10);
+  const mask = bitCount === 0 ? 0 : (0xffffffff << (32 - bitCount)) >>> 0;
 
   const ipNum = ipToNumber(ip);
   const rangeNum = ipToNumber(range);

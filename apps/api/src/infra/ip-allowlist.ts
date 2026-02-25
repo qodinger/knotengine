@@ -71,7 +71,8 @@ export async function ipAllowlistMiddleware(
  */
 function ipInCidr(ip: string, cidr: string): boolean {
   const [range, bits] = cidr.split("/");
-  const mask = ~(~0 << parseInt(bits));
+  const bitCount = parseInt(bits, 10);
+  const mask = bitCount === 0 ? 0 : (0xffffffff << (32 - bitCount)) >>> 0;
 
   const ipNum = ipToNumber(ip);
   const rangeNum = ipToNumber(range);
