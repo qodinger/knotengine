@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { Invoice, TimelineEvent } from "../types";
 
+type MerchantPlan = "starter" | "professional" | "enterprise";
+
 export function usePayments() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
@@ -17,6 +19,7 @@ export function usePayments() {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
   const [loadingTimeline, setLoadingTimeline] = useState(false);
+  const [plan, setPlan] = useState<MerchantPlan | undefined>(undefined);
 
   const fetchInvoices = useCallback(async () => {
     setLoading(true);
@@ -26,8 +29,14 @@ export function usePayments() {
         params.include_testnet = "true";
         params.only_testnet = "true";
       }
-      const res = await api.get("/v1/invoices", { params });
-      setInvoices(res.data.data);
+      const [invoicesRes, statsRes] = await Promise.all([
+        api.get("/v1/invoices", { params }),
+        api.get("/v1/merchants/me/stats"),
+      ]);
+      setInvoices(invoicesRes.data.data);
+      if (statsRes.data?.currentPlan) {
+        setPlan(statsRes.data.currentPlan as MerchantPlan);
+      }
     } catch (err) {
       console.error("Failed to fetch invoices", err);
     } finally {
@@ -135,6 +144,7 @@ export function usePayments() {
   return {
     invoices,
     loading,
+    plan,
     searchTerm,
     setSearchTerm,
     activeTab,

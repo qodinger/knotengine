@@ -2,6 +2,7 @@
 
 import { Suspense } from "react";
 import { usePayments } from "./hooks/use-payments";
+import { useExportCsv } from "./hooks/use-export-csv";
 import { PaymentsHeader } from "./components/payments-header";
 import { PaymentsStats } from "./components/payments-stats";
 import { PaymentsTable } from "./components/payments-table";
@@ -10,6 +11,7 @@ import { InvoiceDetailsSheet } from "./components/invoice-details-sheet";
 function PaymentsContent() {
   const {
     loading,
+    plan,
     searchTerm,
     setSearchTerm,
     activeTab,
@@ -26,9 +28,21 @@ function PaymentsContent() {
     handleResolve,
   } = usePayments();
 
+  const { exportCsv, isExporting } = useExportCsv();
+
+  const handleExport = () => {
+    exportCsv(filteredInvoices, plan);
+  };
+
   return (
     <div className="flex flex-col gap-6">
-      <PaymentsHeader activeTab={activeTab} />
+      <PaymentsHeader
+        activeTab={activeTab}
+        plan={plan}
+        onExport={handleExport}
+        isExporting={isExporting}
+        invoiceCount={filteredInvoices.length}
+      />
 
       <PaymentsStats
         activeTab={activeTab}
