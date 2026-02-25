@@ -61,7 +61,14 @@ export async function invoiceRoutes(app: FastifyInstance) {
         oauthId: { $regex: new RegExp(`^${oauthId}(:|$)`) },
         isActive: true,
       };
-      if (merchantId) query._id = merchantId;
+      if (merchantId) {
+        // Support both new public mid_... format and legacy MongoDB _id
+        if (merchantId.startsWith("mid_")) {
+          query.merchantId = merchantId;
+        } else {
+          query._id = merchantId;
+        }
+      }
 
       const merchant = await Merchant.findOne(query);
       if (merchant) {

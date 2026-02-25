@@ -120,9 +120,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               referralCode?: string;
               referralEarningsUsd?: number;
             }) => ({
-              id: m.id,
-              merchantId: m.merchantId,
+              id: m.id, // now always mid_... public ID
+              merchantId: m.id,
               name: m.name || "Untitled Merchant",
+              twoFactorEnabled: m.twoFactorEnabled || false,
               referralCode: m.referralCode,
               referralEarningsUsd: m.referralEarningsUsd || 0,
             }),
@@ -131,7 +132,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           if (merchants.length > 0) {
             if (!token.merchantId) token.merchantId = merchants[0].id;
             if (!token.publicMerchantId)
-              token.publicMerchantId = merchants[0].merchantId;
+              token.publicMerchantId = merchants[0].id;
 
             const activeMerchant =
               merchants.find(
@@ -157,12 +158,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             merchantId: string;
             name?: string;
             logoUrl?: string;
+            twoFactorEnabled?: boolean;
             referralCode?: string;
             referralEarningsUsd?: number;
           }) => ({
             id: m.id,
-            merchantId: m.merchantId,
+            merchantId: m.id,
             name: m.name || "Untitled Merchant",
+            twoFactorEnabled: m.twoFactorEnabled || false,
             referralCode: m.referralCode,
             referralEarningsUsd: m.referralEarningsUsd || 0,
           }),
@@ -175,7 +178,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           );
           if (isValid) {
             token.merchantId = session.merchantId;
-            token.publicMerchantId = isValid.merchantId;
+            token.publicMerchantId = session.merchantId; // id is already mid_...
           }
         } else {
           // No specific switch requested — check if current active merchant still exists
@@ -183,11 +186,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             (m: { id: string }) => m.id === token.merchantId,
           );
           if (!currentStillExists && merchants.length > 0) {
-            // Active merchant was deleted — fall back to first remaining merchant
             token.merchantId = merchants[0].id;
-            token.publicMerchantId = merchants[0].merchantId;
+            token.publicMerchantId = merchants[0].id;
           } else if (currentStillExists) {
-            token.publicMerchantId = currentStillExists.merchantId;
+            token.publicMerchantId = currentStillExists.id;
           } else if (merchants.length === 0) {
             token.merchantId = undefined;
             token.publicMerchantId = undefined;
@@ -240,7 +242,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             merchants[0];
 
           token.merchantId = activeMerchant.id;
-          token.publicMerchantId = activeMerchant.merchantId;
+          token.publicMerchantId = activeMerchant.id; // id is always mid_... now
           token.referralCode = activeMerchant.referralCode;
           token.referralEarningsUsd = activeMerchant.referralEarningsUsd || 0;
           token.merchants = merchants.map(
@@ -248,12 +250,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               id: string;
               merchantId: string;
               name?: string;
+              twoFactorEnabled?: boolean;
               referralCode?: string;
               referralEarningsUsd?: number;
             }) => ({
               id: m.id,
-              merchantId: m.merchantId,
+              merchantId: m.id,
               name: m.name || "Untitled Merchant",
+              twoFactorEnabled: m.twoFactorEnabled || false,
               referralCode: m.referralCode,
               referralEarningsUsd: m.referralEarningsUsd || 0,
             }),
@@ -266,9 +270,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
     /** Expose merchant data to the client session */
     async session({ session, token }) {
-      session.user.merchantId = token.merchantId as string;
+      session.user.merchantId = token.merchantId as string; // mid_... public ID
       // @ts-expect-error - Custom public ID field
-      session.user.publicMerchantId = token.publicMerchantId as string;
+      session.user.publicMerchantId = token.merchantId as string; // same value now
       session.user.oauthId = token.oauthId as string;
       // @ts-expect-error - NextAuth session user type doesn't include merchants by default
       session.user.merchants = token.merchants || [];

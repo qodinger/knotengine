@@ -113,7 +113,13 @@ export async function merchantRoutes(app: FastifyInstance) {
       isActive: true,
     };
     if (merchantId) {
-      query._id = merchantId;
+      // Support both the new public mid_... format and legacy MongoDB _id
+      // (existing sessions may still carry the old _id until they refresh)
+      if (merchantId.startsWith("mid_")) {
+        query.merchantId = merchantId;
+      } else {
+        query._id = merchantId;
+      }
     }
 
     // If multiple merchants exist and no ID provided, this defaults to the first one found.
@@ -158,6 +164,8 @@ export async function merchantRoutes(app: FastifyInstance) {
       }
     } else {
       await oauthHook(request, reply);
+      // If oauthHook already sent an error reply, stop here
+      if (reply.sent) return;
     }
   };
 
@@ -285,7 +293,7 @@ export async function merchantRoutes(app: FastifyInstance) {
       server.log.info(`Merchant created: ${newMerchant.id}`);
 
       return reply.code(201).send({
-        id: newMerchant._id.toString(),
+        id: newMerchant.merchantId,
         merchantId: newMerchant.merchantId,
         name: newMerchant.name,
         email: newMerchant.email,
@@ -323,7 +331,7 @@ export async function merchantRoutes(app: FastifyInstance) {
           : null;
 
         results.push({
-          id: merchant._id.toString(),
+          id: merchant.merchantId,
           merchantId: merchant.merchantId,
           name: merchant.name,
           email: merchant.email,
@@ -442,7 +450,7 @@ export async function merchantRoutes(app: FastifyInstance) {
         }
 
         results.push({
-          id: merchant._id.toString(),
+          id: merchant.merchantId,
           merchantId: merchant.merchantId,
           name: merchant.name,
           email: merchant.email,
@@ -507,7 +515,7 @@ export async function merchantRoutes(app: FastifyInstance) {
         : null;
 
       return {
-        id: merchant._id.toString(),
+        id: merchant.merchantId,
         merchantId: merchant.merchantId,
         name: merchant.name,
         btcXpub: merchant.btcXpub,
@@ -618,7 +626,8 @@ export async function merchantRoutes(app: FastifyInstance) {
       server.log.info(`[Settings] Updated DB result name: '${updated?.name}'`);
 
       return {
-        id: updated._id.toString(),
+        id: updated.merchantId,
+        merchantId: updated.merchantId,
         name: updated.name,
         btcXpub: updated.btcXpub,
         btcXpubTestnet: updated.btcXpubTestnet,
@@ -1046,6 +1055,10 @@ export async function merchantRoutes(app: FastifyInstance) {
           LTC: null, // No longer accepted for top-ups
           EVM: process.env.PLATFORM_FEE_WALLET_EVM || null, // USDT/USDC Only
         },
+        isGracePeriod: merchant.gracePeriodStarted ? true : false,
+        gracePeriodEnds: merchant.gracePeriodEnds
+          ? merchant.gracePeriodEnds.toISOString()
+          : undefined,
       };
     },
   );
