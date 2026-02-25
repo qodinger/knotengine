@@ -1,7 +1,15 @@
 import { redirect } from "next/navigation";
 
-// Registration is now handled automatically via OAuth.
-// Redirect to login which has the OAuth sign-in buttons.
-export default function RegisterPage() {
-  redirect("/login");
+interface RegisterPageProps {
+  searchParams: Promise<{ ref?: string }>;
+}
+
+// Registration is handled via OAuth on the login page.
+// Forward the ref param so affiliate tracking cookie is set correctly.
+export default async function RegisterPage({
+  searchParams,
+}: RegisterPageProps) {
+  const { ref } = await searchParams;
+  const target = ref ? `/login?ref=${encodeURIComponent(ref)}` : "/login";
+  redirect(target);
 }
