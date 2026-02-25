@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Store, Upload, Trash2, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { merchantSettingsSchema, MerchantSettings } from "../types";
 import { uploadLogo } from "@/actions/upload";
 
@@ -64,7 +65,7 @@ export function MerchantDetailsDialog({
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        alert("Image must be less than 5MB");
+        toast.error("Image must be less than 5MB");
         return;
       }
 

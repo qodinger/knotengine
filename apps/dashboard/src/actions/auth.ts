@@ -12,9 +12,10 @@ export async function requestMagicLink(email: string) {
 
     if (!res.ok) {
       const data = await res.json();
-      const errorMessage = data.details
-        ? `${data.error}: ${data.details}`
-        : data.error || "Failed to send magic link";
+      const errorMessage =
+        data.message ||
+        data.error ||
+        "Failed to send login email. Please try again.";
       throw new Error(errorMessage);
     }
 

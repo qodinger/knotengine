@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useSearchParams } from "next/navigation";
 import Cookies from "js-cookie";
 import { requestMagicLink } from "@/actions/auth";
+import { toast } from "sonner";
 
 function GoogleIcon() {
   return (
@@ -59,8 +60,11 @@ export function LoginForm() {
     try {
       await requestMagicLink(email);
       setSent(true);
+      toast.success("Magic link sent! Check your inbox.");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to send magic link");
+      const msg =
+        err instanceof Error ? err.message : "Failed to send magic link";
+      toast.error(msg);
     } finally {
       setLoadingProvider(null);
     }

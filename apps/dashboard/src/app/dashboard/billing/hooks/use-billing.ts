@@ -3,6 +3,7 @@ import axios from "axios";
 import { api } from "@/lib/api";
 import { Currency } from "@qodinger/knot-types";
 import { StatsData } from "../types";
+import { toast } from "sonner";
 
 export function useBilling() {
   const [stats, setStats] = useState<StatsData | null>(null);
@@ -155,6 +156,7 @@ export function useBilling() {
       setLoading(true);
       await api.post("/v1/merchants/me/plan", { plan: newPlan });
       await fetchData();
+      toast.success(`Plan updated to ${newPlan}!`);
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.status === 400) {
         const errorData = err.response?.data;
@@ -174,9 +176,9 @@ export function useBilling() {
 
       console.error("Failed to update plan", err);
       if (axios.isAxiosError(err)) {
-        alert(err.response?.data?.error || "Failed to update plan");
+        toast.error(err.response?.data?.error || "Failed to update plan");
       } else {
-        alert("Failed to update plan");
+        toast.error("Failed to update plan");
       }
     } finally {
       setLoading(false);
@@ -197,8 +199,7 @@ export function useBilling() {
         // Refresh data to show updated balance and cleared grace period
         await fetchData();
 
-        // Show success message
-        alert(
+        toast.success(
           `Payment successful! $${response.data.charged} charged. Your plan is now active.`,
         );
       }
@@ -221,9 +222,9 @@ export function useBilling() {
 
       console.error("Failed to charge plan", err);
       if (axios.isAxiosError(err)) {
-        alert(err.response?.data?.error || "Failed to process payment");
+        toast.error(err.response?.data?.error || "Failed to process payment");
       } else {
-        alert("Failed to process payment");
+        toast.error("Failed to process payment");
       }
     } finally {
       setLoading(false);

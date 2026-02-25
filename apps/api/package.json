@@ -26,6 +26,7 @@
     "bip39": "^3.1.0",
     "bitcoinjs-lib": "^6.1.7",
     "cloudinary": "^2.9.0",
+    "dedent": "^1.7.1",
     "dotenv": "^16.4.1",
     "ethers": "^6.10.0",
     "fastify": "^4.26.0",

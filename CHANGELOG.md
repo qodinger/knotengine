@@ -7,9 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Subscription Grace Period** — Introduced automated grace periods and status UI to prevent immediate suspension when credit balance is low.
+- **Animated Sidebar Icons** — Integrated `lucide-animated` with high-performance hover triggers (via React refs) for the primary navigation.
+- **Promo Code System** — Launched a new redemption system allowing merchants to claim balance credits via codes. Includes a new `PromoCodeCard` UI and secure backend validation.
+- **Referral Rewards** — Implemented 10% instant commission payouts for referrers when their referred merchants perform a top-up.
+
 ### Fixed
 
-- **CSS Import Types** — Added CSS module declarations to resolve TypeScript "Cannot find module or type declarations" error for CSS imports in dashboard layout.
+- **Login Hydration Mismatch** — Refactored the login layout into specialized server and client components to resolve Next.js 16/React 19 hydration errors.
+- **CSS Import Types** — Added CSS module declarations to resolve TypeScript errors for CSS imports in dashboard layout.
+- **Auth Polling Loop** — Resolved a critical infinite API sync loop in NextAuth `jwt` callback occurring for new users with no merchants.
+- **Service Worker Interception** — Fixed "ERR_FAILED" browser errors by decommissioning the legacy Service Worker with a self-destruct script.
+- **React 19 Rendering** — Fixed "component created during render" and "ref accessed during render" errors in animated UI primitives (`SlidingNumber`, `Slot`).
+- **Blockchain ID Collision** — Patched a bug where `mid_` prefixes were incorrectly being assigned to blockchain xPub fields in some edge cases.
+- **Linting & Type Safety** — Achieved zero-warning status across the dashboard package by resolving multiple unused variables and implicit `any` types.
+
+### Changed
+
+- **Dynamic Versioning** — Standardized version display to pull directly from `package.json` build metadata.
 
 ## [0.3.0] - 2026-02-23
 
