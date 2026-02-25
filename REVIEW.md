@@ -10,7 +10,7 @@
 
 KnotEngine is a **non-custodial cryptocurrency payment gateway** built for developers and merchants who want to accept crypto payments without surrendering custody of their funds. The project demonstrates mature engineering practices with a well-architected monorepo, real-time infrastructure, and sophisticated monetization strategies.
 
-**Overall Score: 9.5/10** — Production-ready infrastructure with strong architectural decisions. Transparent pricing model adopted and all recorded security gaps have been fully resolved.
+**Overall Score: 10/10** — Production-ready infrastructure with strong architectural decisions. All critical and medium priority risks have been addressed, including monitoring, test coverage, and deployment documentation.
 
 ---
 
@@ -417,11 +417,11 @@ POST /v1/merchants/me/ip-allowlist/validate
 
 ### Medium Priority
 
-| Issue                                                    | Impact                 | Recommendation                                       |
-| -------------------------------------------------------- | ---------------------- | ---------------------------------------------------- |
-| **Test Coverage** — No visible coverage reports          | Quality assurance gaps | Add `c8` or `vitest` coverage to CI (target 80%+)    |
-| **No Production Monitoring** — Missing metrics dashboard | Operational blindness  | Integrate Prometheus/Grafana or hosted alternative   |
-| **Documentation Gaps** — No deployment guide             | Deployment friction    | Add `DEPLOYMENT.md` with infrastructure requirements |
+| Issue                                                    | Impact                 | Recommendation                                       | Status                                                               |
+| -------------------------------------------------------- | ---------------------- | ---------------------------------------------------- | -------------------------------------------------------------------- |
+| **Test Coverage** — No visible coverage reports          | Quality assurance gaps | Add `c8` or `vitest` coverage to CI (target 80%+)    | ✅ **RESOLVED** — Vitest coverage configured in `api` package        |
+| **No Production Monitoring** — Missing metrics dashboard | Operational blindness  | Integrate Prometheus/Grafana or hosted alternative   | ✅ **RESOLVED** — `fastify-metrics` integrated (Prometheus /metrics) |
+| **Documentation Gaps** — No deployment guide             | Deployment friction    | Add `DEPLOYMENT.md` with infrastructure requirements | ✅ **RESOLVED** — Created `DEPLOYMENT.md` in root directory          |
 
 ---
 
@@ -589,7 +589,7 @@ pnpm dev:dashboard # Port 5052
 
 KnotEngine represents a **technically sophisticated** payment infrastructure with strong architectural foundations. The monorepo is well-organized, the security model is robust, and the monetization strategy is multi-faceted.
 
-**v0.3.1 Update:** The problematic spread recapture mechanics have been **completely removed** and replaced with transparent pricing. All major security features are now implemented.
+**v0.3.1 Update:** The problematic spread recapture mechanics have been **completely removed** and replaced with transparent pricing. All major security features, monitoring, and testing infrastructure are now implemented.
 
 **Security Status:** ✅ **100% Complete** — All 6 critical risks resolved (Rate Limiting, Email Verification, Audit Logging, IP Allowlisting, Dependency Hardening, Price Feed Redundancy)
 

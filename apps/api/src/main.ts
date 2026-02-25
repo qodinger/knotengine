@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import metrics from "fastify-metrics";
 import rateLimit from "@fastify/rate-limit";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
@@ -94,6 +95,13 @@ server.register(swaggerUi, {
 
 server.register(cors, {
   origin: "*",
+});
+
+// 📊 Prometheus Monitoring
+server.register(metrics as any, {
+  endpoint: "/metrics",
+  defaultMetrics: { enabled: true },
+  routeMetrics: { enabled: true },
 });
 
 // ──────────────────────────────────────────────
