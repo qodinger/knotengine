@@ -54,7 +54,7 @@ export default function AffiliatesPage() {
   };
 
   return (
-    <div className="flex flex-col gap-5 pb-10">
+    <div className="flex flex-col gap-6">
       <AffiliatesHeader />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -111,7 +111,7 @@ export default function AffiliatesPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card className="relative flex flex-col overflow-hidden border-white/5 bg-[#050505] shadow-2xl">
           <div className="bg-primary/5 absolute top-0 right-0 -mt-32 -mr-32 h-64 w-64 rounded-full blur-3xl" />
           <CardHeader className="relative">

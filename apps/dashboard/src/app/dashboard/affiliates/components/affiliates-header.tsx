@@ -2,7 +2,7 @@
 
 export function AffiliatesHeader() {
   return (
-    <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+    <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
       <div>
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-bold tracking-tight">
