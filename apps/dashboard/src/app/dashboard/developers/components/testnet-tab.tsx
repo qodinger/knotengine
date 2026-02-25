@@ -127,7 +127,9 @@ export function TestnetTab() {
               asChild
               className="bg-background text-foreground hover:bg-background/80 border-destructive/30 h-7 text-xs"
             >
-              <Link href="/dashboard/settings">Go to Settings</Link>
+              <Link href="/dashboard/settings" prefetch={false}>
+                Go to Settings
+              </Link>
             </Button>
           </AlertDescription>
         </Alert>
@@ -498,6 +500,7 @@ export function TestnetTab() {
           <Link
             href="/dashboard/payments?tab=testnet"
             className="flex items-center gap-1.5"
+            prefetch={false}
           >
             View full test payment history
             <ExternalLink className="size-3" />

@@ -43,7 +43,7 @@ export default function OfflinePage() {
               Try Again
             </Button>
 
-            <Link href="/dashboard">
+            <Link href="/dashboard" prefetch={false}>
               <Button variant="outline" className="w-full">
                 <Home className="mr-2 h-4 w-4" />
                 Go to Dashboard

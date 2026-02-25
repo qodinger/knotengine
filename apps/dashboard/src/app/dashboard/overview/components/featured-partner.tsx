@@ -30,7 +30,9 @@ export function FeaturedPartner() {
               variant="ghost"
               className="text-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-600"
             >
-              <Link href="/dashboard/ecosystem">View All Partners</Link>
+              <Link href="/dashboard/ecosystem" prefetch={false}>
+                View All Partners
+              </Link>
             </Button>
             <Button
               asChild

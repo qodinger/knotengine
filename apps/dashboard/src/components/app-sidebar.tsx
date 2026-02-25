@@ -75,9 +75,19 @@ const navGroups = [
   {
     label: "Growth",
     items: [
-      { icon: Zap, label: "Staking", href: "/dashboard/staking" },
+      {
+        icon: Zap,
+        label: "Staking",
+        href: "/dashboard/staking",
+        disabled: true,
+      },
       { icon: Users, label: "Referrals", href: "/dashboard/referrals" },
-      { icon: Puzzle, label: "Ecosystem", href: "/dashboard/ecosystem" },
+      {
+        icon: Puzzle,
+        label: "Ecosystem",
+        href: "/dashboard/ecosystem",
+        disabled: true,
+      },
     ],
   },
   {
@@ -99,6 +109,7 @@ type NavItem = {
   icon: React.ElementType;
   label: string;
   href: string;
+  disabled?: boolean;
 };
 
 function SidebarNavItem({ item, active }: { item: NavItem; active: boolean }) {
@@ -106,6 +117,31 @@ function SidebarNavItem({ item, active }: { item: NavItem; active: boolean }) {
   const iconRef = React.useRef<any>(null);
   const AnimatedIcon = animatedIconsMap[item.label];
   const Icon = AnimatedIcon || item.icon;
+
+  if (item.disabled) {
+    return (
+      <SidebarMenuItem className="group">
+        <SidebarMenuButton
+          isActive={false}
+          tooltip={`${item.label} (Coming Soon)`}
+          className="h-9 cursor-not-allowed font-medium opacity-40 transition-none select-none"
+        >
+          {AnimatedIcon ? (
+            <Icon
+              size={16}
+              className="flex size-4 shrink-0 items-center justify-center"
+            />
+          ) : (
+            <Icon className="size-4 shrink-0" />
+          )}
+          <span>{item.label}</span>
+          <div className="bg-primary/15 text-primary ml-auto rounded-full px-1.5 py-0.5 text-[8px] font-black tracking-widest uppercase group-data-[collapsible=icon]:hidden">
+            Soon
+          </div>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  }
 
   return (
     <SidebarMenuItem className="group">
@@ -117,7 +153,7 @@ function SidebarNavItem({ item, active }: { item: NavItem; active: boolean }) {
         onMouseEnter={() => iconRef.current?.startAnimation?.()}
         onMouseLeave={() => iconRef.current?.stopAnimation?.()}
       >
-        <Link href={item.href}>
+        <Link href={item.href} prefetch={false}>
           {AnimatedIcon ? (
             <Icon
               ref={iconRef}

@@ -110,7 +110,7 @@ export function RecentInvoices({ invoices }: RecentInvoicesProps) {
       </CardContent>
       <CardFooter>
         <Button variant="ghost" className="w-full justify-between" asChild>
-          <Link href="/dashboard/payments">
+          <Link href="/dashboard/payments" prefetch={false}>
             View all payments
             <ArrowRight className="size-4" />
           </Link>

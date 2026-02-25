@@ -284,7 +284,7 @@ export function SiteHeader() {
                   className="group text-muted-foreground hover:bg-primary/5 hover:text-primary border-border/20 h-10 w-full rounded-xl border text-[10px] font-bold tracking-[0.2em] uppercase transition-all"
                   asChild
                 >
-                  <Link href="/dashboard/activity">
+                  <Link href="/dashboard/activity" prefetch={false}>
                     Full Activity Log
                     <ExternalLink className="ml-2 size-3 transition-transform group-hover:translate-x-0.5" />
                   </Link>
@@ -323,6 +323,7 @@ export function SiteHeader() {
                 <Link
                   href="/dashboard/settings"
                   className="flex w-full items-center"
+                  prefetch={false}
                 >
                   Profile Settings
                 </Link>
@@ -331,6 +332,7 @@ export function SiteHeader() {
                 <Link
                   href="/dashboard/balances"
                   className="flex w-full items-center"
+                  prefetch={false}
                 >
                   Balances
                 </Link>
