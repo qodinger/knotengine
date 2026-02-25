@@ -1,11 +1,25 @@
 export interface DashboardStats {
   totalVolume: number;
   activeInvoices: number;
+  pendingInvoices: number;
+  confirmedInvoices: number;
   successRate: string;
+  conversionRate: string;
   chartData: Array<{ name: string; volume: number }>;
   feesAccrued: { usd: number };
   creditBalance: number;
   currentFeeRate: number;
+  currentPlan: "starter" | "professional" | "enterprise";
+  topCurrencies: Array<{ currency: string; count: number; volume: number }>;
+  testnetVolume?: number;
+  testnetInvoicesCount?: number;
+  isGracePeriod?: boolean;
+  gracePeriodEnds?: string;
+  platformFeeWallets?: {
+    BTC: string | null;
+    LTC: string | null;
+    EVM: string | null;
+  };
 }
 
 export interface Invoice {

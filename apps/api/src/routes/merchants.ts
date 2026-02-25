@@ -1066,26 +1066,66 @@ export async function merchantRoutes(app: FastifyInstance) {
         ? await User.findById(merchant.userId)
         : null;
 
+      // Extra analytics: invoice count by currency breakdown
+      const currencyBreakdown = await Invoice.aggregate<{
+        _id: string;
+        count: number;
+        volume: number;
+      }>([
+        {
+          $match: {
+            merchantId: merchant._id,
+            status: "confirmed",
+            "metadata.isTestnet": { $ne: true },
+          },
+        },
+        {
+          $group: {
+            _id: "$cryptoCurrency",
+            count: { $sum: 1 },
+            volume: { $sum: "$amountUsd" },
+          },
+        },
+        { $sort: { volume: -1 } },
+        { $limit: 5 },
+      ]);
+
+      const pendingCount = await Invoice.countDocuments({
+        merchantId: merchant._id,
+        status: "pending",
+        "metadata.isTestnet": { $ne: true },
+      });
+
       return {
         totalVolume,
         testnetVolume,
         testnetInvoicesCount,
         activeInvoices: totalInvoices,
+        pendingInvoices: pendingCount,
+        confirmedInvoices: confirmedInvoicesCount,
+        conversionRate: successRate + "%",
         successRate: `${successRate}%`,
         chartData,
+        topCurrencies: currencyBreakdown.map((c) => ({
+          currency: c._id,
+          count: c.count,
+          volume: parseFloat(c.volume.toFixed(2)),
+        })),
         feesAccrued: merchant.feesAccrued || { usd: 0 },
         creditBalance: user?.creditBalance ?? 0,
         currentPlan: merchant.plan || "starter",
         currentFeeRate:
-          {
-            starter: 0.01,
-            professional: 0.005,
-            enterprise: 0.0025,
-          }[merchant.plan || "starter"] || 0.01,
+          (
+            {
+              starter: 0.015,
+              professional: 0.0075,
+              enterprise: 0.005,
+            } as Record<string, number>
+          )[merchant.plan || "starter"] || 0.015,
         platformFeeWallets: {
-          BTC: null, // No longer accepted for top-ups
-          LTC: null, // No longer accepted for top-ups
-          EVM: process.env.PLATFORM_FEE_WALLET_EVM || null, // USDT/USDC Only
+          BTC: null,
+          LTC: null,
+          EVM: process.env.PLATFORM_FEE_WALLET_EVM || null,
         },
         isGracePeriod: merchant.gracePeriodStarted ? true : false,
         gracePeriodEnds: merchant.gracePeriodEnds
