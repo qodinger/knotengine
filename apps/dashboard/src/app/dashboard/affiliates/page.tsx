@@ -57,7 +57,7 @@ export default function AffiliatesPage() {
     <div className="flex flex-col gap-6">
       <AffiliatesHeader />
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <Card className="group relative overflow-hidden border-emerald-500/10 bg-emerald-500/5">
           <div className="absolute inset-0 bg-linear-to-br from-emerald-500/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
           <CardHeader className="pb-2">
@@ -111,7 +111,7 @@ export default function AffiliatesPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <Card className="relative flex flex-col overflow-hidden border-white/5 bg-[#050505] shadow-2xl">
           <div className="bg-primary/5 absolute top-0 right-0 -mt-32 -mr-32 h-64 w-64 rounded-full blur-3xl" />
           <CardHeader className="relative">
@@ -155,7 +155,7 @@ export default function AffiliatesPage() {
                     isLoading ? "Loading affiliate link..." : affiliateLink
                   }
                   className={cn(
-                    "focus-visible:ring-primary/20 h-12! border-white/10 bg-black pr-24 text-sm font-medium text-white/70 transition-all",
+                    "focus-visible:ring-primary/20 h-10! border-white/10 bg-black pr-20 text-sm font-medium text-white/70 transition-all",
                     isLoading && "animate-pulse",
                   )}
                 />
@@ -167,10 +167,10 @@ export default function AffiliatesPage() {
               </div>
               <Button
                 onClick={copyToClipboard}
-                size="lg"
+                size="sm"
                 disabled={isLoading || !affiliateCode}
                 className={cn(
-                  "h-12! px-8 text-xs font-black tracking-widest uppercase transition-all duration-300",
+                  "h-10! shrink-0 gap-1.5 px-4 text-xs font-black tracking-widest uppercase transition-all duration-300",
                   copied
                     ? "bg-emerald-500 text-white"
                     : "bg-white text-black hover:bg-zinc-200",
@@ -185,7 +185,7 @@ export default function AffiliatesPage() {
               </Button>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="group flex flex-col gap-3 rounded-2xl border border-white/5 bg-white/2 p-5 transition-colors hover:border-white/10">
                 <div className="flex size-10 items-center justify-center rounded-xl border border-blue-500/20 bg-blue-500/10 text-blue-500 transition-transform group-hover:scale-110">
                   <ShieldCheck className="size-5" />
