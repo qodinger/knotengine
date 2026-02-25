@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Coins, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useBilling } from "./hooks/use-billing";
@@ -63,6 +63,29 @@ export default function BillingPage() {
   >(null);
   const [isActivating, setIsActivating] = useState(false);
 
+  const [now, setNow] = useState(() => Date.now());
+
+  // Update timestamp every minute for grace period countdown
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(Date.now());
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Calculate days remaining using memoized value (pure computation)
+
+  const daysRemaining = useMemo(() => {
+    if (!stats?.gracePeriodEnds) return undefined;
+    return Math.max(
+      0,
+      Math.ceil(
+        (new Date(stats.gracePeriodEnds).getTime() - now) /
+          (1000 * 60 * 60 * 24),
+      ),
+    );
+  }, [stats, now]);
+
   const onPlanUpdateClick = (
     plan: "starter" | "professional" | "enterprise",
   ) => {
@@ -105,17 +128,7 @@ export default function BillingPage() {
         <GracePeriodStatus
           isActive={true}
           planName={stats.currentPlan}
-          daysRemaining={
-            stats.gracePeriodEnds
-              ? Math.max(
-                  0,
-                  Math.ceil(
-                    (new Date(stats.gracePeriodEnds).getTime() - Date.now()) /
-                      (1000 * 60 * 60 * 24),
-                  ),
-                )
-              : undefined
-          }
+          daysRemaining={daysRemaining}
           onActivate={onActivateClick}
           isCharging={loading}
         />

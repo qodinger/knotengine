@@ -22,7 +22,6 @@ import {
   UserCircle,
   HelpCircle,
   QrCode,
-  TrendingUp,
 } from "lucide-react";
 import { merchantSettingsSchema, MerchantSettings } from "../types";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -221,72 +220,6 @@ export function PaymentEngineDialog({
                   />
                 )}
               />
-            </div>
-
-            {/* Spread Settings */}
-            <div className="border-border/40 bg-muted/5 space-y-4 rounded-xl border p-4">
-              <div className="flex items-center justify-between">
-                <Label className="flex items-center gap-2">
-                  <TrendingUp className="text-muted-foreground size-4" />
-                  Enable Spread
-                </Label>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <HelpCircle className="text-muted-foreground size-3.5 cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      Add a small spread to crypto payments for revenue. Starter
-                      plans always have spread enabled.
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-              <Controller
-                name="spreadEnabled"
-                control={control}
-                render={({ field }) => (
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                )}
-              />
-
-              {/* Custom Spread Rate */}
-              <div className="grid gap-2">
-                <Label
-                  htmlFor="customSpreadRate"
-                  className="flex items-center gap-2"
-                >
-                  <Percent className="text-muted-foreground size-4" />
-                  Custom Spread Rate (Enterprise only)
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="customSpreadRate"
-                    type="number"
-                    step="0.001"
-                    placeholder="0.01"
-                    {...register("customSpreadRate", {
-                      valueAsNumber: true,
-                    })}
-                    className="pr-12"
-                  />
-                  <div className="text-muted-foreground absolute top-1/2 right-3 -translate-y-1/2 text-[10px] font-bold uppercase">
-                    %
-                  </div>
-                </div>
-                {errors.customSpreadRate && (
-                  <p className="text-destructive text-[10px] font-medium">
-                    {errors.customSpreadRate.message}
-                  </p>
-                )}
-                <p className="text-muted-foreground text-[10px]">
-                  Set a custom spread rate (0-5%). Leave empty to use default
-                  rates.
-                </p>
-              </div>
             </div>
 
             {/* Enabled Currencies */}

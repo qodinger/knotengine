@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import rateLimit from "@fastify/rate-limit";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
 import {
@@ -93,6 +94,24 @@ server.register(swaggerUi, {
 
 server.register(cors, {
   origin: "*",
+});
+
+// ──────────────────────────────────────────────
+// Rate Limiting - Tiered Protection
+// ──────────────────────────────────────────────
+
+// 1. Global Default Rate Limit (General API endpoints)
+server.register(rateLimit, {
+  max: 100, // 100 requests
+  timeWindow: "1 minute",
+  allowList: ["127.0.0.1", "::1"], // Whitelist localhost for development
+  errorResponseBuilder: (request, context) => {
+    return {
+      error: "Too Many Requests",
+      message: `Rate limit exceeded. Maximum ${context.max} requests per minute.`,
+      retryAfter: context.after,
+    };
+  },
 });
 
 // Initialize real-time updates

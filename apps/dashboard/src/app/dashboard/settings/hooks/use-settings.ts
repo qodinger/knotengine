@@ -30,8 +30,6 @@ export function useSettings() {
     underpaymentTolerancePercentage: 1,
     bip21Enabled: true,
     enabledCurrencies: [],
-    spreadEnabled: true,
-    customSpreadRate: undefined,
   });
 
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
@@ -63,8 +61,6 @@ export function useSettings() {
         underpaymentTolerancePercentage: m.underpaymentTolerancePercentage || 0,
         bip21Enabled: m.bip21Enabled ?? true,
         enabledCurrencies: m.enabledCurrencies || [],
-        spreadEnabled: m.spreadEnabled ?? true,
-        customSpreadRate: m.customSpreadRate,
       });
       setTwoFactorEnabled(m.twoFactorEnabled || false);
     } catch (err) {
@@ -94,8 +90,6 @@ export function useSettings() {
           dataToSave.underpaymentTolerancePercentage,
         bip21Enabled: dataToSave.bip21Enabled,
         enabledCurrencies: dataToSave.enabledCurrencies,
-        spreadEnabled: dataToSave.spreadEnabled,
-        customSpreadRate: dataToSave.customSpreadRate,
       });
       if (newData) {
         setFormData(newData);

@@ -13,8 +13,6 @@ export const merchantSettingsSchema = z.object({
   underpaymentTolerancePercentage: z.number().min(0).max(10),
   bip21Enabled: z.boolean(),
   enabledCurrencies: z.array(z.string()),
-  spreadEnabled: z.boolean(),
-  customSpreadRate: z.number().min(0).max(0.05).optional(),
 });
 
 export type MerchantSettings = z.infer<typeof merchantSettingsSchema>;

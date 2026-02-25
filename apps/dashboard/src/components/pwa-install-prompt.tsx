@@ -36,14 +36,15 @@ export function PWAInstallPrompt() {
   if (!isVisible || !canInstall) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-background border border-border rounded-lg shadow-lg p-4 z-50 animate-in slide-in-from-bottom-2">
+    <div className="bg-background border-border animate-in slide-in-from-bottom-2 fixed right-4 bottom-4 left-4 z-50 rounded-lg border p-4 shadow-lg md:right-4 md:left-auto md:w-96">
       <div className="flex items-start justify-between">
-        <div className="flex-1 mr-4">
-          <h3 className="font-semibold text-foreground mb-1">
+        <div className="mr-4 flex-1">
+          <h3 className="text-foreground mb-1 font-semibold">
             Install KnotEngine
           </h3>
-          <p className="text-sm text-muted-foreground mb-3">
-            Install our app for a better experience with offline access and push notifications.
+          <p className="text-muted-foreground mb-3 text-sm">
+            Install our app for a better experience with offline access and push
+            notifications.
           </p>
           <div className="flex gap-2">
             <Button
@@ -51,14 +52,10 @@ export function PWAInstallPrompt() {
               size="sm"
               className="flex items-center gap-2"
             >
-              <Download className="w-4 h-4" />
+              <Download className="h-4 w-4" />
               Install
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDismiss}
-            >
+            <Button variant="outline" size="sm" onClick={handleDismiss}>
               Not now
             </Button>
           </div>
@@ -67,9 +64,9 @@ export function PWAInstallPrompt() {
           variant="ghost"
           size="sm"
           onClick={handleDismiss}
-          className="p-1 h-auto"
+          className="h-auto p-1"
         >
-          <X className="w-4 h-4" />
+          <X className="h-4 w-4" />
         </Button>
       </div>
     </div>

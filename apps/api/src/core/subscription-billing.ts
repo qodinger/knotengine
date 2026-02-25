@@ -205,7 +205,6 @@ export class SubscriptionBilling {
       await Merchant.findByIdAndUpdate(merchant._id, {
         $set: {
           plan: "starter",
-          spreadEnabled: true, // Enable spread for starter
           planStartedAt: new Date(),
           gracePeriodStarted: null,
           gracePeriodEnds: null,

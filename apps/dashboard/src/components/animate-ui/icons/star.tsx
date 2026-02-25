@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { motion, type Variants } from 'motion/react';
+import * as React from "react";
+import { motion, type Variants } from "motion/react";
 
 import {
   getVariants,
   useAnimateIconContext,
   IconWrapper,
   type IconProps,
-} from '@/components/animate-ui/icons/icon';
+} from "@/components/animate-ui/icons/icon";
 
 type StarProps = IconProps<keyof typeof animations>;
 
@@ -20,7 +20,7 @@ const animations = {
       },
       animate: {
         scale: [1, 0.9, 1.2, 1],
-        transition: { duration: 0.6, ease: 'easeInOut' },
+        transition: { duration: 0.6, ease: "easeInOut" },
       },
     },
     path: {},
@@ -32,12 +32,12 @@ const animations = {
       },
       animate: {
         scale: [1, 0.9, 1.2, 1],
-        transition: { duration: 0.6, ease: 'easeInOut' },
+        transition: { duration: 0.6, ease: "easeInOut" },
       },
     },
     path: {
       initial: {
-        fill: 'currentColor',
+        fill: "currentColor",
         fillOpacity: 0,
       },
       animate: {

@@ -118,36 +118,13 @@ export async function invoiceRoutes(app: FastifyInstance) {
         // Determine network context: is it a testnet invoice?
         const isTestnet = is_testnet === true;
 
-        // Apply Spread:
-        // 1. Starter plan = Always 1% spread
-        // 2. Pro/Enterprise = Spread is optional (merchant.spreadEnabled)
-        // 3. Enterprise can set custom spread rate (merchant.customSpreadRate)
-        // 4. Testnet = Always 0 spread
-        const shouldApplySpread =
-          !isTestnet && (merchant.plan === "starter" || merchant.spreadEnabled);
+        // Transparent Pricing: Customer pays exact market rate
+        // No hidden spreads or recapture mechanics
+        const customerPrice = marketPrice;
 
-        let platformSpread = 0;
-        if (shouldApplySpread) {
-          // Enterprise plan can use custom spread rate
-          if (
-            merchant.plan === "enterprise" &&
-            merchant.customSpreadRate !== undefined
-          ) {
-            platformSpread = merchant.customSpreadRate;
-          } else {
-            platformSpread = parseFloat(
-              process.env.PLATFORM_SPREAD_RATE || "0.01",
-            );
-          }
-        }
-
-        const customerPrice = marketPrice * (1 - platformSpread);
-
-        const cryptoAmountWithSpread = parseFloat(
+        const cryptoAmount = parseFloat(
           (amount_usd / customerPrice).toFixed(8),
         );
-
-        const cryptoAmount = cryptoAmountWithSpread; // This is what the customer must pay
 
         // 2. Derive a unique payment address
         const nextIndex = merchant.derivationIndex + 1;
@@ -253,14 +230,14 @@ export async function invoiceRoutes(app: FastifyInstance) {
         const invoiceId = `inv_${crypto.randomBytes(12).toString("hex")}`;
 
         // 6. Calculate Fees and Totals
-        // Determine the rate based on the plan: Starter: 1%, Pro: 0.5%, Enterprise: 0.25%
+        // Determine the rate based on the plan: Starter: 1.5%, Pro: 0.75%, Enterprise: 0.5%
         const planRates: Record<string, number> = {
-          starter: 0.01,
-          professional: 0.005,
-          enterprise: 0.0025,
+          starter: 0.015,
+          professional: 0.0075,
+          enterprise: 0.005,
         };
 
-        const activeFeeRate = planRates[merchant.plan] || 0.01;
+        const activeFeeRate = planRates[merchant.plan] || 0.015;
         const minFeeUsd = parseFloat(process.env.MIN_FEE_USD || "0.05");
 
         let feeUsd = 0;
@@ -271,34 +248,18 @@ export async function invoiceRoutes(app: FastifyInstance) {
         if (!isTestnet) {
           // A. Calculate Base Platform Fee
           const rawBaseFeeUsd = amount_usd * activeFeeRate;
-          const baseFeeUsd = parseFloat(
-            Math.max(rawBaseFeeUsd, minFeeUsd).toFixed(2),
-          );
+          feeUsd = parseFloat(Math.max(rawBaseFeeUsd, minFeeUsd).toFixed(2));
 
-          let billedFiat = amount_usd;
+          // B. Calculate Final Crypto Amount (customer pays exact invoice amount)
+          totalCryptoAmount = cryptoAmount;
+          totalAmountUsd = amount_usd;
 
-          // If client pays the base fee, increase the fiat target
-          if (merchant.feeResponsibility === "client") {
-            billedFiat = parseFloat((amount_usd + baseFeeUsd).toFixed(2));
-          }
-
-          // B. Calculate Final Crypto Amount for the whole bill
-          totalCryptoAmount = parseFloat(
-            (billedFiat / customerPrice).toFixed(8),
-          );
-          totalAmountUsd = billedFiat;
-
-          // C. Calculate Spread Gain (Recapture)
-          // The spread gain is the extra USD value the merchant receives on-chain
-          const marketValueReceived = totalCryptoAmount * marketPrice;
-          const spreadProfitUsd = marketValueReceived - billedFiat;
-
-          // D. Final Deduction (Total profit for KnotEngine)
-          feeUsd = parseFloat((baseFeeUsd + spreadProfitUsd).toFixed(2));
+          // C. Fee is deducted from merchant's credit balance (transparent)
+          // No spread recapture - merchant receives 100% of invoice value on-chain
 
           // feeCrypto is just for tracking/display relative to the payment
           feeCrypto = parseFloat(
-            ((feeUsd / marketValueReceived) * totalCryptoAmount).toFixed(8),
+            ((feeUsd / amount_usd) * totalCryptoAmount).toFixed(8),
           );
         }
 

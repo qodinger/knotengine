@@ -28,7 +28,10 @@ export function PWAUpdateNotification() {
           const installingWorker = registration.installing;
           if (installingWorker) {
             installingWorker.addEventListener("statechange", () => {
-              if (installingWorker.state === "installed" && registration.waiting) {
+              if (
+                installingWorker.state === "installed" &&
+                registration.waiting
+              ) {
                 setNewWorker(registration.waiting);
                 setShowUpdate(true);
               }
@@ -53,15 +56,16 @@ export function PWAUpdateNotification() {
   if (!showUpdate || !newWorker) return null;
 
   return (
-    <div className="fixed top-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-background border border-border rounded-lg shadow-lg p-4 z-50 animate-in slide-in-from-top-2">
+    <div className="bg-background border-border animate-in slide-in-from-top-2 fixed top-4 right-4 left-4 z-50 rounded-lg border p-4 shadow-lg md:right-4 md:left-auto md:w-96">
       <div className="flex items-start justify-between">
-        <div className="flex-1 mr-4">
-          <h3 className="font-semibold text-foreground mb-1 flex items-center gap-2">
-            <RefreshCw className="w-4 h-4 text-blue-500" />
+        <div className="mr-4 flex-1">
+          <h3 className="text-foreground mb-1 flex items-center gap-2 font-semibold">
+            <RefreshCw className="h-4 w-4 text-blue-500" />
             Update Available
           </h3>
-          <p className="text-sm text-muted-foreground mb-3">
-            A new version of KnotEngine is available. Update to get the latest features and improvements.
+          <p className="text-muted-foreground mb-3 text-sm">
+            A new version of KnotEngine is available. Update to get the latest
+            features and improvements.
           </p>
           <div className="flex gap-2">
             <Button
@@ -69,14 +73,10 @@ export function PWAUpdateNotification() {
               size="sm"
               className="flex items-center gap-2"
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="h-4 w-4" />
               Update Now
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDismiss}
-            >
+            <Button variant="outline" size="sm" onClick={handleDismiss}>
               Later
             </Button>
           </div>
@@ -85,9 +85,9 @@ export function PWAUpdateNotification() {
           variant="ghost"
           size="sm"
           onClick={handleDismiss}
-          className="p-1 h-auto"
+          className="h-auto p-1"
         >
-          <X className="w-4 h-4" />
+          <X className="h-4 w-4" />
         </Button>
       </div>
     </div>

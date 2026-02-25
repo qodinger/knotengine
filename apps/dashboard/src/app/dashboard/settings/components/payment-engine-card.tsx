@@ -17,7 +17,6 @@ import {
   UserCircle,
   Wallet,
   QrCode,
-  TrendingUp,
 } from "lucide-react";
 import { MerchantSettings } from "../types";
 import { PaymentEngineDialog } from "./payment-engine-dialog";
@@ -107,24 +106,6 @@ export function PaymentEngineCard({
                 {formData.bip21Enabled
                   ? "BIP21 (Amount Included)"
                   : "Standard Address"}
-              </span>
-            </div>
-
-            <div className="border-border/40 bg-muted/10 flex flex-col gap-1.5 rounded-lg border p-3">
-              <span className="text-muted-foreground flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase">
-                <TrendingUp className="size-3" />
-                Spread
-              </span>
-              <span className="text-sm font-semibold">
-                {formData.spreadEnabled ? (
-                  <span className="text-green-600">
-                    Enabled{" "}
-                    {formData.customSpreadRate &&
-                      `(${(formData.customSpreadRate * 100).toFixed(1)}%)`}
-                  </span>
-                ) : (
-                  <span className="text-muted-foreground">Disabled</span>
-                )}
               </span>
             </div>
           </div>

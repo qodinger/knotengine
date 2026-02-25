@@ -9,6 +9,8 @@ import mongoose, { Schema, Document } from "mongoose";
 export interface IUser extends Document {
   oauthId: string;
   email?: string;
+  /** Email verification status */
+  emailVerified: boolean;
   /** Shared prepaid credit balance (USD) across all merchants */
   creditBalance: number;
   /** Total yield accrued by this user's funds */
@@ -31,6 +33,7 @@ const UserSchema: Schema = new Schema(
   {
     oauthId: { type: String, unique: true, required: true },
     email: { type: String, sparse: true },
+    emailVerified: { type: Boolean, default: false },
     creditBalance: { type: Number, default: 0 },
     yieldAccruedUsd: { type: Number, default: 0 },
     lastYieldSyncAt: { type: Date },
@@ -95,8 +98,6 @@ export interface IMerchant extends Document {
   underpaymentTolerancePercentage: number;
   bip21Enabled: boolean;
   plan: "starter" | "professional" | "enterprise";
-  spreadEnabled: boolean;
-  customSpreadRate?: number;
   planStartedAt?: Date;
   /** Track prorated billing for mid-month activations */
   lastProratedAmount?: number;
@@ -104,6 +105,9 @@ export interface IMerchant extends Document {
   /** Grace period for insufficient balance */
   gracePeriodStarted?: Date;
   gracePeriodEnds?: Date;
+  /** IP Allowlisting for API access */
+  allowedIpAddresses?: string[];
+  ipAllowlistEnabled: boolean;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -169,13 +173,14 @@ const MerchantSchema: Schema = new Schema(
       enum: ["starter", "professional", "enterprise"],
       default: "starter",
     },
-    spreadEnabled: { type: Boolean, default: true },
-    customSpreadRate: { type: Number, min: 0, max: 0.05 },
     planStartedAt: { type: Date, default: Date.now },
     lastProratedAmount: { type: Number },
     lastProratedDate: { type: Date },
     gracePeriodStarted: { type: Date },
     gracePeriodEnds: { type: Date },
+    /** IP Allowlisting for API access */
+    allowedIpAddresses: { type: [String], default: [] },
+    ipAllowlistEnabled: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true },
@@ -480,6 +485,56 @@ export const VerificationToken = mongoose.model<IVerificationToken>(
   "VerificationToken",
   VerificationTokenSchema,
 );
+
+// ============================================================
+// 📋 AUDIT LOG MODEL
+// Tracks all account changes and security events for compliance.
+// ============================================================
+
+export interface IAuditLog extends Document {
+  userId: mongoose.Types.ObjectId;
+  action: string;
+  category: "auth" | "account" | "security" | "billing" | "settings";
+  description: string;
+  ipAddress?: string;
+  userAgent?: string;
+  metadata?: Record<string, unknown>;
+  createdAt: Date;
+}
+
+const AuditLogSchema: Schema = new Schema(
+  {
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    action: { type: String, required: true },
+    category: {
+      type: String,
+      enum: ["auth", "account", "security", "billing", "settings"],
+      required: true,
+      index: true,
+    },
+    description: { type: String, required: true },
+    ipAddress: { type: String },
+    userAgent: { type: String },
+    metadata: { type: Schema.Types.Mixed },
+  },
+  { timestamps: true },
+);
+
+// Indexes for efficient querying
+AuditLogSchema.index({ userId: 1, createdAt: -1 });
+AuditLogSchema.index({ category: 1, createdAt: -1 });
+// 90-day Retention: MongoDB will auto-delete audit logs older than 90 days
+AuditLogSchema.index(
+  { createdAt: 1 },
+  { expireAfterSeconds: 60 * 60 * 24 * 90 },
+);
+
+export const AuditLog = mongoose.model<IAuditLog>("AuditLog", AuditLogSchema);
 
 // ============================================================
 // 🎟️ PROMO CODE MODEL

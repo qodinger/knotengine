@@ -21,6 +21,7 @@ import { ethers } from "ethers";
 import { SUPPORTED_CURRENCIES } from "@qodinger/knot-types";
 import { WebhookDispatcher } from "../infra/webhook-dispatcher.js";
 import { NotificationService } from "../infra/notification-service.js";
+import { ipAllowlistMiddleware } from "../infra/ip-allowlist.js";
 
 const bip32 = BIP32Factory(ecc);
 
@@ -167,6 +168,9 @@ export async function merchantRoutes(app: FastifyInstance) {
       // If oauthHook already sent an error reply, stop here
       if (reply.sent) return;
     }
+
+    // IP Allowlist Check (after successful auth)
+    await ipAllowlistMiddleware(request, reply);
   };
 
   server.post(
@@ -856,7 +860,6 @@ export async function merchantRoutes(app: FastifyInstance) {
           $set: {
             plan: newPlan,
             planStartedAt: new Date(),
-            spreadEnabled: true, // Default to true on upgrade
             lastProratedAmount: isProrated ? chargeAmount : null,
             lastProratedDate: isProrated ? new Date() : null,
           },
@@ -1621,5 +1624,135 @@ export async function merchantRoutes(app: FastifyInstance) {
         ethAddressTestnet,
       };
     },
+  );
+
+  // ──────────────────────────────────────────────
+  // GET /v1/merchants/me/ip-allowlist — Get IP Allowlist
+  // ──────────────────────────────────────────────
+  server.get(
+    "/v1/merchants/me/ip-allowlist",
+    {
+      preHandler: requireAuth,
+    },
+    async (request, reply) => {
+      const merchant = request.merchant;
+      if (!merchant) return reply.code(401).send({ error: "Unauthorized" });
+
+      return {
+        enabled: merchant.ipAllowlistEnabled,
+        allowedIps: merchant.allowedIpAddresses || [],
+      };
+    },
+  );
+
+  // ──────────────────────────────────────────────
+  // POST /v1/merchants/me/ip-allowlist — Update IP Allowlist
+  // ──────────────────────────────────────────────
+  server.post(
+    "/v1/merchants/me/ip-allowlist",
+    {
+      preHandler: requireAuth,
+      schema: {
+        body: z.object({
+          enabled: z.boolean(),
+          allowedIps: z.array(z.string()).optional(),
+        }),
+      },
+    },
+    async (request, reply) => {
+      const merchant = request.merchant;
+      if (!merchant) return reply.code(401).send({ error: "Unauthorized" });
+
+      const { enabled, allowedIps } = request.body;
+
+      await Merchant.findByIdAndUpdate(merchant._id, {
+        $set: {
+          ipAllowlistEnabled: enabled,
+          allowedIpAddresses: allowedIps || [],
+        },
+      });
+
+      // Audit log
+      const AuditLogger = (await import("../core/audit-logger.js")).AuditLogger;
+      await AuditLogger.security(
+        merchant.userId?.toString() || merchant._id.toString(),
+        "ip_allowlist_updated",
+        request,
+        { enabled, allowedIps },
+      );
+
+      return {
+        success: true,
+        enabled,
+        allowedIps: allowedIps || [],
+      };
+    },
+  );
+
+  // ──────────────────────────────────────────────
+  // POST /v1/merchants/me/ip-allowlist/validate — Validate IP
+  // ──────────────────────────────────────────────
+  server.post(
+    "/v1/merchants/me/ip-allowlist/validate",
+    {
+      preHandler: requireAuth,
+      schema: {
+        body: z.object({
+          ip: z.string().ip(),
+        }),
+      },
+    },
+    async (request, reply) => {
+      const merchant = request.merchant;
+      if (!merchant) return reply.code(401).send({ error: "Unauthorized" });
+
+      const { ip } = request.body;
+
+      if (
+        !merchant.ipAllowlistEnabled ||
+        !merchant.allowedIpAddresses?.length
+      ) {
+        return { valid: true, message: "IP allowlisting not enabled" };
+      }
+
+      const isValid = merchant.allowedIpAddresses.some((allowedIp) => {
+        if (allowedIp === ip) return true;
+        if (allowedIp.includes("/")) {
+          return ipInCidr(ip, allowedIp);
+        }
+        if (allowedIp.includes("*")) {
+          const pattern = allowedIp.replace(/\*/g, ".*");
+          const regex = new RegExp(`^${pattern}$`);
+          return regex.test(ip);
+        }
+        return false;
+      });
+
+      return {
+        valid: isValid,
+        message: isValid ? "IP is allowed" : "IP is not in allowlist",
+      };
+    },
+  );
+}
+
+// ──────────────────────────────────────────────
+// Helper: Check if IP is in CIDR range
+// ──────────────────────────────────────────────
+function ipInCidr(ip: string, cidr: string): boolean {
+  const [range, bits] = cidr.split("/");
+  const mask = ~(~0 << parseInt(bits));
+
+  const ipNum = ipToNumber(ip);
+  const rangeNum = ipToNumber(range);
+
+  return (ipNum & mask) === (rangeNum & mask);
+}
+
+function ipToNumber(ip: string): number {
+  return (
+    ip
+      .split(".")
+      .reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0
   );
 }
