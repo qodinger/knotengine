@@ -99,7 +99,7 @@ export function HowItWorks({
           <p className="text-muted-foreground mb-4 text-[10px] font-bold tracking-wider uppercase">
             Available Plans
           </p>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             {[
               {
                 name: "Starter",

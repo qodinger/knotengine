@@ -43,8 +43,8 @@ export function CreditBalanceCard({ stats, loading }: CreditBalanceCardProps) {
         )}
       />
 
-      <CardContent className="relative p-6 md:p-8">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <CardContent className="relative p-6 lg:p-8">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2">
               <Coins
