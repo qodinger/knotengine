@@ -16,11 +16,10 @@ export const MerchantBillingController = {
       return reply.code(400).send({ error: "Already on this plan." });
     }
 
-    // Plan costs
     const PLAN_COSTS = {
       starter: 0,
-      professional: 29,
-      enterprise: 99,
+      professional: 39,
+      enterprise: 149,
     };
 
     const cost = PLAN_COSTS[newPlan as keyof typeof PLAN_COSTS];
@@ -285,11 +284,11 @@ export const MerchantBillingController = {
       currentFeeRate:
         (
           {
-            starter: 0.015,
-            professional: 0.0075,
-            enterprise: 0.005,
+            starter: 0.01,
+            professional: 0.005,
+            enterprise: 0.0025,
           } as Record<string, number>
-        )[merchant.plan || "starter"] || 0.015,
+        )[merchant.plan || "starter"] || 0.01,
       platformFeeWallets: {
         BTC: null,
         LTC: null,
@@ -383,8 +382,8 @@ export const MerchantBillingController = {
         new Date() < merchant.gracePeriodEnds
       ) {
         const planCosts = {
-          professional: 29,
-          enterprise: 99,
+          professional: 39,
+          enterprise: 149,
         };
 
         const planCost =
@@ -496,8 +495,8 @@ export const MerchantBillingController = {
     }
 
     const planCosts = {
-      professional: 29,
-      enterprise: 99,
+      professional: 39,
+      enterprise: 149,
     };
 
     const planCost = planCosts[merchant.plan as keyof typeof planCosts] || 0;

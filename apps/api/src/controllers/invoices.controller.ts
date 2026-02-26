@@ -150,14 +150,14 @@ export const InvoicesController = {
       const invoiceId = `inv_${crypto.randomBytes(12).toString("hex")}`;
 
       // 6. Calculate Fees and Totals
-      // Determine the rate based on the plan: Starter: 1.5%, Pro: 0.75%, Enterprise: 0.5%
+      // Determine the rate based on the plan: Starter: 1.0%, Pro: 0.5%, Enterprise: 0.25%
       const planRates: Record<string, number> = {
-        starter: 0.015,
-        professional: 0.0075,
-        enterprise: 0.005,
+        starter: 0.01,
+        professional: 0.005,
+        enterprise: 0.0025,
       };
 
-      const activeFeeRate = planRates[merchant.plan] || 0.015;
+      const activeFeeRate = planRates[merchant.plan] || 0.01;
       const minFeeUsd = parseFloat(process.env.MIN_FEE_USD || "0.05");
 
       let feeUsd = 0;
@@ -165,23 +165,31 @@ export const InvoicesController = {
       let totalAmountUsd = amount_usd;
       let totalCryptoAmount = cryptoAmount;
 
-      if (!isTestnet) {
-        // A. Calculate Base Platform Fee
-        const rawBaseFeeUsd = amount_usd * activeFeeRate;
-        feeUsd = parseFloat(Math.max(rawBaseFeeUsd, minFeeUsd).toFixed(2));
+      // A. Calculate Base Platform Fee
+      const rawBaseFeeUsd = amount_usd * activeFeeRate;
+      feeUsd = parseFloat(Math.max(rawBaseFeeUsd, minFeeUsd).toFixed(2));
 
-        // B. Calculate Final Crypto Amount (customer pays exact invoice amount)
-        totalCryptoAmount = cryptoAmount;
-        totalAmountUsd = amount_usd;
+      // B. Determine logic based on Fee Responsibility
+      const feePayer = merchant.feeResponsibility || "merchant";
 
-        // C. Fee is deducted from merchant's credit balance (transparent)
-        // No spread recapture - merchant receives 100% of invoice value on-chain
+      if (feePayer === "client") {
+        // Add the fee to the invoice amount (pass to client as a hidden spread)
+        totalAmountUsd = amount_usd + feeUsd;
 
-        // feeCrypto is just for tracking/display relative to the payment
-        feeCrypto = parseFloat(
-          ((feeUsd / amount_usd) * totalCryptoAmount).toFixed(8),
+        // Recalculate the crypto amount the client actually needs to pay
+        totalCryptoAmount = parseFloat(
+          (totalAmountUsd / customerPrice).toFixed(8),
         );
+      } else {
+        // Merchant pays the fee out of their own balance (transparent)
+        totalAmountUsd = amount_usd;
+        totalCryptoAmount = cryptoAmount;
       }
+
+      // feeCrypto is just for tracking/display relative to the payment
+      feeCrypto = parseFloat(
+        ((feeUsd / amount_usd) * totalCryptoAmount).toFixed(8),
+      );
 
       // 7. Create the invoice
       const expirationMinutes =
@@ -262,10 +270,17 @@ export const InvoicesController = {
         name: string;
         logoUrl?: string;
         returnUrl?: string;
+        theme?: string;
+        brandColor?: string;
+        brandingEnabled: boolean;
+        removeBranding: boolean;
         bip21Enabled: boolean;
         plan: string;
       };
-    }>("merchantId", "name logoUrl returnUrl bip21Enabled plan");
+    }>(
+      "merchantId",
+      "name logoUrl returnUrl theme brandColor brandingEnabled removeBranding bip21Enabled plan",
+    );
 
     if (!invoice) {
       return reply.code(404).send({ error: "Invoice not found" });
@@ -339,6 +354,10 @@ export const InvoicesController = {
         name: invoice.merchantId.name,
         logo_url: invoice.merchantId.logoUrl || null,
         return_url: invoice.merchantId.returnUrl || null,
+        theme: invoice.merchantId.theme || "system",
+        brand_color: invoice.merchantId.brandColor || "#ffffff",
+        branding_enabled: invoice.merchantId.brandingEnabled ?? true,
+        remove_branding: invoice.merchantId.removeBranding ?? false,
         bip21_enabled: invoice.merchantId.bip21Enabled ?? true,
         plan: invoice.merchantId.plan || "starter",
       },

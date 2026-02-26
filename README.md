@@ -160,9 +160,9 @@ Use the **Simulator** tab in the Dashboard to trigger test payment events (Mempo
 
 | Plan             | Transaction Fee | Monthly Cost | Support               |
 | :--------------- | :-------------- | :----------- | :-------------------- |
-| **Starter**      | 1.5%            | $0           | Community             |
-| **Professional** | 0.75%           | $29          | Email (1-2 days)      |
-| **Enterprise**   | 0.5%            | $99          | Priority Inbox + Call |
+| **Starter**      | 1.0%            | $0           | Community             |
+| **Professional** | 0.5%            | $39          | Email (1-2 days)      |
+| **Enterprise**   | 0.25%           | $149         | Priority Inbox + Call |
 
 **No hidden spreads. No recapture mechanics.** Merchants receive 100% of invoice value; fees are transparently deducted from prepaid credit balance.
 

@@ -8,8 +8,8 @@ This document outlines the transparent pricing strategy for KnotEngine. Revenue 
 
 | Feature             | **Starter (Free)** | **Professional**          | **Enterprise**          |
 | :------------------ | :----------------- | :------------------------ | :---------------------- |
-| **Monthly Cost**    | **$0.00**          | **$29.00**                | **$99.00**              |
-| **Transaction Fee** | **1.5%**           | **0.75%**                 | **0.5%**                |
+| **Monthly Cost**    | **$0.00**          | **$39.00**                | **$149.00**             |
+| **Transaction Fee** | **1.0%**           | **0.5%**                  | **0.25%**               |
 | **Monitoring**      | Single Provider    | Dual-Provider (Redundant) | Priority Monitoring     |
 | **Branding**        | "Powered by Knot"  | **Custom (Hidden Logo)**  | Full White-label        |
 | **Staff Accounts**  | 2                  | Up to 5 Staff             | Unlimited Staff         |
@@ -34,7 +34,7 @@ KnotEngine believes in **complete fee transparency**. What you see is what you p
 Invoice Amount:      $100.00
 Customer Pays:       $100.00 (exact crypto equivalent)
 Merchant Receives:   $100.00 (direct to wallet)
-KnotEngine Fee:      $1.50 (1.5% deducted from credit balance)
+KnotEngine Fee:      $1.00 (1.0% deducted from credit balance)
 ─────────────────────────────────────────────────────
 Merchant Net:        $100.00 (full value received)
 ```
@@ -55,35 +55,37 @@ Merchants "Top Up" their account using **Stablecoins (USDT or USDC)** on support
 
 Whenever a checkout is successful, the engine calculates the fee (based on the merchant's plan) and subtracts it from the `creditBalance`:
 
-- **Starter:** 1.5% of invoice amount
-- **Professional:** 0.75% of invoice amount
-- **Enterprise:** 0.5% of invoice amount
+- **Starter:** 1.0% of invoice amount
+- **Professional:** 0.5% of invoice amount
+- **Enterprise:** 0.25% of invoice amount
 
 ### 3. Subscription Billing (Recurring)
 
 On the same day every month (e.g., the 1st), an internal background job checks the merchant's `plan`:
 
-- If `plan === 'professional'`, subtract **$29.00** from `creditBalance`
+- If `plan === 'professional'`, subtract **$39.00** from `creditBalance`
+- If `plan === 'enterprise'`, subtract **$149.00** from `creditBalance`
 - If `creditBalance` falls below zero, the account reverts to the **Starter** tier and the merchant is notified via the Dashboard
 
 ---
 
 ## 📈 Revenue Comparison (Per Merchant)
 
-| Monthly Volume | **Starter Profit (1.5%)** | **Professional Profit (0.75% + $29)** |
-| :------------- | :------------------------ | :------------------------------------ |
-| **$1,000**     | $15.00                    | $36.50                                |
-| **$5,000**     | $75.00                    | $66.50                                |
-| **$10,000**    | $150.00                   | **$104.00 (Cheaper for Merchant)**    |
-| **$20,000**    | $300.00                   | **$179.00 (Cheaper for Merchant)**    |
+| Monthly Volume | **Starter Profit (1.0%)** | **Professional Profit (0.5% + $39)** | Cheapest Plan    |
+| :------------- | :------------------------ | :----------------------------------- | :--------------- |
+| **$1,000**     | $10.00                    | $44.00                               | **Starter**      |
+| **$5,000**     | $50.00                    | $64.00                               | **Starter**      |
+| **$7,800**     | $78.00                    | $78.00                               | **Break-even**   |
+| **$10,000**    | $100.00                   | **$89.00**                           | **Professional** |
+| **$20,000**    | $200.00                   | **$139.00**                          | **Professional** |
 
-**Key Strategic Insight:** By processing more than **$7,700** in a month, a merchant actually **saves money** by paying you a subscription. This incentivizes high-volume users to move to a paid plan, giving you stable monthly revenue.
+**Key Strategic Insight:** By processing more than **$7,800** in a month, a merchant actually **saves money** by upgrading to Professional. This incentivizes high-volume users to move to a paid plan, giving you stable monthly revenue.
 
 ---
 
 ## ✨ Planned "Pro" Features
 
-To make the **$29/mo** price point attractive beyond just the fee discount:
+To make the **$39/mo** price point attractive beyond just the fee discount:
 
 - **Historical Tax Reports:** Auto-calculate the fiat price of every crypto sale for local tax compliance
 - **Webhook Retries:** Intelligent back-off and manual retry buttons for failed server notifications
@@ -135,10 +137,10 @@ KnotEngine's infrastructure investments directly benefit merchants through faste
 
 | Plan             | Transaction Fee | Monthly Cost | Break-even Volume |
 | :--------------- | :-------------- | :----------- | :---------------- |
-| **Starter**      | 1.5%            | $0           | N/A               |
-| **Professional** | 0.75%           | $29          | ~$7,700/mo        |
-| **Enterprise**   | 0.5%            | $99          | ~$18,700/mo       |
+| **Starter**      | 1.0%            | $0           | N/A               |
+| **Professional** | 0.5%            | $39          | ~$7,800/mo        |
+| **Enterprise**   | 0.25%           | $149         | ~$44,000/mo       |
 
-**Minimum Invoice:** $1.00  
-**Minimum Fee:** $0.05 per transaction  
+**Minimum Invoice:** $1.00
+**Minimum Fee:** $0.05 per transaction
 **Invoice TTL:** 30 minutes (default), configurable up to 24 hours
