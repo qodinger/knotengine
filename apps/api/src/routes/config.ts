@@ -1,9 +1,9 @@
-import { FastifyInstance } from "fastify";
 import {
   ASSET_CONFIG,
   NETWORK_CONFIG,
   SUPPORTED_CURRENCIES,
 } from "@qodinger/knot-types";
+import { FastifyInstance } from "fastify";
 
 export async function configRoutes(app: FastifyInstance) {
   /**

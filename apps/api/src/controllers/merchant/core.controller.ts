@@ -1,0 +1,476 @@
+import { FastifyReply } from "fastify";
+import { Merchant, User } from "@qodinger/knot-database";
+import { BIP32Factory } from "bip32";
+import * as bip39 from "bip39";
+import * as bitcoin from "bitcoinjs-lib";
+import * as crypto from "crypto";
+import { ethers } from "ethers";
+import { FastifyRequest } from "fastify";
+import * as ecc from "tiny-secp256k1";
+import { AuditLogger } from "../../core/audit-logger.js";
+
+const bip32 = BIP32Factory(ecc);
+
+const generateMerchantId = async (): Promise<string> => {
+  const chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+  let attempts = 0;
+
+  while (attempts < 10) {
+    const mid =
+      "mid_" +
+      Array.from(crypto.randomBytes(12))
+        .map((b) => chars[b % chars.length])
+        .join("");
+
+    const exists = await Merchant.exists({ merchantId: mid });
+    if (!exists) return mid;
+    attempts++;
+  }
+
+  throw new Error("Failed to generate a unique merchant ID");
+};
+
+const generateReferralCode = async (): Promise<string> => {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let attempts = 0;
+
+  while (attempts < 10) {
+    const code =
+      "REF_" +
+      Array.from(crypto.randomBytes(4))
+        .map((b) => chars[b % chars.length])
+        .join("");
+
+    const exists = await User.exists({ referralCode: code });
+    if (!exists) return code;
+    attempts++;
+  }
+
+  return "REF_" + crypto.randomBytes(4).toString("hex").toUpperCase();
+};
+
+export const MerchantCoreController = {
+  createMerchant: async (request: any, reply: FastifyReply) => {
+    const {
+      name,
+      email,
+      btcXpub,
+      btcXpubTestnet,
+      ethAddress,
+      ethAddressTestnet,
+      logoUrl,
+      webhookUrl,
+      oauthId,
+      referredBy: referralCode,
+    } = request.body;
+
+    // Security: Creating a merchant for an OAuth user requires internal privilege
+    if (oauthId) {
+      const secret = request.headers["x-internal-secret"];
+      if (secret !== process.env.INTERNAL_SECRET) {
+        return reply
+          .code(403)
+          .send({ error: "Forbidden: Internal Secret Required" });
+      }
+    }
+
+    const webhookSecret = `knot_wh_${crypto.randomBytes(24).toString("hex")}`;
+
+    let apiKey: string | undefined;
+    let apiKeyHash: string | undefined;
+
+    // Only generate an API key for direct (non-OAuth) registrations
+    if (!oauthId) {
+      apiKey = `knot_sk_${crypto.randomBytes(24).toString("hex")}`;
+      apiKeyHash = crypto.createHash("sha256").update(apiKey).digest("hex");
+    }
+
+    // Append timestamp to invoke uniqueness for multi-merchant support
+    const uniqueOauthId = oauthId ? `${oauthId}:${Date.now()}` : undefined;
+
+    const welcomeCredit = parseFloat(
+      process.env.WELCOME_CREDIT_AMOUNT || "5.00",
+    );
+    const affiliateSignupBonus = parseFloat(
+      process.env.AFFILIATE_SIGNUP_BONUS || "5.00",
+    );
+
+    // 1. Resolve or Create User Identity (OAuth)
+    let userId: typeof User.prototype._id | undefined = undefined;
+    if (oauthId) {
+      let user = await User.findOne({ oauthId });
+      if (!user) {
+        // Resolve Referrer for the new User
+        let referrerId: typeof User.prototype._id | undefined = undefined;
+        let isAffiliatSignup = false;
+        if (referralCode) {
+          const referrer = await User.findOne({ referralCode });
+          if (referrer) {
+            referrerId = referrer._id;
+            isAffiliatSignup = true;
+          }
+        }
+
+        // Affiliate signups get an extra bonus on top of the welcome credit
+        const startingCredit = isAffiliatSignup
+          ? welcomeCredit + affiliateSignupBonus
+          : welcomeCredit;
+
+        user = await User.create({
+          oauthId,
+          email,
+          creditBalance: startingCredit,
+          welcomeBonusClaimed: true,
+          referralCode: await generateReferralCode(),
+          referredBy: referrerId,
+        });
+        console.info(
+          `👤 New User Identity created: ${oauthId} (+$${startingCredit} credit${isAffiliatSignup ? ` [affiliate bonus included]` : ""})`,
+        );
+      }
+      userId = user._id;
+    }
+
+    let finalBtcXpubTestnet = btcXpubTestnet;
+    let finalEthAddressTestnet = ethAddressTestnet;
+
+    if (!finalBtcXpubTestnet || !finalEthAddressTestnet) {
+      const mnemonic = bip39.generateMnemonic();
+      const seed = await bip39.mnemonicToSeed(mnemonic);
+
+      const root = bip32.fromSeed(seed, bitcoin.networks.testnet);
+      const btcNode = root.derivePath("m/84'/1'/0'");
+      finalBtcXpubTestnet =
+        finalBtcXpubTestnet || btcNode.neutered().toBase58();
+
+      const ethWallet = ethers.Wallet.fromPhrase(mnemonic);
+      finalEthAddressTestnet = finalEthAddressTestnet || ethWallet.address;
+    }
+
+    const newMerchant = await Merchant.create({
+      merchantId: await generateMerchantId(),
+      userId,
+      name,
+      email,
+      apiKeyHash,
+      oauthId: uniqueOauthId,
+      btcXpub,
+      btcXpubTestnet: finalBtcXpubTestnet,
+      ethAddress,
+      ethAddressTestnet: finalEthAddressTestnet,
+      logoUrl,
+      webhookUrl,
+      webhookSecret,
+    });
+
+    console.info(`Merchant created: ${newMerchant.id}`);
+
+    // Audit log merchant creation
+    if (userId) {
+      await AuditLogger.account(
+        userId.toString(),
+        "merchant_created",
+        request,
+        {
+          merchantId: newMerchant.merchantId,
+          name,
+        },
+      );
+    }
+
+    return reply.code(201).send({
+      id: newMerchant.merchantId,
+      merchantId: newMerchant.merchantId,
+      name: newMerchant.name,
+      email: newMerchant.email,
+      logoUrl: newMerchant.logoUrl,
+      webhookSecret,
+      apiKey: apiKey ?? null, // null for OAuth merchants
+    });
+  },
+  listMerchants: async (request: any, reply: FastifyReply) => {
+    const merchant = request.merchant;
+    if (!merchant?.oauthId)
+      return reply.code(401).send({ error: "Auth required" });
+    const { oauthId } = merchant;
+
+    // Clean base oauthId for lookup (e.g. google:123:456 -> google:123)
+    const baseOauthId = oauthId.split(":")[0] + ":" + oauthId.split(":")[1];
+
+    const merchants = await Merchant.find({
+      oauthId: { $regex: new RegExp(`^${baseOauthId}(:|$)`) },
+      isActive: true,
+    }).sort({ createdAt: 1 });
+
+    const results = [];
+    for (const merchant of merchants) {
+      const currentUser = merchant.userId
+        ? await User.findById(merchant.userId)
+        : null;
+
+      results.push({
+        id: merchant.merchantId,
+        merchantId: merchant.merchantId,
+        name: merchant.name,
+        email: merchant.email,
+        logoUrl: merchant.logoUrl,
+        twoFactorEnabled: currentUser?.twoFactorEnabled || false,
+        referralCode: currentUser?.referralCode,
+        referralEarningsUsd: currentUser?.referralEarningsUsd || 0,
+        creditBalance: currentUser?.creditBalance || 0,
+      });
+    }
+
+    return results;
+  },
+  getMerchantByOauth: async (
+    request: FastifyRequest<{ Params: { oauthId: string } }>,
+    reply: FastifyReply,
+  ) => {
+    // Protect with internal secret
+    const secret = request.headers["x-internal-secret"];
+    if (secret !== process.env.INTERNAL_SECRET) {
+      return reply.code(403).send({ error: "Forbidden" });
+    }
+
+    const { oauthId } = request.params;
+    // Query using regex to find all merchants matching this base oauthId prefix
+    const merchants = await Merchant.find({
+      oauthId: { $regex: new RegExp(`^${oauthId}(:|$)`) },
+      isActive: true,
+    }).sort({
+      createdAt: 1,
+    });
+
+    if (merchants.length === 0) {
+      return reply.code(404).send({ error: "Not found" });
+    }
+
+    const results = [];
+
+    for (let merchant of merchants) {
+      let apiKey: string | undefined;
+
+      // Ensure every merchant has a public merchantId (mid_...)
+      if (!merchant.merchantId) {
+        const mid = await generateMerchantId();
+        const updatedMerchant = await Merchant.findByIdAndUpdate(
+          merchant._id,
+          { $set: { merchantId: mid } },
+          { new: true },
+        );
+        if (updatedMerchant) merchant = updatedMerchant;
+        console.info(
+          `🆔 Auto-assigned public ID for merchant: ${merchant._id} -> ${mid}`,
+        );
+      }
+
+      // Ensure every merchant has an API key
+      if (!merchant.apiKeyHash) {
+        apiKey = `knot_sk_${crypto.randomBytes(24).toString("hex")}`;
+        const apiKeyHash = crypto
+          .createHash("sha256")
+          .update(apiKey)
+          .digest("hex");
+
+        const updatedMerchant = await Merchant.findByIdAndUpdate(
+          merchant._id,
+          { $set: { apiKeyHash } },
+          { new: true },
+        );
+        if (!updatedMerchant) throw new Error("Failed to update merchant");
+        merchant = updatedMerchant;
+
+        console.info(
+          `🔑 Auto-generated API key for OAuth merchant: ${merchant._id}`,
+        );
+      }
+
+      // 4. Ensure User Identity (Lazy Migration)
+      if (!merchant.userId) {
+        const baseOauthId = oauthId.split(":")[0];
+        let user = await User.findOne({ oauthId: baseOauthId });
+        if (!user) {
+          user = await User.create({
+            oauthId: baseOauthId,
+            creditBalance: parseFloat(
+              process.env.WELCOME_CREDIT_AMOUNT || "5.00",
+            ),
+            welcomeBonusClaimed: true,
+            referralCode: await generateReferralCode(),
+          });
+        }
+        const updatedMerchant = await Merchant.findByIdAndUpdate(
+          merchant._id,
+          { $set: { userId: user._id } },
+          { new: true },
+        );
+        if (updatedMerchant) merchant = updatedMerchant;
+      }
+
+      let currentUser = merchant.userId
+        ? await User.findById(merchant.userId)
+        : null;
+
+      // Ensure legacy user has a referral code
+      if (currentUser && !currentUser.referralCode) {
+        const code = await generateReferralCode();
+        currentUser = await User.findByIdAndUpdate(
+          currentUser._id,
+          { $set: { referralCode: code } },
+          { new: true },
+        );
+      }
+
+      results.push({
+        id: merchant.merchantId,
+        merchantId: merchant.merchantId,
+        name: merchant.name,
+        email: merchant.email,
+        logoUrl: merchant.logoUrl,
+        apiKey: apiKey ?? null,
+        hasApiKey: true,
+        twoFactorEnabled: currentUser?.twoFactorEnabled || false,
+        referralCode: currentUser?.referralCode,
+        referralEarningsUsd: currentUser?.referralEarningsUsd || 0,
+        creditBalance: currentUser?.creditBalance || 0,
+      });
+    }
+
+    return results;
+  },
+  getProfile: async (request: any, reply: FastifyReply) => {
+    const merchant = request.merchant;
+    if (!merchant) return reply.code(500).send({ error: "Auth failed" });
+
+    const sanitizeXpub = (val?: string) =>
+      val && (val.startsWith("mid_") || val.startsWith("knot_")) ? null : val;
+
+    const needsFix =
+      !merchant.btcXpubTestnet ||
+      !merchant.ethAddressTestnet ||
+      merchant.btcXpubTestnet?.startsWith("mid_") ||
+      merchant.ethAddressTestnet?.startsWith("mid_");
+
+    let finalBtcXpubTestnet = sanitizeXpub(merchant.btcXpubTestnet);
+    let finalEthAddressTestnet = sanitizeXpub(merchant.ethAddressTestnet);
+
+    if (needsFix) {
+      const mnemonic = bip39.generateMnemonic();
+      const seed = await bip39.mnemonicToSeed(mnemonic);
+
+      const root = bip32.fromSeed(seed, bitcoin.networks.testnet);
+      const btcNode = root.derivePath("m/84'/1'/0'");
+      finalBtcXpubTestnet =
+        finalBtcXpubTestnet || btcNode.neutered().toBase58();
+
+      const ethWallet = ethers.Wallet.fromPhrase(mnemonic);
+      finalEthAddressTestnet = finalEthAddressTestnet || ethWallet.address;
+
+      await Merchant.findByIdAndUpdate(merchant._id, {
+        $set: {
+          btcXpubTestnet: finalBtcXpubTestnet,
+          ethAddressTestnet: finalEthAddressTestnet,
+        },
+      });
+    }
+
+    const user = merchant.userId ? await User.findById(merchant.userId) : null;
+
+    return {
+      id: merchant.merchantId,
+      merchantId: merchant.merchantId,
+      name: merchant.name,
+      btcXpub: merchant.btcXpub,
+      btcXpubTestnet: finalBtcXpubTestnet,
+      ethAddress: merchant.ethAddress,
+      ethAddressTestnet: finalEthAddressTestnet,
+      webhookUrl: merchant.webhookUrl,
+      webhookSecret: merchant.webhookSecret,
+      logoUrl: merchant.logoUrl,
+      returnUrl: merchant.returnUrl,
+      feeResponsibility: merchant.feeResponsibility || "merchant",
+      invoiceExpirationMinutes: merchant.invoiceExpirationMinutes || 60,
+      underpaymentTolerancePercentage:
+        merchant.underpaymentTolerancePercentage ?? 1,
+      bip21Enabled: merchant.bip21Enabled ?? true,
+      enabledCurrencies: merchant.enabledCurrencies || [],
+      webhookEvents: merchant.webhookEvents || [
+        "invoice.confirmed",
+        "invoice.mempool_detected",
+        "invoice.failed",
+      ],
+      confirmationPolicy: merchant.confirmationPolicy,
+      twoFactorEnabled: user?.twoFactorEnabled || false,
+      feesAccrued: merchant.feesAccrued,
+      creditBalance: user?.creditBalance ?? 0,
+      createdAt: merchant.createdAt,
+    };
+  },
+  deleteProfile: async (request: any, reply: FastifyReply) => {
+    const merchant = request.merchant;
+    if (!merchant) return reply.code(500).send({ error: "Auth failed" });
+
+    await Merchant.findByIdAndDelete(merchant._id);
+
+    console.info(`[Settings] Deleted merchant: '${merchant._id}'`);
+
+    return {
+      success: true,
+      message: "Merchant deleted successfully",
+    };
+  },
+  updateProfile: async (request: any, reply: FastifyReply) => {
+    const merchant = request.merchant;
+    if (!merchant) return reply.code(500).send({ error: "Auth failed" });
+
+    const updates = request.body;
+
+    console.info(`[Settings] RAW updates received: ${JSON.stringify(updates)}`);
+
+    const updated = await Merchant.findByIdAndUpdate(
+      merchant._id,
+      { $set: updates },
+      { new: true },
+    );
+
+    if (!updated) {
+      return reply.code(500).send({ error: "Failed to update merchant" });
+    }
+
+    console.info(`[Settings] Updated DB result name: '${updated?.name}'`);
+
+    // Audit log profile update
+    await AuditLogger.settings(
+      merchant.userId?.toString() || merchant._id.toString(),
+      "profile_updated",
+      request,
+      { fields: Object.keys(updates) },
+    );
+
+    return {
+      id: updated.merchantId,
+      merchantId: updated.merchantId,
+      name: updated.name,
+      btcXpub: updated.btcXpub,
+      btcXpubTestnet: updated.btcXpubTestnet,
+      ethAddress: updated.ethAddress,
+      ethAddressTestnet: updated.ethAddressTestnet,
+      webhookUrl: updated.webhookUrl,
+      webhookSecret: updated.webhookSecret,
+      feeResponsibility: updated.feeResponsibility,
+      invoiceExpirationMinutes: updated.invoiceExpirationMinutes,
+      underpaymentTolerancePercentage: updated.underpaymentTolerancePercentage,
+      bip21Enabled: updated.bip21Enabled,
+      enabledCurrencies: updated.enabledCurrencies,
+      logoUrl: updated.logoUrl,
+      returnUrl: updated.returnUrl,
+      webhookEvents: updated.webhookEvents || [
+        "invoice.confirmed",
+        "invoice.mempool_detected",
+        "invoice.failed",
+      ],
+      confirmationPolicy: updated.confirmationPolicy,
+    };
+  },
+};
