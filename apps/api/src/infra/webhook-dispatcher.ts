@@ -65,7 +65,11 @@ export class WebhookDispatcher {
 
     // Check if webhook was already delivered for this status
     // This provides idempotency at the dispatcher level
-    if (invoice.webhookDelivered && event === "invoice.confirmed") {
+    // Only skip for terminal events (confirmed, expired, failed)
+    if (
+      invoice.webhookDelivered &&
+      ["invoice.confirmed", "invoice.expired", "invoice.failed"].includes(event)
+    ) {
       console.log(
         `📡 Webhook already delivered for invoice ${invoiceId}. Skipping.`,
       );

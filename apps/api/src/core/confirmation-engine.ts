@@ -421,6 +421,12 @@ export class ConfirmationEngine {
       for (const invoice of staleInvoices) {
         try {
           const prevStatus = invoice.status;
+
+          // Skip if already expired and webhook already delivered
+          if (invoice.status === "expired" && invoice.webhookDelivered) {
+            continue;
+          }
+
           await Invoice.findByIdAndUpdate(invoice._id, {
             $set: { status: "expired" },
           });
@@ -431,8 +437,10 @@ export class ConfirmationEngine {
             confirmations: invoice.confirmations,
           });
 
-          // 2. Dispatch Webhook
-          WebhookDispatcher.dispatch(invoice.invoiceId, "invoice.expired");
+          // 2. Dispatch Webhook (only if not already delivered)
+          if (!invoice.webhookDelivered) {
+            WebhookDispatcher.dispatch(invoice.invoiceId, "invoice.expired");
+          }
 
           // 3. Cleanup monitoring
           if (invoice.tatumSubscriptionId && invoice.providerName) {
