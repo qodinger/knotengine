@@ -93,7 +93,7 @@ export default function AffiliatesPage() {
           </CardContent>
         </Card>
 
-        <Card className="group relative overflow-hidden border-white/5 bg-zinc-900/50">
+        <Card className="group relative overflow-hidden border-white/5 bg-zinc-900/50 sm:col-span-2 xl:col-span-1">
           <div className="absolute inset-0 bg-linear-to-br from-white/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
           <CardHeader className="pb-2">
             <CardDescription className="text-[10px] font-black tracking-widest text-white/30 uppercase">
