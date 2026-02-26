@@ -31,7 +31,7 @@ export function SubNavLayout({
   return (
     <div className="flex flex-col gap-6">
       {/* Page Header */}
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
           <p className="text-muted-foreground mt-1 text-sm">{description}</p>

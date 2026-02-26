@@ -57,7 +57,7 @@ function DevelopersContent() {
       onSectionChange={handleSectionChange}
       headerExtra={
         displayMerchantId ? (
-          <div className="flex shrink-0 flex-col justify-end gap-1 sm:w-80">
+          <div className="flex shrink-0 flex-col justify-end gap-1 lg:w-72">
             <Label className="text-muted-foreground text-[10px] font-bold tracking-widest uppercase">
               Merchant ID
             </Label>
