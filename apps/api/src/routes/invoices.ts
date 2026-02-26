@@ -4,6 +4,7 @@ import { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { InvoicesController } from "../controllers/invoices.controller.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
+import rateLimit from "@fastify/rate-limit";
 
 /**
  * 🧾 Invoice Routes — /v1/invoices
@@ -16,6 +17,28 @@ import { requireAuth } from "../middleware/auth.middleware.js";
  */
 export async function invoiceRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>();
+
+  // ──────────────────────────────────────────────
+  // Rate Limiting: Per-Merchant Invoice Creation (10 req/min)
+  // Prevents individual merchants from spamming invoice creation
+  // ──────────────────────────────────────────────
+  server.register(rateLimit, {
+    max: 10, // 10 invoices per minute
+    timeWindow: "1 minute",
+    keyGenerator: (request) => {
+      // Use merchant ID if authenticated, otherwise IP
+      const merchant = (request as any).merchant;
+      return merchant?._id?.toString() || request.ip;
+    },
+    allowList: ["127.0.0.1", "::1"], // Whitelist localhost for development
+    errorResponseBuilder: (request, context) => {
+      return {
+        error: "Too Many Requests",
+        message: `Rate limit exceeded. Maximum ${context.max} invoices per minute.`,
+        retryAfter: context.after,
+      };
+    },
+  });
 
   // ──────────────────────────────────────────────
   // POST /v1/invoices — Create Invoice

@@ -2,6 +2,7 @@ import { Invoice, IInvoice, Merchant } from "@qodinger/knot-database";
 import { Derivator } from "@qodinger/knot-crypto";
 import * as crypto from "crypto";
 import { NotificationService } from "./notification-service.js";
+import { WebhookQueue } from "./webhook-queue.js";
 
 /**
  * 📡 WebhookDispatcher
@@ -11,6 +12,7 @@ import { NotificationService } from "./notification-service.js";
  *   - HMAC-SHA256 signed payloads
  *   - Retry tracking (up to 5 attempts)
  *   - Idempotency via invoice state checks
+ *   - Queue-based delivery (BullMQ) for scale
  */
 export class WebhookDispatcher {
   /** Max retries: ~24 hours of total retry time with exponential backoff */
@@ -19,8 +21,42 @@ export class WebhookDispatcher {
 
   /**
    * Dispatches a webhook notification to the merchant for an invoice event.
+   * Uses queue-based delivery if available, falls back to synchronous.
    */
   public static async dispatch(
+    invoiceId: string,
+    event: string,
+  ): Promise<boolean> {
+    // Use queue if available for better scalability
+    if (WebhookQueue.isReady()) {
+      const priority = this.getPriorityForEvent(event);
+      await WebhookQueue.dispatch(invoiceId, event, priority);
+      return true; // Job queued successfully
+    }
+
+    // Fallback to synchronous delivery
+    return this.dispatchSync(invoiceId, event);
+  }
+
+  /**
+   * Gets priority level for an event type.
+   */
+  private static getPriorityForEvent(event: string): number {
+    switch (event) {
+      case "invoice.confirmed":
+        return WebhookQueue.Priority.HIGH;
+      case "invoice.expired":
+      case "invoice.failed":
+        return WebhookQueue.Priority.NORMAL;
+      default:
+        return WebhookQueue.Priority.LOW;
+    }
+  }
+
+  /**
+   * Synchronous webhook delivery (fallback when queue unavailable).
+   */
+  private static async dispatchSync(
     invoiceId: string,
     event: string,
   ): Promise<boolean> {
@@ -237,39 +273,67 @@ export class WebhookDispatcher {
   /**
    * Catch-up mechanism: finds all invoices that failed delivery and retries them
    * using an exponential backoff strategy based on the last attempt time.
+   * Uses pagination to prevent memory spikes with large datasets.
    */
   public static async dispatchPending(): Promise<number> {
+    const BATCH_SIZE = 50;
     const now = new Date();
-
-    // Find missing deliveries
-    const candidates = await Invoice.find({
-      webhookDelivered: false,
-      webhookAttempts: { $lt: this.MAX_ATTEMPTS },
-      status: { $in: ["confirmed", "expired"] },
-    });
-
     let dispatched = 0;
+    let skip = 0;
+    let hasMore = true;
 
-    for (const invoice of candidates) {
-      const attempts = invoice.webhookAttempts || 0;
+    while (hasMore) {
+      // Find missing deliveries with pagination
+      const candidates = await Invoice.find({
+        webhookDelivered: false,
+        webhookAttempts: { $lt: this.MAX_ATTEMPTS },
+        status: { $in: ["confirmed", "expired"] },
+      })
+        .limit(BATCH_SIZE)
+        .skip(skip)
+        .sort({ lastWebhookAttempt: 1 }); // Process oldest attempts first
 
-      // If never attempted, dispatch immediately
-      if (attempts === 0) {
-        await this.triggerInvoiceWebhook(invoice);
-        dispatched++;
-        continue;
+      if (candidates.length === 0) {
+        hasMore = false;
+        break;
       }
 
-      // Calculate next allowed retry time (Exponential: 2, 4, 8, 16... minutes)
-      const lastAttempt = invoice.lastWebhookAttempt
-        ? new Date(invoice.lastWebhookAttempt).getTime()
-        : 0;
-      const waitMinutes = Math.pow(2, attempts) * this.INITIAL_BACKOFF_MINUTES;
-      const nextAllowedAttempt = lastAttempt + waitMinutes * 60 * 1000;
+      for (const invoice of candidates) {
+        const attempts = invoice.webhookAttempts || 0;
 
-      if (now.getTime() >= nextAllowedAttempt) {
-        await this.triggerInvoiceWebhook(invoice);
-        dispatched++;
+        try {
+          // If never attempted, dispatch immediately
+          if (attempts === 0) {
+            await this.triggerInvoiceWebhook(invoice);
+            dispatched++;
+            continue;
+          }
+
+          // Calculate next allowed retry time (Exponential: 2, 4, 8, 16... minutes)
+          const lastAttempt = invoice.lastWebhookAttempt
+            ? new Date(invoice.lastWebhookAttempt).getTime()
+            : 0;
+          const waitMinutes =
+            Math.pow(2, attempts) * this.INITIAL_BACKOFF_MINUTES;
+          const nextAllowedAttempt = lastAttempt + waitMinutes * 60 * 1000;
+
+          if (now.getTime() >= nextAllowedAttempt) {
+            await this.triggerInvoiceWebhook(invoice);
+            dispatched++;
+          }
+        } catch (err) {
+          console.error(
+            `❌ Error processing webhook for invoice ${invoice.invoiceId}:`,
+            err,
+          );
+        }
+      }
+
+      skip += BATCH_SIZE;
+
+      // If we got fewer than BATCH_SIZE, we're done
+      if (candidates.length < BATCH_SIZE) {
+        hasMore = false;
       }
     }
 

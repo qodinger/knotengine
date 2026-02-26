@@ -1,0 +1,35 @@
+# Dependencies
+**/node_modules/**
+**/dist/**
+**/build/**
+
+# Lock files
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Build artifacts
+.next/
+.turbo/
+.vercel/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test coverage
+coverage/
+
+# TypeScript cache
+*.tsbuildinfo

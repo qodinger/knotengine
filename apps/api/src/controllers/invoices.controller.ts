@@ -6,9 +6,12 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import { ConfirmationEngine } from "../core/confirmation-engine.js";
 import { PriceOracle } from "../infra/price-feed.js";
 import { BlockchainProviderPool } from "../infra/provider-pool.js";
+import * as Metrics from "../infra/metrics.js";
 
 export const InvoicesController = {
   createInvoice: async (request: any, reply: FastifyReply) => {
+    const stopTimer = Metrics.startTimer();
+
     try {
       const merchant = request.merchant;
       if (!merchant) return reply.code(401).send({ error: "Unauthorized" });
@@ -22,21 +25,9 @@ export const InvoicesController = {
         is_testnet,
       } = request.body;
 
-      // 1. Get real-time crypto price
-      const marketPrice = await PriceOracle.getPrice(currency as Currency);
-
       // Determine network context: is it a testnet invoice?
       const isTestnet = is_testnet === true;
-
-      // Transparent Pricing: Customer pays exact market rate
-      // No hidden spreads or recapture mechanics
-      const customerPrice = marketPrice;
-
-      const cryptoAmount = parseFloat((amount_usd / customerPrice).toFixed(8));
-
-      // 2. Derive a unique payment address
-      const nextIndex = merchant.derivationIndex + 1;
-      let payAddress: string;
+      const network = isTestnet ? "testnet" : "mainnet";
 
       const envNetwork =
         (process.env.BITCOIN_NETWORK as "bitcoin" | "testnet" | "regtest") ||
@@ -46,6 +37,52 @@ export const InvoicesController = {
       if (isTestnet && !SUPPORTED_CURRENCIES.includes(currency as Currency)) {
         return reply.code(400).send({
           error: `Testnet is currently only supported for: ${SUPPORTED_CURRENCIES.join(", ")}.`,
+        });
+      }
+
+      // ✅ PERFORMANCE FIX: Parallelize independent operations
+      // Price fetching and address derivation don't depend on each other
+      const [marketPrice, nextIndex] = await Promise.all([
+        PriceOracle.getPrice(currency as Currency),
+        (async () => {
+          const next = merchant.derivationIndex + 1;
+          // Optimistically increment derivation index
+          await Merchant.findByIdAndUpdate(merchant._id, {
+            $set: { derivationIndex: next },
+          });
+          return next;
+        })(),
+      ]);
+
+      // Transparent Pricing: Customer pays exact market rate
+      const customerPrice = marketPrice;
+      const cryptoAmount = parseFloat((amount_usd / customerPrice).toFixed(8));
+
+      // Derive a unique payment address
+      let payAddress: string;
+
+      // Safety Rail: Minimum Invoice Amount
+      const minInvoiceAmount = parseFloat(
+        process.env.MIN_INVOICE_AMOUNT || "1.00",
+      );
+      if (amount_usd < minInvoiceAmount) {
+        return reply.code(400).send({
+          error: `Minimum invoice amount is $${minInvoiceAmount.toFixed(2)}`,
+        });
+      }
+
+      // Credit Balance Gate
+      const user = merchant.userId
+        ? await User.findById(merchant.userId)
+        : null;
+      if (!isTestnet && (!user || user.creditBalance <= 0)) {
+        return reply.code(402).send({
+          error:
+            "Insufficient credit balance. Please top up your account to continue creating invoices.",
+          creditBalance: user?.creditBalance || 0,
+          topUpWallets: {
+            EVM_STABLECOIN: process.env.PLATFORM_FEE_WALLET_EVM || null,
+          },
         });
       }
 
@@ -102,32 +139,7 @@ export const InvoicesController = {
         });
       }
 
-      // 3. Safety Rails: Minimum Invoice Amount
-      const minInvoiceAmount = parseFloat(
-        process.env.MIN_INVOICE_AMOUNT || "1.00",
-      );
-      if (amount_usd < minInvoiceAmount) {
-        return reply.code(400).send({
-          error: `Minimum invoice amount is $${minInvoiceAmount.toFixed(2)}`,
-        });
-      }
-
-      // 4. Credit Balance Gate
-      const user = merchant.userId
-        ? await User.findById(merchant.userId)
-        : null;
-      if (!isTestnet && (!user || user.creditBalance <= 0)) {
-        return reply.code(402).send({
-          error:
-            "Insufficient credit balance. Please top up your account to continue creating invoices.",
-          creditBalance: user?.creditBalance || 0,
-          topUpWallets: {
-            EVM_STABLECOIN: process.env.PLATFORM_FEE_WALLET_EVM || null,
-          },
-        });
-      }
-
-      // 5. Get required confirmations
+      // Get required confirmations
       const requiredConfirmations =
         await ConfirmationEngine.getRequiredConfirmations(
           merchant._id.toString(),
@@ -213,6 +225,12 @@ export const InvoicesController = {
         process.env.CHECKOUT_BASE_URL || "http://localhost:5051";
       const checkoutUrl = `${checkoutBaseUrl}/checkout/${invoice.invoiceId}`;
 
+      // Record metrics
+      const duration = stopTimer();
+      Metrics.invoicesCreatedTotal.inc({ currency, network });
+      Metrics.invoiceCreationLatency.observe({ currency }, duration);
+      Metrics.invoiceAmountUsd.observe(amount_usd);
+
       return reply.code(201).send({
         invoice_id: invoice.invoiceId,
         amount_usd: invoice.amountUsd,
@@ -226,6 +244,7 @@ export const InvoicesController = {
       });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
+      stopTimer(); // Stop timer even on error
       return reply.code(500).send({
         error: `Failed to create invoice: ${message}`,
       });

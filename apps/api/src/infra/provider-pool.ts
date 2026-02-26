@@ -1,6 +1,7 @@
 import { IBlockchainProvider } from "./provider-interface.js";
 import { TatumProvider } from "./tatum-provider.js";
 import { AlchemyProvider } from "./alchemy-provider.js";
+import { ServiceCircuitBreaker } from "./circuit-breaker.js";
 
 export class BlockchainProviderPool {
   private static instance: BlockchainProviderPool;
@@ -20,7 +21,7 @@ export class BlockchainProviderPool {
 
   /**
    * Attempts to subscribe to an address using available providers in the pool.
-   * If the first provider fails, it automatically tries the next one.
+   * Uses circuit breakers to prevent cascading failures.
    *
    * @param useDualProvider - If true, subscribes to BOTH providers for redundancy (Pro/Enterprise)
    */
@@ -38,12 +39,30 @@ export class BlockchainProviderPool {
       }> = [];
 
       for (const provider of this.providers) {
+        const circuitState = ServiceCircuitBreaker.getState(provider.name);
+
+        // Skip if circuit is open (service is unhealthy)
+        if (circuitState === "OPEN") {
+          console.warn(`⚠️ Skipping ${provider.name} - circuit is OPEN`);
+          continue;
+        }
+
         try {
-          const subId = await provider.subscribeAddress(
-            address,
-            chain,
-            webhookUrl,
+          const subId = await ServiceCircuitBreaker.execute(
+            provider.name,
+            async () => {
+              return await provider.subscribeAddress(
+                address,
+                chain,
+                webhookUrl,
+              );
+            },
+            async () => {
+              // Fallback: return null if circuit is open
+              return null;
+            },
           );
+
           if (subId) {
             subscriptions.push({
               providerName: provider.name,
@@ -65,14 +84,25 @@ export class BlockchainProviderPool {
       return subscriptions.length > 0 ? subscriptions[0] : null;
     }
 
-    // Starter: Single provider with fallback
+    // Starter: Single provider with fallback and circuit breaker
     for (const provider of this.providers) {
+      const circuitState = ServiceCircuitBreaker.getState(provider.name);
+
+      // Skip if circuit is open
+      if (circuitState === "OPEN") {
+        console.warn(`⚠️ Skipping ${provider.name} - circuit is OPEN`);
+        continue;
+      }
+
       try {
-        const subId = await provider.subscribeAddress(
-          address,
-          chain,
-          webhookUrl,
+        const subId = await ServiceCircuitBreaker.execute(
+          provider.name,
+          async () => {
+            return await provider.subscribeAddress(address, chain, webhookUrl);
+          },
+          async () => null, // Fallback
         );
+
         if (subId) {
           return { providerName: provider.name, subscriptionId: subId };
         }
@@ -94,7 +124,40 @@ export class BlockchainProviderPool {
   ) {
     const provider = this.providers.find((p) => p.name === providerName);
     if (provider) {
-      await provider.deleteSubscription(subscriptionId);
+      try {
+        await ServiceCircuitBreaker.execute(
+          `${providerName}-delete`,
+          async () => await provider.deleteSubscription(subscriptionId),
+          async () => {}, // Fallback: silently succeed
+        );
+      } catch (err) {
+        console.warn(
+          `Failed to delete subscription from ${providerName}:`,
+          err,
+        );
+      }
     }
+  }
+
+  /**
+   * Gets health status for all providers.
+   */
+  public getProviderHealth(): Array<{
+    name: string;
+    state: string;
+    stats: {
+      state: string;
+      failures: number;
+      successes: number;
+      rejects: number;
+      timeouts: number;
+      fallbacks: number;
+    } | null;
+  }> {
+    return this.providers.map((provider) => ({
+      name: provider.name,
+      state: ServiceCircuitBreaker.getState(provider.name),
+      stats: ServiceCircuitBreaker.getStats(provider.name),
+    }));
   }
 }

@@ -1,4 +1,6 @@
 import { Currency } from "@qodinger/knot-types";
+import { RedisClient } from "./redis-client.js";
+import { LRUCache } from "lru-cache";
 
 interface PriceData {
   [currency: string]: {
@@ -7,45 +9,77 @@ interface PriceData {
 }
 
 export class PriceOracle {
-  private static CACHE_TTL_MS = 60 * 1000; // 1 minute cache
-  private static cache: {
-    [key: string]: { price: number; timestamp: number };
-  } = {};
+  private static CACHE_TTL_SECONDS = 60; // 1 minute cache
+  private static CACHE_KEY_PREFIX = "price:";
+
+  /**
+   * Local LRU cache for fallback when Redis is unavailable.
+   * Bounded to prevent memory leaks.
+   */
+  private static localCache = new LRUCache<string, number>({
+    max: 100, // Max 100 entries
+    ttl: 60 * 1000, // 1 minute TTL
+    maxSize: 1024 * 1024, // Max 1MB memory
+    sizeCalculation: (value) => JSON.stringify(value).length,
+  });
 
   /**
    * Fetches the current price of a cryptocurrency in USD.
-   * Primary: CoinGecko
-   * Secondary (Failover): Binance
+   * Primary: Redis distributed cache
+   * Secondary: CoinGecko API
+   * Tertiary (Failover): Binance API
+   * Last Resort: Local LRU cache (stale allowed)
    */
   public static async getPrice(currency: Currency): Promise<number> {
     const coinId = this.mapCurrencyToCoinGeckoId(currency);
-    const now = Date.now();
+    const cacheKey = `${this.CACHE_KEY_PREFIX}${coinId}`;
 
-    // 1. Check Cache
-    if (
-      this.cache[coinId] &&
-      now - this.cache[coinId].timestamp < this.CACHE_TTL_MS
-    ) {
-      return this.cache[coinId].price;
+    // 1. Try Redis distributed cache
+    try {
+      const redis = RedisClient.getInstance();
+      if (redis) {
+        const cachedPrice = await RedisClient.get<number>(cacheKey);
+        if (cachedPrice !== null && cachedPrice > 0) {
+          // Also update local cache
+          this.localCache.set(coinId, cachedPrice);
+          return cachedPrice;
+        }
+      }
+    } catch (err) {
+      console.warn("Redis cache read failed, using fallback:", err);
     }
 
-    // 2. Fetch new price with Failover Logic
+    // 2. Try local LRU cache
+    const localCached = this.localCache.get(coinId);
+    if (localCached) {
+      console.log(
+        `📊 Returning local cache price for ${coinId}: $${localCached}`,
+      );
+      return localCached;
+    }
+
+    // 3. Fetch new price with Failover Logic
     try {
       // Try Source 1: CoinGecko
-      return await this.fetchFromCoinGecko(currency);
+      const price = await this.fetchFromCoinGecko(coinId);
+      await this.updateCache(cacheKey, coinId, price);
+      return price;
     } catch (geckoError) {
       console.warn("CoinGecko failed, falling back to Binance...", geckoError);
 
       try {
         // Try Source 2: Binance
-        return await this.fetchFromBinance(currency);
+        const binancePrice = await this.fetchFromBinance(currency, coinId);
+        await this.updateCache(cacheKey, coinId, binancePrice);
+        return binancePrice;
       } catch (binanceError) {
         console.error("Binance also failed:", binanceError);
 
-        // Final Fallback: If cache exists (even if stale), return it.
-        if (this.cache[coinId]) {
-          console.warn("Returning stale price as absolute last resort.");
-          return this.cache[coinId].price;
+        // Final Fallback: Return stale local cache if available
+        const stalePrice = this.localCache.get(coinId);
+        if (stalePrice) {
+          console.warn("⚠️ Returning stale price as last resort:", stalePrice);
+          return stalePrice;
         }
 
         throw new Error(
@@ -55,8 +89,7 @@ export class PriceOracle {
     }
   }
 
-  private static async fetchFromCoinGecko(currency: Currency): Promise<number> {
-    const coinId = this.mapCurrencyToCoinGeckoId(currency);
+  private static async fetchFromCoinGecko(coinId: string): Promise<number> {
     const response = await fetch(
       `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd`,
     );
@@ -72,11 +105,13 @@ export class PriceOracle {
       throw new Error(`Price not found for ${coinId} on CoinGecko`);
     }
 
-    this.updateCache(coinId, price);
     return price;
   }
 
-  private static async fetchFromBinance(currency: Currency): Promise<number> {
+  private static async fetchFromBinance(
+    currency: Currency,
+    _coinId: string,
+  ): Promise<number> {
     const symbol = this.mapCurrencyToBinanceSymbol(currency);
     if (!symbol)
       throw new Error(`Currency ${currency} not supported on Binance`);
@@ -96,13 +131,23 @@ export class PriceOracle {
       throw new Error(`Invalid price received from Binance: ${data.price}`);
     }
 
-    const coinId = this.mapCurrencyToCoinGeckoId(currency);
-    this.updateCache(coinId, price);
     return price;
   }
 
-  private static updateCache(id: string, price: number) {
-    this.cache[id] = { price, timestamp: Date.now() };
+  private static async updateCache(
+    cacheKey: string,
+    coinId: string,
+    price: number,
+  ): Promise<void> {
+    // Update Redis cache
+    try {
+      await RedisClient.set(cacheKey, price, this.CACHE_TTL_SECONDS);
+    } catch (err) {
+      console.warn("Redis cache write failed:", err);
+    }
+
+    // Update local LRU cache
+    this.localCache.set(coinId, price);
   }
 
   private static mapCurrencyToCoinGeckoId(currency: Currency): string {
@@ -134,6 +179,25 @@ export class PriceOracle {
         return "USDCUSDT"; // Use USDC/USDT for Tether relative price or just 1.0
       default:
         return null;
+    }
+  }
+
+  /**
+   * Clears all cached prices (useful for testing or manual refresh).
+   */
+  public static async clearCache(): Promise<void> {
+    this.localCache.clear();
+
+    try {
+      const redis = RedisClient.getInstance();
+      if (redis) {
+        const keys = await redis.keys(`${this.CACHE_KEY_PREFIX}*`);
+        if (keys.length > 0) {
+          await redis.del(...keys);
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to clear Redis cache:", err);
     }
   }
 }

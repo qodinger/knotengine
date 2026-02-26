@@ -121,6 +121,10 @@ export class ConfirmationEngine {
         txHash: event.txHash,
         invoiceId: invoice._id,
       });
+
+      const receivedAmount = parseFloat(event.amount);
+      let totalCryptoReceived: number;
+
       if (!existingEvent) {
         await WebhookEvent.create({
           source: event.source,
@@ -135,22 +139,31 @@ export class ConfirmationEngine {
           invoiceId: invoice._id,
           rawPayload: event.rawPayload,
         });
+
+        // ✅ PERFORMANCE FIX: Incremental update instead of O(n) recalculation
+        // Add the new amount to the existing cumulative total
+        totalCryptoReceived = parseFloat(
+          ((invoice.cryptoAmountReceived || 0) + receivedAmount).toFixed(8),
+        );
+
+        // Update invoice with new cumulative amount in same operation
+        await Invoice.findByIdAndUpdate(invoice._id, {
+          $inc: { cryptoAmountReceived: receivedAmount },
+          $set: {
+            lastReceivedAmount: receivedAmount,
+            lastReceivedAt: new Date(),
+          },
+        });
       } else {
         // Update confirmation count for existing event
         await WebhookEvent.findByIdAndUpdate(existingEvent._id, {
           confirmations: event.confirmations,
           blockNumber: event.blockNumber,
         });
-      }
 
-      // 3. Calculate Cumulative Received Amount
-      const allEvents = await WebhookEvent.find({
-        invoiceId: invoice._id,
-        processed: true,
-      });
-      const totalCryptoReceived = parseFloat(
-        allEvents.reduce((sum, e) => sum + parseFloat(e.amount), 0).toFixed(8),
-      );
+        // Event already processed, use existing cumulative amount
+        totalCryptoReceived = invoice.cryptoAmountReceived || 0;
+      }
 
       const tolerance = merchant.underpaymentTolerancePercentage ?? 1;
       const minRequired = invoice.cryptoAmount * (1 - tolerance / 100);
@@ -188,7 +201,7 @@ export class ConfirmationEngine {
         txHash: event.txHash,
         confirmations: event.confirmations,
         status: newStatus,
-        cryptoAmountReceived: totalCryptoReceived, // Cumulative amount received
+        // cryptoAmountReceived is already updated incrementally above
       };
 
       if (event.blockNumber > 0) {
@@ -199,7 +212,11 @@ export class ConfirmationEngine {
         updateData.paidAt = new Date();
       }
 
-      await Invoice.findByIdAndUpdate(invoice._id, { $set: updateData });
+      // Only update if there are changes beyond cryptoAmountReceived
+      const hasUpdates = Object.keys(updateData).length > 0;
+      if (hasUpdates) {
+        await Invoice.findByIdAndUpdate(invoice._id, { $set: updateData });
+      }
 
       // 5. Emit real-time update
       SocketService.emitStatusUpdate(invoice.invoiceId, newStatus, {
@@ -377,56 +394,82 @@ export class ConfirmationEngine {
   /**
    * Expires old invoices that have passed their TTL.
    * Should be called periodically (e.g., every 60 seconds).
+   * Uses pagination to prevent memory spikes with large datasets.
    */
   public static async expireStaleInvoices(): Promise<number> {
-    const staleInvoices = await Invoice.find({
-      status: {
-        $in: ["pending", "mempool_detected", "confirming", "partially_paid"],
-      },
-      expiresAt: { $lt: new Date() },
-    });
+    const BATCH_SIZE = 100;
+    let expired = 0;
+    let hasMore = true;
+    let skip = 0;
 
-    if (staleInvoices.length === 0) return 0;
+    while (hasMore) {
+      const staleInvoices = await Invoice.find({
+        status: {
+          $in: ["pending", "mempool_detected", "confirming", "partially_paid"],
+        },
+        expiresAt: { $lt: new Date() },
+      })
+        .limit(BATCH_SIZE)
+        .skip(skip)
+        .sort({ expiresAt: 1 }); // Process oldest first
 
-    for (const invoice of staleInvoices) {
-      const prevStatus = invoice.status;
-      await Invoice.findByIdAndUpdate(invoice._id, {
-        $set: { status: "expired" },
-      });
-
-      // 1. Emit real-time socket update
-      SocketService.emitStatusUpdate(invoice.invoiceId, "expired", {
-        txHash: invoice.txHash,
-        confirmations: invoice.confirmations,
-      });
-
-      // 2. Dispatch Webhook
-      WebhookDispatcher.dispatch(invoice.invoiceId, "invoice.expired");
-
-      // 3. Cleanup monitoring
-      if (invoice.tatumSubscriptionId && invoice.providerName) {
-        BlockchainProviderPool.getInstance().deleteSubscription(
-          invoice.providerName,
-          invoice.tatumSubscriptionId,
-        );
+      if (staleInvoices.length === 0) {
+        hasMore = false;
+        break;
       }
 
-      // 4. Notify Merchant if funds were involved
-      if (prevStatus !== "pending") {
-        const isTestnet = invoice.metadata?.isTestnet === true;
-        NotificationService.create({
-          merchantId: invoice.merchantId.toString(),
-          title: isTestnet ? "[TEST] Invoice Expired" : "Invoice Expired",
-          description: `Invoice ${invoice.invoiceId} has expired after receiving partial or unconfirmed funds.`,
-          type: "error",
-          link: "/dashboard/payments",
-          meta: { invoiceId: invoice.invoiceId, isTestnet },
-        });
+      for (const invoice of staleInvoices) {
+        try {
+          const prevStatus = invoice.status;
+          await Invoice.findByIdAndUpdate(invoice._id, {
+            $set: { status: "expired" },
+          });
+
+          // 1. Emit real-time socket update
+          SocketService.emitStatusUpdate(invoice.invoiceId, "expired", {
+            txHash: invoice.txHash,
+            confirmations: invoice.confirmations,
+          });
+
+          // 2. Dispatch Webhook
+          WebhookDispatcher.dispatch(invoice.invoiceId, "invoice.expired");
+
+          // 3. Cleanup monitoring
+          if (invoice.tatumSubscriptionId && invoice.providerName) {
+            BlockchainProviderPool.getInstance().deleteSubscription(
+              invoice.providerName,
+              invoice.tatumSubscriptionId,
+            );
+          }
+
+          // 4. Notify Merchant if funds were involved
+          if (prevStatus !== "pending") {
+            const isTestnet = invoice.metadata?.isTestnet === true;
+            await NotificationService.create({
+              merchantId: invoice.merchantId.toString(),
+              title: isTestnet ? "[TEST] Invoice Expired" : "Invoice Expired",
+              description: `Invoice ${invoice.invoiceId} has expired after receiving partial or unconfirmed funds.`,
+              type: "error",
+              link: "/dashboard/payments",
+              meta: { invoiceId: invoice.invoiceId, isTestnet },
+            });
+          }
+
+          console.log(`⏰ Invoice ${invoice.invoiceId} expired.`);
+          expired++;
+        } catch (err) {
+          console.error(`❌ Error expiring invoice ${invoice.invoiceId}:`, err);
+        }
       }
 
-      console.log(`⏰ Invoice ${invoice.invoiceId} expired.`);
+      skip += BATCH_SIZE;
+
+      // If we got fewer than BATCH_SIZE, we're done
+      if (staleInvoices.length < BATCH_SIZE) {
+        hasMore = false;
+      }
     }
 
-    return staleInvoices.length;
+    return expired;
   }
 }

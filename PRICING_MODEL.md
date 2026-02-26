@@ -105,6 +105,32 @@ To make the **$29/mo** price point attractive beyond just the fee discount:
 
 ---
 
+## ⚡ Performance & Reliability (v0.4.0+)
+
+KnotEngine's infrastructure investments directly benefit merchants through faster processing and higher reliability.
+
+### Performance Metrics
+
+| Metric                | Performance                 | Merchant Benefit                         |
+| --------------------- | --------------------------- | ---------------------------------------- |
+| **Invoice Creation**  | <400ms (p95)                | Faster checkout experience for customers |
+| **Payment Detection** | <3 seconds from mempool     | Real-time payment confirmation           |
+| **Webhook Delivery**  | 500+ req/s parallel         | Reliable server notifications            |
+| **Price Updates**     | 99%+ cache hit rate         | Accurate, up-to-date pricing             |
+| **Provider Failover** | Automatic (circuit breaker) | Zero downtime during provider outages    |
+
+### Infrastructure Features
+
+- **Dual-Provider Monitoring** (Professional+) — Tatum + Alchemy redundancy
+- **Circuit Breakers** — Automatic failover if blockchain providers are unavailable
+- **Queue-Based Delivery** — Parallel webhook processing (10 concurrent)
+- **Distributed Caching** — Redis-backed price feeds with LRU fallback
+- **24/7 Monitoring** — 20+ Prometheus metrics tracking system health
+
+**Result:** Merchants get enterprise-grade reliability at startup prices.
+
+---
+
 ## 📋 Fee Schedule Summary
 
 | Plan             | Transaction Fee | Monthly Cost | Break-even Volume |

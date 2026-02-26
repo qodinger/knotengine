@@ -24,6 +24,9 @@ import { FloatManager } from "./core/float-manager.js";
 import { Currency } from "@qodinger/knot-types";
 import { connectToDatabase } from "@qodinger/knot-database";
 import { SocketService } from "./infra/socket-service.js";
+import { WebhookQueue } from "./infra/webhook-queue.js";
+import { RedisClient } from "./infra/redis-client.js";
+import * as Metrics from "./infra/metrics.js";
 
 import dotenv from "dotenv";
 import path from "path";
@@ -183,20 +186,37 @@ let webhookCatchupInterval: NodeJS.Timeout;
 let billingCheckInterval: NodeJS.Timeout;
 
 function startBackgroundJobs() {
+  // Initialize Webhook Queue (if Redis available)
+  WebhookQueue.init();
+
   // Expire stale invoices every 60 seconds
   expirationInterval = setInterval(async () => {
     try {
       await ConfirmationEngine.expireStaleInvoices();
+      await Metrics.updateActiveInvoicesMetrics();
     } catch (err) {
       console.error("Expiration job error:", err);
     }
   }, 60 * 1000);
 
+  // Update webhook queue metrics every 10 seconds
+  setInterval(async () => {
+    try {
+      await Metrics.updateWebhookQueueMetrics();
+    } catch (err) {
+      console.warn("Failed to update webhook queue metrics:", err);
+    }
+  }, 10 * 1000);
+
   // Retry failed webhook deliveries every 5 minutes
+  // Only needed if queue is not available (fallback mode)
   webhookCatchupInterval = setInterval(
     async () => {
       try {
-        await WebhookDispatcher.dispatchPending();
+        // If queue is ready, it handles retries automatically
+        if (!WebhookQueue.isReady()) {
+          await WebhookDispatcher.dispatchPending();
+        }
       } catch (err) {
         console.error("Webhook catchup job error:", err);
       }
@@ -235,6 +255,33 @@ function startBackgroundJobs() {
 }
 
 // ──────────────────────────────────────────────
+// Graceful Shutdown
+// ──────────────────────────────────────────────
+async function gracefulShutdown() {
+  console.log("\n🛑 Shutting down gracefully...");
+
+  // Stop background jobs
+  clearInterval(expirationInterval);
+  clearInterval(webhookCatchupInterval);
+  clearInterval(billingCheckInterval);
+
+  // Close webhook queue
+  await WebhookQueue.shutdown();
+
+  // Close Redis connection
+  await RedisClient.disconnect();
+
+  // Close Fastify server
+  await server.close();
+
+  console.log("✅ Shutdown complete");
+  process.exit(0);
+}
+
+process.on("SIGTERM", gracefulShutdown);
+process.on("SIGINT", gracefulShutdown);
+
+// ──────────────────────────────────────────────
 // Server Startup
 // ──────────────────────────────────────────────
 const start = async () => {
@@ -256,10 +303,7 @@ const start = async () => {
     console.log("📋 Phase 2: Monitoring & Persistence — ACTIVE");
   } catch (err) {
     server.log.error(err);
-    clearInterval(expirationInterval);
-    clearInterval(webhookCatchupInterval);
-    clearInterval(billingCheckInterval);
-    process.exit(1);
+    gracefulShutdown();
   }
 };
 

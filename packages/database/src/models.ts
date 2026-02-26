@@ -212,6 +212,10 @@ export interface IInvoice extends Document {
   amountUsd: number;
   cryptoAmount: number;
   cryptoAmountReceived: number;
+  /** Last received amount for incremental tracking */
+  lastReceivedAmount?: number;
+  /** Timestamp of last payment received */
+  lastReceivedAt?: Date;
   cryptoCurrency: string;
   payAddress: string;
   /** KnotEngine Fee (Platform Fee) */
@@ -258,6 +262,8 @@ const InvoiceSchema: Schema = new Schema(
     amountUsd: { type: Number, required: true },
     cryptoAmount: { type: Number, required: true },
     cryptoAmountReceived: { type: Number, default: 0 },
+    lastReceivedAmount: { type: Number },
+    lastReceivedAt: { type: Date },
     cryptoCurrency: { type: String, required: true },
     payAddress: { type: String, required: true },
     feeUsd: { type: Number, required: true, default: 0 },
@@ -297,6 +303,12 @@ const InvoiceSchema: Schema = new Schema(
 );
 
 InvoiceSchema.index({ merchantId: 1, status: 1 });
+InvoiceSchema.index({ invoiceId: 1, status: 1 });
+InvoiceSchema.index({ merchantId: 1, "metadata.isTestnet": 1, createdAt: -1 });
+InvoiceSchema.index({ payAddress: 1, status: 1 });
+InvoiceSchema.index({ expiresAt: 1, status: 1 });
+InvoiceSchema.index({ webhookDelivered: 1, webhookAttempts: 1, status: 1 });
+InvoiceSchema.index({ merchantId: 1, status: 1, createdAt: -1 });
 // payAddress + invoiceId indexes are auto-created by unique: true
 InvoiceSchema.index({ status: 1, expiresAt: 1 });
 
