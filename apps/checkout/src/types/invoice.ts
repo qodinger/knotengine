@@ -12,11 +12,16 @@ export interface Invoice {
   confirmations?: number;
   metadata?: {
     isTestnet?: boolean;
+    feeResponsibility?: "client" | "merchant";
   };
   merchant?: {
     name: string;
     logo_url?: string | null;
     return_url?: string | null;
+    theme?: "light" | "dark" | "system";
+    brand_color?: string;
+    branding_enabled?: boolean;
+    remove_branding?: boolean;
     bip21_enabled?: boolean;
     plan?: "starter" | "professional" | "enterprise";
   };

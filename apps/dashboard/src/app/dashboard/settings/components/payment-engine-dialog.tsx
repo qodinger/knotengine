@@ -19,9 +19,9 @@ import {
   Settings2,
   Clock,
   Percent,
-  UserCircle,
   HelpCircle,
   QrCode,
+  UserCircle,
 } from "lucide-react";
 import { merchantSettingsSchema, MerchantSettings } from "../types";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -265,10 +265,7 @@ export function PaymentEngineDialog({
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={saving || !isValid || enabledCurrencies.length === 0}
-            >
+            <Button type="submit" disabled={saving || !isValid}>
               {saving && <Loader2 className="mr-2 size-4 animate-spin" />}
               Update Engine
             </Button>

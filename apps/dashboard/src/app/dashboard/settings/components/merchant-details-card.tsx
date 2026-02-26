@@ -42,10 +42,10 @@ export function MerchantDetailsCard({
               </div>
               <div>
                 <CardTitle className="text-base font-bold">
-                  Merchant Project
+                  Checkout & Branding
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Your merchant&apos;s public identity and identifiers.
+                  Customize your public checkout page identity & logos.
                 </CardDescription>
               </div>
             </div>
@@ -56,7 +56,7 @@ export function MerchantDetailsCard({
               onClick={() => setIsEditDialogOpen(true)}
             >
               <Edit2 className="size-3.5" />
-              Edit Profile
+              Configure Checkout
             </Button>
           </div>
         </CardHeader>

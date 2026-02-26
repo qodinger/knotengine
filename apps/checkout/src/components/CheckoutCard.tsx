@@ -19,12 +19,17 @@ interface CheckoutCardProps {
     fee_usd: number;
     metadata?: {
       isTestnet?: boolean;
+      feeResponsibility?: "client" | "merchant";
     };
     merchant?: {
       name: string;
       logo_url?: string | null;
       return_url?: string | null;
+      theme?: "light" | "dark" | "system";
+      brand_color?: string;
+      branding_enabled?: boolean;
       bip21_enabled?: boolean;
+      plan?: "starter" | "professional" | "enterprise";
     };
     description?: string;
   };
@@ -98,9 +103,9 @@ export function CheckoutCard({ invoice }: CheckoutCardProps) {
     <div className="bg-card border-border relative w-full overflow-hidden rounded-xl border shadow-2xl">
       {/* Testnet Banner */}
       {invoice.metadata?.isTestnet && (
-        <div className="flex items-center justify-center gap-2 border-b border-yellow-500/20 bg-yellow-500/10 px-4 py-1.5">
-          <AlertCircle size={12} className="text-yellow-500" />
-          <span className="text-[10px] font-bold tracking-widest text-yellow-500 uppercase">
+        <div className="brand-bg-muted brand-border flex items-center justify-center gap-2 border-b px-4 py-1.5">
+          <AlertCircle size={12} className="brand-text" />
+          <span className="brand-text text-[10px] font-bold tracking-widest uppercase">
             Testnet Mode
           </span>
         </div>
@@ -108,42 +113,44 @@ export function CheckoutCard({ invoice }: CheckoutCardProps) {
 
       <div className="p-6">
         {/* Merchant Branding */}
-        <div className="border-border/50 mb-8 flex flex-col border-b pb-6">
-          <div className="flex items-center gap-3">
-            <div className="bg-muted border-border/50 flex size-10 items-center justify-center overflow-hidden rounded-lg border">
-              {invoice.merchant?.logo_url ? (
-                <img
-                  src={invoice.merchant.logo_url}
-                  alt={invoice.merchant.name}
-                  className="size-full object-cover"
-                />
-              ) : (
-                <span className="text-muted-foreground text-xl font-bold uppercase">
-                  {invoice.merchant?.name?.charAt(0) || "M"}
-                </span>
-              )}
+        {invoice.merchant?.branding_enabled !== false && (
+          <div className="border-border/50 mb-4 flex flex-col border-b pb-6">
+            <div className="flex items-center gap-3">
+              <div className="brand-bg-muted brand-border bg-muted border-border/50 flex size-10 items-center justify-center overflow-hidden rounded-lg border">
+                {invoice.merchant?.logo_url ? (
+                  <img
+                    src={invoice.merchant.logo_url}
+                    alt={invoice.merchant.name}
+                    className="size-full object-cover"
+                  />
+                ) : (
+                  <span className="brand-text text-muted-foreground text-xl font-bold uppercase">
+                    {invoice.merchant?.name?.charAt(0) || "M"}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-col">
+                <h1 className="text-foreground text-sm font-bold tracking-tight">
+                  {invoice.merchant?.name || "Merchant"}
+                </h1>
+                <p className="text-muted-foreground text-[10px] font-medium tracking-widest uppercase">
+                  Payment Request
+                </p>
+              </div>
             </div>
-            <div className="flex flex-col">
-              <h1 className="text-foreground text-sm font-bold tracking-tight">
-                {invoice.merchant?.name || "Merchant"}
-              </h1>
-              <p className="text-muted-foreground text-[10px] font-medium tracking-widest uppercase">
-                Payment Request
-              </p>
-            </div>
-          </div>
 
-          {invoice.description && (
-            <div className="bg-muted/30 border-border/50 mt-4 rounded-lg border px-3 py-2">
-              <p className="text-muted-foreground text-[11px] leading-relaxed italic">
-                “{invoice.description}”
-              </p>
-            </div>
-          )}
-        </div>
+            {invoice.description && (
+              <div className="bg-muted/30 border-border/50 mt-4 rounded-lg border px-3 py-2">
+                <p className="text-muted-foreground text-[11px] leading-relaxed italic">
+                  “{invoice.description}”
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Header */}
-        <div className="mb-8 flex w-full items-center justify-between">
+        <div className="mb-4 flex w-full items-center justify-between">
           <div className="flex items-center gap-2">
             <div
               className={cn(
@@ -165,7 +172,22 @@ export function CheckoutCard({ invoice }: CheckoutCardProps) {
               {invoice.status.replace("_", " ")}
             </span>
           </div>
-          <div className="text-muted-foreground bg-secondary border-border flex items-center gap-1.5 rounded-md border px-2 py-1">
+          <div
+            className={cn(
+              "flex items-center gap-1.5 rounded-md border px-2 py-1",
+              ["pending", "mempool_detected", "confirming"].includes(
+                invoice.status,
+              )
+                ? "border-amber-500/20 bg-amber-500/10 text-amber-500"
+                : ["confirmed", "overpaid"].includes(invoice.status)
+                  ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-500"
+                  : invoice.status === "partially_paid"
+                    ? "border-orange-500/20 bg-orange-500/10 text-orange-500"
+                    : invoice.status === "expired"
+                      ? "bg-destructive/10 border-destructive/20 text-destructive"
+                      : "bg-secondary border-border text-muted-foreground",
+            )}
+          >
             <Clock size={12} />
             <span className="font-mono text-xs font-bold tracking-tight">
               {timeLeft}
@@ -174,7 +196,7 @@ export function CheckoutCard({ invoice }: CheckoutCardProps) {
         </div>
 
         {/* Amount Section */}
-        <div className="mb-8 flex flex-col items-center">
+        <div className="mb-4 flex flex-col items-center">
           <p className="text-muted-foreground mb-2 text-[10px] font-bold tracking-widest uppercase">
             {invoice.status === "partially_paid"
               ? "Remaining Balance"
@@ -192,12 +214,12 @@ export function CheckoutCard({ invoice }: CheckoutCardProps) {
                     ? "text-emerald-500"
                     : invoice.status === "partially_paid"
                       ? "text-amber-500"
-                      : "text-foreground",
+                      : "brand-text text-foreground",
                 )}
               >
                 {getRemainingAmount()}
               </h2>
-              <span className="text-muted-foreground text-lg font-medium">
+              <span className="brand-text text-muted-foreground text-lg font-medium">
                 {invoice.crypto_currency}
               </span>
 
@@ -216,15 +238,24 @@ export function CheckoutCard({ invoice }: CheckoutCardProps) {
               </p>
             )}
 
-            <p className="text-muted-foreground mt-1 text-sm font-medium">
-              ≈ $
-              {(
-                (getRemainingAmount() / invoice.crypto_amount) *
-                invoice.amount_usd
-              ).toFixed(2)}{" "}
-              USD
-            </p>
-            <span className="text-muted-foreground mt-2 text-[10px] opacity-0 transition-opacity group-hover:opacity-100">
+            <div className="flex flex-col items-center">
+              <p className="text-muted-foreground mt-1 text-sm font-medium">
+                ≈ $
+                {(
+                  (getRemainingAmount() / invoice.crypto_amount) *
+                  invoice.amount_usd
+                ).toFixed(2)}{" "}
+                USD
+              </p>
+              {invoice.metadata?.feeResponsibility === "client" &&
+                invoice.fee_usd > 0 &&
+                invoice.status !== "partially_paid" && (
+                  <p className="text-muted-foreground/60 mt-0.5 text-[9px] font-medium tracking-wide uppercase">
+                    Includes ${invoice.fee_usd.toFixed(2)} Platform Fee
+                  </p>
+                )}
+            </div>
+            <span className="text-muted-foreground mt-1 text-[10px] opacity-0 transition-opacity group-hover:opacity-100">
               Click to copy{" "}
               {invoice.status === "partially_paid" ? "remaining" : ""} amount
             </span>
@@ -249,7 +280,7 @@ export function CheckoutCard({ invoice }: CheckoutCardProps) {
 
         <div className="flex flex-col gap-6">
           {/* QR Code */}
-          <div className="relative mx-auto flex items-center justify-center rounded-xl bg-white p-4 shadow-sm">
+          <div className="border-border/20 relative mx-auto flex items-center justify-center rounded-xl border bg-white p-4 shadow-sm">
             <QRCodeSVG value={generatePaymentUri()} size={180} level="H" />
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
               <div className="flex size-12 items-center justify-center rounded-full bg-white p-2">
@@ -259,7 +290,8 @@ export function CheckoutCard({ invoice }: CheckoutCardProps) {
                     CRYPTO_LOGOS["BTC"]
                   }
                   alt={invoice.crypto_currency}
-                  className="size-full object-contain"
+                  className="size-full object-contain select-none"
+                  draggable={false}
                 />
               </div>
             </div>
@@ -275,12 +307,12 @@ export function CheckoutCard({ invoice }: CheckoutCardProps) {
             </div>
 
             <div className="group relative">
-              <div className="bg-secondary border-border text-secondary-foreground group-hover:border-primary/20 w-full truncate rounded-lg border py-3 pr-12 pl-4 font-mono text-xs transition-colors">
+              <div className="group-hover-brand-border bg-secondary border-border text-secondary-foreground group-hover:border-primary/20 w-full truncate rounded-lg border py-3 pr-12 pl-4 font-mono text-xs transition-colors">
                 {invoice.pay_address}
               </div>
               <button
                 onClick={copyToClipboard}
-                className="hover:bg-background text-muted-foreground hover:text-foreground absolute top-1 right-1 bottom-1 rounded-md p-2 transition-colors"
+                className="hover-brand-text hover-brand-bg hover:bg-background text-muted-foreground hover:text-foreground absolute top-1 right-1 bottom-1 flex aspect-square items-center justify-center rounded-md transition-colors"
               >
                 {copied ? (
                   <Check size={14} className="text-emerald-500" />

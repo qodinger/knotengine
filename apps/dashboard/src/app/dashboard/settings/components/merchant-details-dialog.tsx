@@ -106,10 +106,10 @@ export function MerchantDetailsDialog({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Store className="text-primary size-5" />
-              Edit Merchant Details
+              Customize Checkout Page
             </DialogTitle>
             <DialogDescription>
-              Update your merchant&apos;s public identity and configuration.
+              Update your checkout logos, return URLs, and branding.
             </DialogDescription>
           </DialogHeader>
 

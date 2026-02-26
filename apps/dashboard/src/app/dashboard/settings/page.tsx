@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useSettings } from "./hooks/use-settings";
 import { MerchantDetailsCard } from "./components/merchant-details-card";
+import { AppearanceCard } from "./components/appearance-card";
 import { TwoFactorCard } from "./components/two-factor-card";
 import { PaymentEngineCard } from "./components/payment-engine-card";
 import { TwoFASetupDialog } from "./components/two-fa-setup-dialog";
@@ -13,7 +14,7 @@ import { SubNavLayout } from "@/components/sub-nav-layout";
 import { Store, ShieldCheck, Sliders, Trash2 } from "lucide-react";
 
 const sections = [
-  { label: "Merchant Details", value: "merchant", icon: Store },
+  { label: "Checkout & Branding", value: "merchant", icon: Store },
   { label: "Security", value: "security", icon: ShieldCheck },
   { label: "Payment Engine", value: "payment", icon: Sliders },
   { label: "Danger Zone", value: "danger", icon: Trash2 },
@@ -61,11 +62,18 @@ export default function SettingsPage() {
         onSectionChange={setActiveSection}
       >
         {activeSection === "merchant" && (
-          <MerchantDetailsCard
-            formData={formData}
-            onSave={handleSave}
-            saving={saving}
-          />
+          <div className="flex flex-col gap-6">
+            <MerchantDetailsCard
+              formData={formData}
+              onSave={handleSave}
+              saving={saving}
+            />
+            <AppearanceCard
+              formData={formData}
+              onSave={handleSave}
+              saving={saving}
+            />
+          </div>
         )}
 
         {activeSection === "security" && (

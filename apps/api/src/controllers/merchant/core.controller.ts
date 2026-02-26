@@ -389,6 +389,10 @@ export const MerchantCoreController = {
       webhookSecret: merchant.webhookSecret,
       logoUrl: merchant.logoUrl,
       returnUrl: merchant.returnUrl,
+      theme: merchant.theme || "system",
+      brandColor: merchant.brandColor || "#ffffff",
+      brandingEnabled: merchant.brandingEnabled ?? true,
+      removeBranding: merchant.removeBranding ?? false,
       feeResponsibility: merchant.feeResponsibility || "merchant",
       invoiceExpirationMinutes: merchant.invoiceExpirationMinutes || 60,
       underpaymentTolerancePercentage:
@@ -465,6 +469,10 @@ export const MerchantCoreController = {
       enabledCurrencies: updated.enabledCurrencies,
       logoUrl: updated.logoUrl,
       returnUrl: updated.returnUrl,
+      theme: updated.theme || "system",
+      brandColor: updated.brandColor || "#ffffff",
+      brandingEnabled: updated.brandingEnabled ?? true,
+      removeBranding: updated.removeBranding ?? false,
       webhookEvents: updated.webhookEvents || [
         "invoice.confirmed",
         "invoice.mempool_detected",
