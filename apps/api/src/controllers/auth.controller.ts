@@ -1,15 +1,10 @@
 import { AuditLog, User, VerificationToken } from "@qodinger/knot-database";
 import * as crypto from "crypto";
 import { FastifyReply, FastifyRequest } from "fastify";
-import { Resend } from "resend";
 import { AuditLogger } from "../core/audit-logger.js";
-import { EmailTemplates } from "../core/email-templates.js";
+import { EmailService } from "../infra/email-service.js";
 
 const DASHBOARD_URL = process.env.DASHBOARD_URL || "http://localhost:5052";
-
-// Initialize Resend inside the function to ensure process.env is populated
-const getResend = () =>
-  process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 export const AuthController = {
   requestMagicLink: async (
@@ -28,37 +23,26 @@ export const AuthController = {
     });
 
     const magicLink = `${DASHBOARD_URL}/login/verify?token=${token}&email=${encodeURIComponent(email)}`;
-    const resend = getResend();
 
-    // Send Email via Resend
-    if (resend) {
-      const { data, error } = await resend.emails.send({
-        from: "KnotEngine <onboarding@resend.dev>",
-        to: email,
-        subject: "Sign in to KnotEngine",
-        html: EmailTemplates.getMagicLinkHtml(magicLink),
+    // Send Email via Gmail SMTP
+    const emailResult = await EmailService.sendMagicLink({
+      to: email,
+      magicLink,
+    });
+
+    if (!emailResult.success) {
+      request.server.log.error(
+        emailResult.error,
+        `❌ Failed to send magic link to ${email}`,
+      );
+      return reply.code(500).send({
+        error: "Unable to send magic link",
+        message:
+          "We encountered an issue sending your login email. Please try again later or contact support.",
       });
-
-      if (error) {
-        request.server.log.error(
-          error,
-          `❌ Failed to send magic link to ${email}`,
-        );
-        return reply.code(500).send({
-          error: "Unable to send magic link",
-          message:
-            "We encountered an issue sending your login email. Please try again later or contact support.",
-        });
-      }
-
-      request.server.log.info(
-        `✉️ Magic link sent to: ${email}, ID: ${data?.id}`,
-      );
-    } else {
-      request.server.log.warn(
-        `⚠️ RESEND_API_KEY not set. Magic link for ${email}: ${magicLink}`,
-      );
     }
+
+    request.server.log.info(`✉️ Magic link sent to: ${email}`);
 
     return { success: true, message: "Magic link sent" };
   },
@@ -177,37 +161,26 @@ export const AuthController = {
     });
 
     const verificationLink = `${DASHBOARD_URL}/login/verify?token=${token}&email=${encodeURIComponent(email)}`;
-    const resend = getResend();
 
-    // Send Email via Resend
-    if (resend) {
-      const { data, error } = await resend.emails.send({
-        from: "KnotEngine <onboarding@resend.dev>",
-        to: email,
-        subject: "Verify your email - KnotEngine",
-        html: EmailTemplates.getVerificationEmailHtml(verificationLink, email),
+    // Send Email via Gmail SMTP
+    const emailResult = await EmailService.sendVerificationEmail({
+      to: email,
+      verificationLink,
+    });
+
+    if (!emailResult.success) {
+      request.server.log.error(
+        emailResult.error,
+        `❌ Failed to send verification email to ${email}`,
+      );
+      return reply.code(500).send({
+        error: "Unable to send verification email",
+        message:
+          "We encountered an issue sending your verification email. Please try again later.",
       });
-
-      if (error) {
-        request.server.log.error(
-          error,
-          `❌ Failed to send verification email to ${email}`,
-        );
-        return reply.code(500).send({
-          error: "Unable to send verification email",
-          message:
-            "We encountered an issue sending your verification email. Please try again later.",
-        });
-      }
-
-      request.server.log.info(
-        `✉️ Verification email sent to: ${email}, ID: ${data?.id}`,
-      );
-    } else {
-      request.server.log.warn(
-        `⚠️ RESEND_API_KEY not set. Verification link for ${email}: ${verificationLink}`,
-      );
     }
+
+    request.server.log.info(`✉️ Verification email sent to: ${email}`);
 
     return { success: true, message: "Verification email sent" };
   },

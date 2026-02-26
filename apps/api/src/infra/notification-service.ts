@@ -1,10 +1,12 @@
-import { Notification } from "@qodinger/knot-database";
+import { Notification, Merchant } from "@qodinger/knot-database";
 import { SocketService } from "./socket-service.js";
+import { EmailService } from "./email-service.js";
 
 /**
  * 🔔 Notification Service
  *
  * Handles creation and real-time delivery of notifications to merchants.
+ * Sends email alerts for critical events (payment, security, billing).
  */
 export class NotificationService {
   public static async create(params: {
@@ -14,6 +16,7 @@ export class NotificationService {
     type: "success" | "warning" | "error" | "info";
     link?: string;
     meta?: Record<string, any>;
+    sendEmail?: boolean; // Optional: force email sending
   }) {
     try {
       // 1. Deduplication Logic:
@@ -80,10 +83,158 @@ export class NotificationService {
         createdAt: notification.createdAt,
       });
 
+      // 4. Send Email Notification (if applicable)
+      await this.sendEmailIfApplicable({
+        merchantId: params.merchantId,
+        title: params.title,
+        description: params.description,
+        type: params.type,
+        link: params.link,
+        meta: params.meta,
+        forceSend: params.sendEmail || false,
+      });
+
       return notification;
     } catch (err) {
       console.error("❌ Failed to create notification:", err);
       return null;
+    }
+  }
+
+  /**
+   * Send email notifications for critical events
+   */
+  private static async sendEmailIfApplicable(params: {
+    merchantId: string;
+    title: string;
+    description: string;
+    type: "success" | "warning" | "error" | "info";
+    link?: string;
+    meta?: Record<string, any>;
+    forceSend: boolean;
+  }) {
+    try {
+      // Fetch merchant and user details
+      const merchant = await Merchant.findById(params.merchantId).populate(
+        "userId",
+      );
+      if (!merchant) return;
+
+      const user = merchant.userId;
+      if (!user || !user.email) return;
+
+      const merchantName = merchant.name || user.email.split("@")[0];
+
+      // Check email notification preferences
+      const prefs = merchant.emailNotifications || {
+        paymentReceived: true,
+        paymentConfirmed: true,
+        paymentOverpaid: true,
+        paymentExpired: true,
+        subscriptionCharged: true,
+        lowBalance: true,
+        securityAlerts: true,
+      };
+
+      // Determine if email should be sent based on preferences
+      let shouldSendEmail = params.forceSend;
+
+      if (!shouldSendEmail) {
+        if (params.type === "error" && prefs.securityAlerts) {
+          shouldSendEmail = true;
+        } else if (
+          params.title.includes("Payment Received") &&
+          prefs.paymentReceived
+        ) {
+          shouldSendEmail = true;
+        } else if (
+          params.title.includes("Payment Confirmed") &&
+          prefs.paymentConfirmed
+        ) {
+          shouldSendEmail = true;
+        } else if (params.title.includes("Overpaid") && prefs.paymentOverpaid) {
+          shouldSendEmail = true;
+        } else if (params.title.includes("Expired") && prefs.paymentExpired) {
+          shouldSendEmail = true;
+        } else if (
+          params.title.includes("Subscription") &&
+          prefs.subscriptionCharged
+        ) {
+          shouldSendEmail = true;
+        } else if (params.title.includes("Low Balance") && prefs.lowBalance) {
+          shouldSendEmail = true;
+        } else if (params.title.includes("Security") && prefs.securityAlerts) {
+          shouldSendEmail = true;
+        }
+      }
+
+      if (!shouldSendEmail) {
+        console.log(`📧 Email skipped for ${params.title} (user preference)`);
+        return;
+      }
+
+      // Send appropriate email based on notification type
+      if (
+        params.title.includes("Payment") ||
+        params.meta?.invoiceId ||
+        params.meta?.amountUsd
+      ) {
+        // Payment notification
+        const amount = params.meta?.amountUsd || "0.00";
+        const currency = params.meta?.currency || "USD";
+        const status = params.title.includes("Confirmed")
+          ? "confirmed"
+          : params.title.includes("Overpaid")
+            ? "overpaid"
+            : params.title.includes("Expired")
+              ? "expired"
+              : "received";
+
+        await EmailService.sendPaymentAlert({
+          to: user.email,
+          merchantName,
+          invoiceId: params.meta?.invoiceId || "Unknown",
+          amount: typeof amount === "number" ? amount.toFixed(2) : amount,
+          currency,
+          status,
+          checkoutUrl: params.link
+            ? `${process.env.DASHBOARD_URL || "http://localhost:5052"}${params.link}`
+            : undefined,
+        });
+      } else if (params.title.includes("Security")) {
+        // Security alert
+        await EmailService.sendSecurityAlert({
+          to: user.email,
+          merchantName,
+          action: params.title,
+          description: params.description,
+          ipAddress: params.meta?.ipAddress,
+          timestamp: new Date().toISOString(),
+        });
+      } else if (
+        params.title.includes("Subscription") ||
+        params.title.includes("Billing") ||
+        params.title.includes("Low Balance")
+      ) {
+        // Billing notification
+        const type = params.title.includes("Subscription")
+          ? "subscription_charged"
+          : params.title.includes("Low Balance")
+            ? "low_balance"
+            : "payment_received";
+
+        await EmailService.sendBillingNotification({
+          to: user.email,
+          merchantName,
+          type,
+          amount: params.meta?.amount?.toString(),
+          plan: merchant.plan,
+          description: params.description,
+        });
+      }
+    } catch (err) {
+      console.error("❌ Failed to send email notification:", err);
+      // Don't throw - email failures shouldn't break notification flow
     }
   }
 
