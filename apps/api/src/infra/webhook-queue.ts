@@ -117,7 +117,7 @@ export class WebhookQueue {
           `📬 Processing webhook job ${job.id}: ${event} for ${invoiceId} (priority: ${priority})`,
         );
 
-        const success = await WebhookDispatcher.dispatch(invoiceId, event);
+        const success = await WebhookDispatcher.dispatchSync(invoiceId, event);
 
         if (!success) {
           throw new Error(`Webhook delivery failed for ${invoiceId}`);

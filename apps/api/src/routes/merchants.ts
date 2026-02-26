@@ -192,6 +192,8 @@ export async function merchantRoutes(app: FastifyInstance) {
           webhookEvents: z.array(z.string()).optional(),
           logoUrl: z.string().nullable().optional().or(z.literal("")),
           returnUrl: z.string().nullable().optional().or(z.literal("")),
+          theme: z.enum(["light", "dark", "system"]).optional(),
+          brandColor: z.string().optional(),
           feeResponsibility: z.enum(["merchant", "client"]).optional(),
           invoiceExpirationMinutes: z.number().min(15).max(43200).optional(),
           underpaymentTolerancePercentage: z.number().min(0).max(10).optional(),

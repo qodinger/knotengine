@@ -52,7 +52,7 @@ export class WebhookDispatcher {
   /**
    * Synchronous webhook delivery (fallback when queue unavailable).
    */
-  private static async dispatchSync(
+  public static async dispatchSync(
     invoiceId: string,
     event: string,
   ): Promise<boolean> {

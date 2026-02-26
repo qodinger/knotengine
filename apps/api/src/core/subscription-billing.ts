@@ -108,8 +108,8 @@ export class SubscriptionBilling {
     daysRemaining?: number;
   }> {
     const planCosts = {
-      professional: 29,
-      enterprise: 99,
+      professional: 39,
+      enterprise: 149,
     };
 
     const plan = merchant.plan as "professional" | "enterprise";
@@ -278,8 +278,8 @@ export class SubscriptionBilling {
 
     const planCosts = {
       starter: 0,
-      professional: 29,
-      enterprise: 99,
+      professional: 39,
+      enterprise: 149,
     };
 
     const planStartedAt = merchant.planStartedAt || new Date();
