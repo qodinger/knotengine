@@ -187,7 +187,12 @@ let billingCheckInterval: NodeJS.Timeout;
 
 function startBackgroundJobs() {
   // Initialize Webhook Queue (if Redis available)
-  WebhookQueue.init();
+  WebhookQueue.init().catch((err) => {
+    console.warn(
+      "⚠️ Failed to initialize WebhookQueue, using synchronous delivery:",
+      err,
+    );
+  });
 
   // Expire stale invoices every 60 seconds
   expirationInterval = setInterval(async () => {

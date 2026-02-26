@@ -18,6 +18,7 @@ export interface Invoice {
     logo_url?: string | null;
     return_url?: string | null;
     bip21_enabled?: boolean;
+    plan?: "starter" | "professional" | "enterprise";
   };
   description?: string;
 }

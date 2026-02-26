@@ -250,11 +250,14 @@ export default function CheckoutPageClient({
         </AnimatePresence>
 
         <footer className="mt-8 flex flex-col items-center gap-2 opacity-50 transition-opacity hover:opacity-100">
-          <div className="text-muted-foreground flex items-center gap-1.5 text-[10px] font-medium tracking-widest uppercase">
-            <ShieldCheck size={12} />
-            <span>Secured by</span>
-            <span className="text-foreground font-bold">KnotEngine</span>
-          </div>
+          {/* Only show "Secured by KnotEngine" for Starter plan */}
+          {invoice.merchant?.plan === "starter" && (
+            <div className="text-muted-foreground flex items-center gap-1.5 text-[10px] font-medium tracking-widest uppercase">
+              <ShieldCheck size={12} />
+              <span>Secured by</span>
+              <span className="text-foreground font-bold">KnotEngine</span>
+            </div>
+          )}
         </footer>
       </div>
     </main>

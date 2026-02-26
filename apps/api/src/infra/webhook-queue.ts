@@ -19,18 +19,47 @@ export class WebhookQueue {
 
   /**
    * Priority levels for webhook jobs
+   * Lower number = Higher priority
+   * Format: [Starter, Professional, Enterprise]
    */
   public static readonly Priority = {
-    HIGH: 1, // invoice.confirmed (time-sensitive)
-    NORMAL: 5, // invoice.expired, invoice.failed
-    LOW: 10, // Other events
+    // Event-based priorities (base values)
+    CONFIRMED: [10, 5, 1], // Starter, Pro, Enterprise
+    EXPIRED: [30, 15, 5],
+    FAILED: [30, 15, 5],
+    OTHER: [50, 25, 10],
   };
+
+  /**
+   * Gets priority based on event type and merchant plan
+   */
+  public static getPriorityForEvent(
+    event: string,
+    merchantPlan: "starter" | "professional" | "enterprise" = "starter",
+  ): number {
+    const planIndex =
+      {
+        starter: 0,
+        professional: 1,
+        enterprise: 2,
+      }[merchantPlan] || 0;
+
+    switch (event) {
+      case "invoice.confirmed":
+        return this.Priority.CONFIRMED[planIndex];
+      case "invoice.expired":
+      case "invoice.failed":
+        return this.Priority.EXPIRED[planIndex];
+      default:
+        return this.Priority.OTHER[planIndex];
+    }
+  }
 
   /**
    * Initializes the webhook queue and worker.
    * Should be called once during application startup.
    */
-  public static init(): void {
+  public static async init(): Promise<void> {
     if (this.isInitialized) {
       console.log("📬 WebhookQueue already initialized");
       return;
@@ -44,9 +73,26 @@ export class WebhookQueue {
       return;
     }
 
+    // Test Redis connection
+    const isConnected = await RedisClient.testConnection();
+    if (!isConnected) {
+      console.warn(
+        "⚠️ Redis connection test failed, webhooks will use synchronous delivery",
+      );
+      return;
+    }
+
+    console.log("🔴 Redis connected, initializing BullMQ queue...");
+
+    // BullMQ requires maxRetriesPerRequest: null and longer timeouts
+    const bullmqConnection = {
+      url: process.env.REDIS_URL,
+      maxRetriesPerRequest: null,
+    } as any;
+
     // Create the queue
     this.queue = new Queue("webhooks", {
-      connection,
+      connection: bullmqConnection,
       defaultJobOptions: {
         attempts: 3,
         backoff: {
@@ -80,7 +126,7 @@ export class WebhookQueue {
         return { success, invoiceId, event };
       },
       {
-        connection,
+        connection: bullmqConnection,
         concurrency: 10, // Process 10 webhooks in parallel
         limiter: {
           max: 50, // Max 50 jobs
@@ -120,12 +166,12 @@ export class WebhookQueue {
    *
    * @param invoiceId - The invoice ID
    * @param event - The webhook event type
-   * @param priority - Priority level (default: NORMAL)
+   * @param merchantPlan - Merchant's pricing plan (affects priority)
    */
   public static async dispatch(
     invoiceId: string,
     event: string,
-    priority: number = this.Priority.NORMAL,
+    merchantPlan: "starter" | "professional" | "enterprise" = "starter",
   ): Promise<Job | null> {
     // If queue not initialized, fall back to synchronous delivery
     if (!this.queue || !this.isInitialized) {
@@ -134,41 +180,51 @@ export class WebhookQueue {
       return null;
     }
 
+    const priority = this.getPriorityForEvent(event, merchantPlan);
     const job = await this.queue.add(
       "webhook",
-      { invoiceId, event, priority },
+      { invoiceId, event, priority, merchantPlan },
       {
         priority,
         jobId: `${invoiceId}:${event}:${Date.now()}`, // Unique job ID
       },
     );
 
-    console.log(`📬 Webhook job ${job.id} queued: ${event} for ${invoiceId}`);
+    console.log(
+      `📬 Webhook job ${job.id} queued: ${event} for ${invoiceId} (plan: ${merchantPlan}, priority: ${priority})`,
+    );
 
     return job;
   }
 
   /**
-   * Dispatches a confirmed event with HIGH priority.
+   * Dispatches a confirmed event with plan-based priority.
    */
   public static async dispatchConfirmed(
     invoiceId: string,
+    merchantPlan: "starter" | "professional" | "enterprise" = "starter",
   ): Promise<Job | null> {
-    return this.dispatch(invoiceId, "invoice.confirmed", this.Priority.HIGH);
+    return this.dispatch(invoiceId, "invoice.confirmed", merchantPlan);
   }
 
   /**
-   * Dispatches an expired event with NORMAL priority.
+   * Dispatches an expired event with plan-based priority.
    */
-  public static async dispatchExpired(invoiceId: string): Promise<Job | null> {
-    return this.dispatch(invoiceId, "invoice.expired", this.Priority.NORMAL);
+  public static async dispatchExpired(
+    invoiceId: string,
+    merchantPlan: "starter" | "professional" | "enterprise" = "starter",
+  ): Promise<Job | null> {
+    return this.dispatch(invoiceId, "invoice.expired", merchantPlan);
   }
 
   /**
-   * Dispatches a failed event with NORMAL priority.
+   * Dispatches a failed event with plan-based priority.
    */
-  public static async dispatchFailed(invoiceId: string): Promise<Job | null> {
-    return this.dispatch(invoiceId, "invoice.failed", this.Priority.NORMAL);
+  public static async dispatchFailed(
+    invoiceId: string,
+    merchantPlan: "starter" | "professional" | "enterprise" = "starter",
+  ): Promise<Job | null> {
+    return this.dispatch(invoiceId, "invoice.failed", merchantPlan);
   }
 
   /**

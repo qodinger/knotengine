@@ -340,6 +340,7 @@ export const InvoicesController = {
         logo_url: invoice.merchantId.logoUrl || null,
         return_url: invoice.merchantId.returnUrl || null,
         bip21_enabled: invoice.merchantId.bip21Enabled ?? true,
+        plan: invoice.merchantId.plan || "starter",
       },
     };
   },

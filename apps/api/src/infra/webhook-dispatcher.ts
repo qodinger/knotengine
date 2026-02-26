@@ -22,35 +22,31 @@ export class WebhookDispatcher {
   /**
    * Dispatches a webhook notification to the merchant for an invoice event.
    * Uses queue-based delivery if available, falls back to synchronous.
+   * Priority is based on merchant's pricing plan.
    */
   public static async dispatch(
     invoiceId: string,
     event: string,
   ): Promise<boolean> {
+    // Get invoice to determine merchant plan
+    const invoice = await Invoice.findOne({ invoiceId });
+    if (!invoice) {
+      console.error(`WebhookDispatcher: Invoice ${invoiceId} not found`);
+      return false;
+    }
+
+    // Get merchant plan
+    const merchant = await Merchant.findById(invoice.merchantId);
+    const merchantPlan = merchant?.plan || "starter";
+
     // Use queue if available for better scalability
     if (WebhookQueue.isReady()) {
-      const priority = this.getPriorityForEvent(event);
-      await WebhookQueue.dispatch(invoiceId, event, priority);
+      await WebhookQueue.dispatch(invoiceId, event, merchantPlan);
       return true; // Job queued successfully
     }
 
     // Fallback to synchronous delivery
     return this.dispatchSync(invoiceId, event);
-  }
-
-  /**
-   * Gets priority level for an event type.
-   */
-  private static getPriorityForEvent(event: string): number {
-    switch (event) {
-      case "invoice.confirmed":
-        return WebhookQueue.Priority.HIGH;
-      case "invoice.expired":
-      case "invoice.failed":
-        return WebhookQueue.Priority.NORMAL;
-      default:
-        return WebhookQueue.Priority.LOW;
-    }
   }
 
   /**

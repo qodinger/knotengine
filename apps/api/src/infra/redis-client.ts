@@ -55,6 +55,10 @@ export class RedisClient {
         this.instance.on("reconnecting", () => {
           console.log("🔄 Redis reconnecting...");
         });
+
+        this.instance.on("ready", () => {
+          console.log("🔴 Redis ready for commands");
+        });
       } catch (err) {
         console.error("❌ Failed to initialize Redis:", err);
         this.instance = null;
@@ -62,6 +66,23 @@ export class RedisClient {
     }
 
     return this.instance;
+  }
+
+  /**
+   * Tests the Redis connection.
+   * Returns true if Redis is reachable.
+   */
+  public static async testConnection(): Promise<boolean> {
+    const redis = this.getInstance();
+    if (!redis) return false;
+
+    try {
+      await redis.ping();
+      return true;
+    } catch (err) {
+      console.error("❌ Redis ping failed:", err);
+      return false;
+    }
   }
 
   /**
