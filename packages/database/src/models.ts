@@ -75,6 +75,11 @@ export interface IMerchant extends Document {
   webhookEvents?: string[];
   logoUrl?: string;
   returnUrl?: string;
+  theme: "light" | "dark" | "system";
+  brandColor?: string;
+  brandingEnabled: boolean;
+  /** Hide "Powered by KnotEngine" footer (Pro/Enterprise only) */
+  removeBranding: boolean;
   enabledCurrencies: string[];
   /** Current derivation index for unique address generation */
   derivationIndex: number;
@@ -108,6 +113,16 @@ export interface IMerchant extends Document {
   /** IP Allowlisting for API access */
   allowedIpAddresses?: string[];
   ipAllowlistEnabled: boolean;
+  /** Email Notification Preferences */
+  emailNotifications: {
+    paymentReceived: boolean;
+    paymentConfirmed: boolean;
+    paymentOverpaid: boolean;
+    paymentExpired: boolean;
+    subscriptionCharged: boolean;
+    lowBalance: boolean;
+    securityAlerts: boolean;
+  };
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -131,6 +146,14 @@ const MerchantSchema: Schema = new Schema(
     webhookSecret: { type: String },
     logoUrl: { type: String },
     returnUrl: { type: String },
+    theme: {
+      type: String,
+      enum: ["light", "dark", "system"],
+      default: "system",
+    },
+    brandColor: { type: String, default: "#ffffff" },
+    brandingEnabled: { type: Boolean, default: true },
+    removeBranding: { type: Boolean, default: false },
     enabledCurrencies: { type: [String], default: [] },
     webhookEvents: {
       type: [String],
@@ -181,6 +204,27 @@ const MerchantSchema: Schema = new Schema(
     /** IP Allowlisting for API access */
     allowedIpAddresses: { type: [String], default: [] },
     ipAllowlistEnabled: { type: Boolean, default: false },
+    /** Email Notification Preferences */
+    emailNotifications: {
+      type: {
+        paymentReceived: { type: Boolean, default: true },
+        paymentConfirmed: { type: Boolean, default: true },
+        paymentOverpaid: { type: Boolean, default: true },
+        paymentExpired: { type: Boolean, default: true },
+        subscriptionCharged: { type: Boolean, default: true },
+        lowBalance: { type: Boolean, default: true },
+        securityAlerts: { type: Boolean, default: true },
+      },
+      default: {
+        paymentReceived: true,
+        paymentConfirmed: true,
+        paymentOverpaid: true,
+        paymentExpired: true,
+        subscriptionCharged: true,
+        lowBalance: true,
+        securityAlerts: true,
+      },
+    },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true },
