@@ -274,12 +274,13 @@ export const InvoicesController = {
         brandColor?: string;
         brandingEnabled: boolean;
         removeBranding: boolean;
+        brandingAlignment?: "left" | "center";
         bip21Enabled: boolean;
         plan: string;
       };
     }>(
       "merchantId",
-      "name logoUrl returnUrl theme brandColor brandingEnabled removeBranding bip21Enabled plan",
+      "name logoUrl returnUrl theme brandColor brandingEnabled removeBranding brandingAlignment bip21Enabled plan",
     );
 
     if (!invoice) {
@@ -358,6 +359,7 @@ export const InvoicesController = {
         brand_color: invoice.merchantId.brandColor || "#ffffff",
         branding_enabled: invoice.merchantId.brandingEnabled ?? true,
         remove_branding: invoice.merchantId.removeBranding ?? false,
+        branding_alignment: invoice.merchantId.brandingAlignment ?? "left",
         bip21_enabled: invoice.merchantId.bip21Enabled ?? true,
         plan: invoice.merchantId.plan || "starter",
       },

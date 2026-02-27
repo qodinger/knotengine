@@ -27,6 +27,7 @@ export function useSettings() {
     brandColor: "#ffffff",
     brandingEnabled: true,
     removeBranding: false,
+    brandingAlignment: "left",
     webhookUrl: "",
     webhookSecret: "",
     feeResponsibility: "merchant",
@@ -34,6 +35,7 @@ export function useSettings() {
     underpaymentTolerancePercentage: 1,
     bip21Enabled: true,
     enabledCurrencies: [],
+    plan: "starter",
   });
 
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
@@ -62,6 +64,7 @@ export function useSettings() {
         brandColor: m.brandColor || "#ffffff",
         brandingEnabled: m.brandingEnabled ?? true,
         removeBranding: m.removeBranding ?? false,
+        brandingAlignment: m.brandingAlignment || "left",
         webhookUrl: m.webhookUrl || "",
         webhookSecret: m.webhookSecret || "",
         feeResponsibility: m.feeResponsibility || "client",
@@ -69,6 +72,7 @@ export function useSettings() {
         underpaymentTolerancePercentage: m.underpaymentTolerancePercentage || 0,
         bip21Enabled: m.bip21Enabled ?? true,
         enabledCurrencies: m.enabledCurrencies || [],
+        plan: m.plan || "starter",
       });
       setTwoFactorEnabled(m.twoFactorEnabled || false);
     } catch (err) {
@@ -87,6 +91,11 @@ export function useSettings() {
     setSaving(true);
     setSuccess(false);
     try {
+      console.log("💾 Saving settings:", {
+        brandingAlignment: dataToSave.brandingAlignment,
+        theme: dataToSave.theme,
+      });
+
       await api.patch("/v1/merchants/me", {
         name: dataToSave.businessName,
         email: dataToSave.businessEmail,
@@ -96,6 +105,7 @@ export function useSettings() {
         brandColor: dataToSave.brandColor,
         brandingEnabled: dataToSave.brandingEnabled,
         removeBranding: dataToSave.removeBranding,
+        brandingAlignment: dataToSave.brandingAlignment,
         feeResponsibility: dataToSave.feeResponsibility,
         invoiceExpirationMinutes: dataToSave.invoiceExpirationMinutes,
         underpaymentTolerancePercentage:
@@ -103,15 +113,21 @@ export function useSettings() {
         bip21Enabled: dataToSave.bip21Enabled,
         enabledCurrencies: dataToSave.enabledCurrencies,
       });
+
+      console.log("✅ Settings saved successfully");
+
       if (newData) {
-        setFormData(newData);
+        setFormData({
+          ...newData,
+          brandingAlignment: newData.brandingAlignment || "left",
+        });
       }
       // Refresh session so merchant switcher re-fetches and shows the new logo
       await update();
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err: unknown) {
-      console.error("Failed to save settings", err);
+      console.error("❌ Failed to save settings", err);
     } finally {
       setSaving(false);
     }

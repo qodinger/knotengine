@@ -28,6 +28,8 @@ interface CheckoutCardProps {
       theme?: "light" | "dark" | "system";
       brand_color?: string;
       branding_enabled?: boolean;
+      branding_alignment?: "left" | "center";
+      remove_branding?: boolean;
       bip21_enabled?: boolean;
       plan?: "starter" | "professional" | "enterprise";
     };
@@ -114,8 +116,22 @@ export function CheckoutCard({ invoice }: CheckoutCardProps) {
       <div className="p-6">
         {/* Merchant Branding */}
         {invoice.merchant?.branding_enabled !== false && (
-          <div className="border-border/50 mb-4 flex flex-col border-b pb-6">
-            <div className="flex items-center gap-3">
+          <div
+            className={cn(
+              "border-border/50 mb-4 flex flex-col border-b pb-6",
+              invoice.merchant?.branding_alignment === "center"
+                ? "items-center text-center"
+                : "items-start text-left",
+            )}
+          >
+            <div
+              className={cn(
+                "flex gap-3",
+                invoice.merchant?.branding_alignment === "center"
+                  ? "flex-col items-center"
+                  : "flex-row items-center",
+              )}
+            >
               <div className="brand-bg-muted brand-border bg-muted border-border/50 flex size-10 items-center justify-center overflow-hidden rounded-lg border">
                 {invoice.merchant?.logo_url ? (
                   <img
@@ -129,7 +145,14 @@ export function CheckoutCard({ invoice }: CheckoutCardProps) {
                   </span>
                 )}
               </div>
-              <div className="flex flex-col">
+              <div
+                className={cn(
+                  "flex flex-col",
+                  invoice.merchant?.branding_alignment === "center"
+                    ? "items-center text-center"
+                    : "items-start text-left",
+                )}
+              >
                 <h1 className="text-foreground text-sm font-bold tracking-tight">
                   {invoice.merchant?.name || "Merchant"}
                 </h1>
@@ -140,9 +163,16 @@ export function CheckoutCard({ invoice }: CheckoutCardProps) {
             </div>
 
             {invoice.description && (
-              <div className="bg-muted/30 border-border/50 mt-4 rounded-lg border px-3 py-2">
+              <div
+                className={cn(
+                  "bg-muted/30 border-border/50 mt-4 rounded-lg border px-3 py-2",
+                  invoice.merchant?.branding_alignment === "center"
+                    ? "text-center"
+                    : "text-left",
+                )}
+              >
                 <p className="text-muted-foreground text-[11px] leading-relaxed italic">
-                  “{invoice.description}”
+                  "{invoice.description}"
                 </p>
               </div>
             )}

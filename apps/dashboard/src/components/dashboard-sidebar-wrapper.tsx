@@ -26,10 +26,10 @@ export function DashboardSidebarWrapper({
     >
       <SessionProvider session={session}>
         {hasMerchants && <AppSidebar />}
-        <SidebarInset className="flex h-full flex-col overflow-hidden">
+        <SidebarInset className="flex h-full min-w-0 flex-col overflow-hidden">
           {hasMerchants && <SiteHeader />}
-          <ScrollArea className="min-h-0 flex-1">
-            <div className="p-4 md:p-6 lg:p-8">{children}</div>
+          <ScrollArea className="min-h-0 flex-1 [&_[data-radix-scroll-area-viewport]>div]:block!">
+            <main className="min-w-0 p-4 md:p-6 lg:p-8">{children}</main>
           </ScrollArea>
         </SidebarInset>
       </SessionProvider>

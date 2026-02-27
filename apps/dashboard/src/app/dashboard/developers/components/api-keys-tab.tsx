@@ -173,9 +173,9 @@ export function ApiKeysTab() {
 
       <div className="mt-6 flex w-full flex-col items-start gap-6">
         <Card className="group relative w-full overflow-hidden border bg-[#0c0c0c] text-slate-50 shadow-sm">
-          <CardContent className="p-8">
-            <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
-              <div className="flex flex-col gap-10">
+          <CardContent className="p-6 sm:p-8">
+            <div className="grid grid-cols-1 gap-8 xl:grid-cols-2 xl:gap-12">
+              <div className="flex flex-col gap-6 sm:gap-10">
                 <div className="space-y-2">
                   <h3 className="text-sm font-bold text-slate-50">
                     Integration Guide
@@ -207,7 +207,7 @@ export function ApiKeysTab() {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-4">
+              <div className="flex min-w-0 flex-col gap-4">
                 <div className="flex items-center">
                   <div className="flex rounded-lg border border-white/5 bg-white/5 p-1">
                     <button
@@ -247,7 +247,7 @@ export function ApiKeysTab() {
                     `}
                   />
                 ) : (
-                  <div className="space-y-4">
+                  <div className="w-full min-w-0 space-y-4">
                     <CodeBlock
                       language="typescript"
                       className="w-full"

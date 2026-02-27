@@ -293,10 +293,8 @@ export default function CheckoutPageClient({
 
           <footer className="mt-8 flex flex-col items-center gap-2 opacity-50 transition-opacity hover:opacity-100">
             {/* Show "Powered by KnotEngine" unless merchant toggled it off (Pro+ only) */}
-            {!(
-              invoice.merchant?.plan !== "starter" &&
-              invoice.merchant?.remove_branding === true
-            ) && (
+            {(invoice.merchant?.plan === "starter" ||
+              invoice.merchant?.remove_branding !== true) && (
               <div className="text-muted-foreground flex items-center gap-1.5 text-[10px] font-medium tracking-widest uppercase">
                 <ShieldCheck size={12} />
                 <span>Powered by</span>

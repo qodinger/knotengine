@@ -14,7 +14,7 @@ import { SubNavLayout } from "@/components/sub-nav-layout";
 import { Store, ShieldCheck, Sliders, Trash2 } from "lucide-react";
 
 const sections = [
-  { label: "Checkout & Branding", value: "merchant", icon: Store },
+  { label: "Merchant Profile", value: "merchant", icon: Store },
   { label: "Security", value: "security", icon: ShieldCheck },
   { label: "Payment Engine", value: "payment", icon: Sliders },
   { label: "Danger Zone", value: "danger", icon: Trash2 },
@@ -67,11 +67,13 @@ export default function SettingsPage() {
               formData={formData}
               onSave={handleSave}
               saving={saving}
+              currentPlan={formData.plan}
             />
             <AppearanceCard
               formData={formData}
               onSave={handleSave}
               saving={saving}
+              currentPlan={formData.plan}
             />
           </div>
         )}

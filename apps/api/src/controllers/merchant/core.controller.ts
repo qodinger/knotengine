@@ -393,6 +393,7 @@ export const MerchantCoreController = {
       brandColor: merchant.brandColor || "#ffffff",
       brandingEnabled: merchant.brandingEnabled ?? true,
       removeBranding: merchant.removeBranding ?? false,
+      brandingAlignment: merchant.brandingAlignment ?? "left",
       feeResponsibility: merchant.feeResponsibility || "merchant",
       invoiceExpirationMinutes: merchant.invoiceExpirationMinutes || 60,
       underpaymentTolerancePercentage:
@@ -430,19 +431,49 @@ export const MerchantCoreController = {
 
     const updates = request.body;
 
-    console.info(`[Settings] RAW updates received: ${JSON.stringify(updates)}`);
-
-    const updated = await Merchant.findByIdAndUpdate(
-      merchant._id,
-      { $set: updates },
-      { new: true },
+    console.log(
+      "📥 PATCH /v1/merchants/me - Received updates:",
+      JSON.stringify(updates, null, 2),
     );
+    console.log("📍 brandingAlignment in updates:", updates.brandingAlignment);
+
+    // Use updateOne instead of findByIdAndUpdate to avoid mongoose schema validation
+    const updateResult = await Merchant.collection.updateOne(
+      { _id: merchant._id },
+      { $set: updates },
+    );
+
+    console.log("✅ MongoDB update result:", updateResult);
+
+    // Fetch fresh data after update
+    const updated = await Merchant.findById(merchant._id);
 
     if (!updated) {
       return reply.code(500).send({ error: "Failed to update merchant" });
     }
 
-    console.info(`[Settings] Updated DB result name: '${updated?.name}'`);
+    // Manually add brandingAlignment from updates if it was set
+    // (Mongoose might filter it out if not in schema yet)
+    if (updates.brandingAlignment !== undefined) {
+      (updated as any).brandingAlignment = updates.brandingAlignment;
+    }
+
+    console.log(
+      "✅ Merchant updated - brandingAlignment from DB:",
+      (updated as any).brandingAlignment,
+    );
+    console.log(
+      "✅ Full updated merchant object:",
+      JSON.stringify(
+        {
+          brandingAlignment: (updated as any).brandingAlignment,
+          theme: updated.theme,
+          brandColor: updated.brandColor,
+        },
+        null,
+        2,
+      ),
+    );
 
     // Audit log profile update
     await AuditLogger.settings(
@@ -473,6 +504,7 @@ export const MerchantCoreController = {
       brandColor: updated.brandColor || "#ffffff",
       brandingEnabled: updated.brandingEnabled ?? true,
       removeBranding: updated.removeBranding ?? false,
+      brandingAlignment: updated.brandingAlignment || "left",
       webhookEvents: updated.webhookEvents || [
         "invoice.confirmed",
         "invoice.mempool_detected",

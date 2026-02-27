@@ -18,6 +18,7 @@
     "test:coverage": "vitest run --coverage",
     "test:email": "tsx scripts/test-email.ts",
     "test:auth-emails": "tsx scripts/test-auth-emails.ts",
+    "migrate:branding-alignment": "tsx src/scripts/migrate-branding-alignment.ts",
     "lint": "eslint src/**/*.ts",
     "format": "prettier --write src/**/*.ts",
     "format:check": "prettier --check src/**/*.ts",

@@ -10,6 +10,7 @@ export const merchantSettingsSchema = z.object({
   brandColor: z.string().optional(),
   brandingEnabled: z.boolean(),
   removeBranding: z.boolean(),
+  brandingAlignment: z.enum(["left", "center"]).optional(),
   webhookUrl: z.string().optional(),
   webhookSecret: z.string().optional(),
   feeResponsibility: z.enum(["merchant", "client"]),
@@ -17,6 +18,7 @@ export const merchantSettingsSchema = z.object({
   underpaymentTolerancePercentage: z.number().min(0).max(10),
   bip21Enabled: z.boolean(),
   enabledCurrencies: z.array(z.string()),
+  plan: z.enum(["starter", "professional", "enterprise"]).optional(),
 });
 
 export type MerchantSettings = z.infer<typeof merchantSettingsSchema>;

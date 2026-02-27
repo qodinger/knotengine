@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Gmail SMTP Email Service** — Migrated from Resend to Gmail SMTP for all transactional emails. Saves $240/year in operational costs. Includes setup documentation and test scripts.
+  - Payment notification emails (received, confirmed, overpaid, expired)
+  - Security alert emails (2FA, IP changes, account actions)
+  - Billing notification emails (subscription charged, low balance)
+  - Magic link authentication emails
+  - Email verification emails
+  - Email preferences per merchant (toggle per notification type)
+- **Email Test Scripts** — Added `pnpm test:email` and `pnpm test:auth-emails` for automated email testing.
+- **Email Setup Documentation** — Created comprehensive guides in `docs/GMAIL_SETUP.md` and `docs/EMAIL_QUICK_SETUP.md`.
+- **Checkout Header Alignment** — Added left/center alignment option for merchant branding header in checkout page.
 - **Subscription Grace Period** — Introduced automated grace periods and status UI to prevent immediate suspension when credit balance is low.
 - **Animated Sidebar Icons** — Integrated `lucide-animated` with high-performance hover triggers (via React refs) for the primary navigation.
 - **Promo Code System** — Launched a new redemption system allowing merchants to claim balance credits via codes. Includes a new `PromoCodeCard` UI and secure backend validation.
@@ -16,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Email Service Initialization** — Fixed lazy-loading of Gmail SMTP transporter to ensure environment variables are loaded before email sending.
+- **Checkout Footer Logic** — Fixed "Remove Powered by KnotEngine" toggle to correctly respect merchant plan (Starter plans cannot remove, Pro+ can).
+- **Plan Validation** — Added plan-based feature gating for white-label checkout (Pro+ only).
+- **Branding Toggle API** — Added `brandingEnabled` and `removeBranding` to merchant update schema (was preventing toggles from saving).
 - **Login Hydration Mismatch** — Refactored the login layout into specialized server and client components to resolve Next.js 16/React 19 hydration errors.
 - **CSS Import Types** — Added CSS module declarations to resolve TypeScript errors for CSS imports in dashboard layout.
 - **Auth Polling Loop** — Resolved a critical infinite API sync loop in NextAuth `jwt` callback occurring for new users with no merchants.
@@ -26,7 +40,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Email Provider** — Migrated from Resend ($20/month) to Gmail SMTP ($0/month) for all transactional emails.
+- **Email Configuration** — Updated `.env.example` and `.env.development` with Gmail SMTP settings (GMAIL_USER, GMAIL_APP_PASSWORD).
 - **Dynamic Versioning** — Standardized version display to pull directly from `package.json` build metadata.
+
+### Removed
+
+- **Resend Dependency** — Removed `resend` package and related configuration in favor of Gmail SMTP.
+- **Redundant .env.template** — Consolidated environment configuration to single `.env.example` file.
 
 ## [0.3.0] - 2026-02-23
 

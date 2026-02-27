@@ -80,6 +80,8 @@ export interface IMerchant extends Document {
   brandingEnabled: boolean;
   /** Hide "Powered by KnotEngine" footer (Pro/Enterprise only) */
   removeBranding: boolean;
+  /** Checkout header alignment */
+  brandingAlignment?: "left" | "center";
   enabledCurrencies: string[];
   /** Current derivation index for unique address generation */
   derivationIndex: number;
@@ -154,6 +156,11 @@ const MerchantSchema: Schema = new Schema(
     brandColor: { type: String, default: "#ffffff" },
     brandingEnabled: { type: Boolean, default: true },
     removeBranding: { type: Boolean, default: false },
+    brandingAlignment: {
+      type: String,
+      enum: ["left", "center"],
+      default: "left",
+    },
     enabledCurrencies: { type: [String], default: [] },
     webhookEvents: {
       type: [String],
