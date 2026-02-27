@@ -1,61 +1,58 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { api } from "@/lib/api";
+import { fetcher, swrKeys } from "@/lib/swr";
 import { TestnetInvoice, MerchantConfig } from "../types";
 
+interface InvoicesResponse {
+  data: TestnetInvoice[];
+}
+
 export function useTestnet() {
-  const [invoices, setInvoices] = useState<TestnetInvoice[]>([]);
-  const [testnetLoading, setTestnetLoading] = useState(true);
   const [simulating, setSimulating] = useState<string | null>(null);
   const [successId, setSuccessId] = useState<string | null>(null);
-  const [config, setConfig] = useState<MerchantConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
-  const fetchTestnetData = useCallback(async () => {
-    try {
-      setTestnetLoading(true);
-      const [configRes, invoicesRes] = await Promise.all([
-        api.get("/v1/merchants/me"),
-        api.get("/v1/invoices?limit=10&include_testnet=true"),
-      ]);
-      setConfig(configRes.data);
-      const active = (invoicesRes.data.data as TestnetInvoice[]).filter((inv) =>
-        [
-          "pending",
-          "mempool_detected",
-          "confirming",
-          "partially_paid",
-        ].includes(inv.status),
-      );
-      setInvoices(active);
-    } catch (err) {
-      console.error("Failed to load data", err);
-    } finally {
-      setTestnetLoading(false);
-    }
-  }, []);
+  const { data: config } = useSWR<MerchantConfig>(swrKeys.merchant, fetcher, {
+    revalidateOnFocus: false,
+  });
 
-  useEffect(() => {
-    fetchTestnetData();
-  }, [fetchTestnetData]);
+  const {
+    data: invoicesData,
+    isLoading: testnetLoading,
+    mutate: mutateInvoices,
+  } = useSWR<InvoicesResponse>(
+    ["/v1/invoices", { limit: "10", include_testnet: "true" }],
+    fetcher,
+    {
+      revalidateOnFocus: false,
+    },
+  );
+
+  // Filter to only active invoices
+  const invoices = (invoicesData?.data ?? []).filter((inv) =>
+    ["pending", "mempool_detected", "confirming", "partially_paid"].includes(
+      inv.status,
+    ),
+  );
+
+  // Local state for invoice status updates during simulation
+  const [statusOverrides, setStatusOverrides] = useState<
+    Record<string, string>
+  >({});
+
+  const displayInvoices = invoices.map((inv) =>
+    statusOverrides[inv.invoice_id]
+      ? { ...inv, status: statusOverrides[inv.invoice_id] }
+      : inv,
+  );
 
   const fetchPendingInvoices = async () => {
-    try {
-      const res = await api.get("/v1/invoices?limit=10&include_testnet=true");
-      const active = (res.data.data as TestnetInvoice[]).filter((inv) =>
-        [
-          "pending",
-          "mempool_detected",
-          "confirming",
-          "partially_paid",
-        ].includes(inv.status),
-      );
-      setInvoices(active);
-    } catch (err) {
-      console.error("Failed to fetch active invoices", err);
-    }
+    setStatusOverrides({});
+    await mutateInvoices();
   };
 
   const simulatePayment = async (
@@ -66,11 +63,10 @@ export function useTestnet() {
     const txHash = `0x${Math.random().toString(16).slice(2)}${Math.random().toString(16).slice(2)}`;
 
     const setInvoiceStatus = (status: string) => {
-      setInvoices((prev) =>
-        prev.map((inv) =>
-          inv.invoice_id === invoice.invoice_id ? { ...inv, status } : inv,
-        ),
-      );
+      setStatusOverrides((prev) => ({
+        ...prev,
+        [invoice.invoice_id]: status,
+      }));
     };
 
     const finalAmount = overrideAmount || invoice.crypto_amount.toString();
@@ -127,7 +123,6 @@ export function useTestnet() {
   const createTestInvoice = async (amount: number, currency: string) => {
     if (!config) return false;
     try {
-      setTestnetLoading(true);
       setError(null);
       await api.post("/v1/invoices", {
         amount_usd: amount,
@@ -143,8 +138,6 @@ export function useTestnet() {
           ?.error || "Failed to create invoice",
       );
       return false;
-    } finally {
-      setTestnetLoading(false);
     }
   };
 
@@ -155,11 +148,11 @@ export function useTestnet() {
   };
 
   return {
-    invoices,
+    invoices: displayInvoices,
     testnetLoading,
     simulating,
     successId,
-    config,
+    config: config ?? null,
     error,
     copied,
     simulatePayment,

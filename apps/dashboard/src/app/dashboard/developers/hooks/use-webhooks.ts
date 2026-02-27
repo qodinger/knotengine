@@ -1,7 +1,16 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { api } from "@/lib/api";
+import { fetcher, swrKeys } from "@/lib/swr";
+
+interface MerchantResponse {
+  webhookUrl?: string;
+  webhookSecret?: string;
+  webhookEvents?: string[];
+  [key: string]: unknown;
+}
 
 export function useWebhooks() {
   const [copied, setCopied] = useState<string | null>(null);
@@ -10,12 +19,44 @@ export function useWebhooks() {
   const [testingWebhook, setTestingWebhook] = useState(false);
   const [showWebhookSecret, setShowWebhookSecret] = useState(false);
   const [rotatingWebhookSecret, setRotatingWebhookSecret] = useState(false);
-  const [webhookData, setWebhookData] = useState({
-    webhookUrl: "",
-    webhookSecret: "",
-    webhookEvents: [] as string[],
-  });
   const [selectedLanguage, setSelectedLanguage] = useState("nodejs-sdk");
+
+  const { data: merchantData, mutate: mutateMerchant } =
+    useSWR<MerchantResponse>(swrKeys.merchant, fetcher, {
+      revalidateOnFocus: false,
+    });
+
+  const webhookData = {
+    webhookUrl: merchantData?.webhookUrl || "",
+    webhookSecret: merchantData?.webhookSecret || "",
+    webhookEvents: merchantData?.webhookEvents || [
+      "invoice.confirmed",
+      "invoice.mempool_detected",
+      "invoice.failed",
+    ],
+  };
+
+  // Local state for form edits (so typing doesn't trigger SWR re-renders)
+  const [localWebhookData, setLocalWebhookData] = useState<{
+    webhookUrl: string;
+    webhookSecret: string;
+    webhookEvents: string[];
+  } | null>(null);
+
+  // Use local edits if available, otherwise use SWR data
+  const activeWebhookData = localWebhookData ?? webhookData;
+
+  const setWebhookData = (
+    updater:
+      | typeof activeWebhookData
+      | ((prev: typeof activeWebhookData) => typeof activeWebhookData),
+  ) => {
+    if (typeof updater === "function") {
+      setLocalWebhookData((prev) => updater(prev ?? webhookData));
+    } else {
+      setLocalWebhookData(updater);
+    }
+  };
 
   const copyToClipboard = (text: string, id?: string) => {
     navigator.clipboard.writeText(text);
@@ -23,37 +64,17 @@ export function useWebhooks() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const fetchMerchantConfig = useCallback(async () => {
-    try {
-      const res = await api.get("/v1/merchants/me");
-      const m = res.data;
-      setWebhookData({
-        webhookUrl: m.webhookUrl || "",
-        webhookSecret: m.webhookSecret || "",
-        webhookEvents: m.webhookEvents || [
-          "invoice.confirmed",
-          "invoice.mempool_detected",
-          "invoice.failed",
-        ],
-      });
-    } catch (err) {
-      console.error("Failed to load merchant config", err);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchMerchantConfig();
-  }, [fetchMerchantConfig]);
-
   const handleSaveWebhooks = async (data?: Record<string, unknown>) => {
     setSavingWebhooks(true);
     setWebhookSuccess(false);
     try {
       const payload = data || {
-        webhookUrl: webhookData.webhookUrl,
-        webhookEvents: webhookData.webhookEvents,
+        webhookUrl: activeWebhookData.webhookUrl,
+        webhookEvents: activeWebhookData.webhookEvents,
       };
       await api.patch("/v1/merchants/me", payload);
+      setLocalWebhookData(null); // Clear local edits, SWR will have fresh data
+      await mutateMerchant();
       setWebhookSuccess(true);
       setTimeout(() => setWebhookSuccess(false), 3000);
     } catch (err) {
@@ -66,11 +87,9 @@ export function useWebhooks() {
   const handleRotateWebhookSecret = async () => {
     setRotatingWebhookSecret(true);
     try {
-      const res = await api.post("/v1/merchants/me/keys/webhook", {});
-      setWebhookData((prev) => ({
-        ...prev,
-        webhookSecret: res.data.webhookSecret,
-      }));
+      await api.post("/v1/merchants/me/keys/webhook", {});
+      await mutateMerchant();
+      setLocalWebhookData(null);
       setWebhookSuccess(true);
       setTimeout(() => setWebhookSuccess(false), 3000);
     } catch (err) {
@@ -92,7 +111,7 @@ export function useWebhooks() {
   };
 
   return {
-    webhookData,
+    webhookData: activeWebhookData,
     setWebhookData,
     copied,
     savingWebhooks,
@@ -107,6 +126,6 @@ export function useWebhooks() {
     handleSaveWebhooks,
     handleRotateWebhookSecret,
     handleTestWebhook,
-    fetchMerchantConfig,
+    fetchMerchantConfig: mutateMerchant,
   };
 }

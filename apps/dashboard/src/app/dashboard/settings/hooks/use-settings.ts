@@ -1,13 +1,63 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { api } from "@/lib/api";
+import { fetcher, swrKeys } from "@/lib/swr";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { MerchantSettings, TwoFASetupData } from "../types";
 
+interface MerchantResponse {
+  merchantId?: string;
+  _id?: string;
+  name?: string;
+  email?: string;
+  logoUrl?: string;
+  returnUrl?: string;
+  theme?: string;
+  brandColor?: string;
+  brandingEnabled?: boolean;
+  removeBranding?: boolean;
+  brandingAlignment?: string;
+  webhookUrl?: string;
+  webhookSecret?: string;
+  feeResponsibility?: string;
+  invoiceExpirationMinutes?: number;
+  underpaymentTolerancePercentage?: number;
+  bip21Enabled?: boolean;
+  enabledCurrencies?: string[];
+  plan?: string;
+  twoFactorEnabled?: boolean;
+}
+
+function mapMerchantToFormData(m: MerchantResponse): MerchantSettings {
+  return {
+    merchantId: m.merchantId || m._id || "",
+    businessName: m.name || "",
+    businessEmail: m.email || "",
+    logoUrl: m.logoUrl || "",
+    returnUrl: m.returnUrl || "",
+    theme: (m.theme as MerchantSettings["theme"]) || "system",
+    brandColor: m.brandColor || "#ffffff",
+    brandingEnabled: m.brandingEnabled ?? true,
+    removeBranding: m.removeBranding ?? false,
+    brandingAlignment:
+      (m.brandingAlignment as MerchantSettings["brandingAlignment"]) || "left",
+    webhookUrl: m.webhookUrl || "",
+    webhookSecret: m.webhookSecret || "",
+    feeResponsibility:
+      (m.feeResponsibility as MerchantSettings["feeResponsibility"]) ||
+      "client",
+    invoiceExpirationMinutes: m.invoiceExpirationMinutes || 60,
+    underpaymentTolerancePercentage: m.underpaymentTolerancePercentage || 0,
+    bip21Enabled: m.bip21Enabled ?? true,
+    enabledCurrencies: m.enabledCurrencies || [],
+    plan: (m.plan as MerchantSettings["plan"]) || "starter",
+  };
+}
+
 export function useSettings() {
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -17,28 +67,38 @@ export function useSettings() {
   const router = useRouter();
   const { update } = useSession();
 
-  const [formData, setFormData] = useState<MerchantSettings>({
-    merchantId: "",
-    businessName: "",
-    businessEmail: "",
-    logoUrl: "",
-    returnUrl: "",
-    theme: "system",
-    brandColor: "#ffffff",
-    brandingEnabled: true,
-    removeBranding: false,
-    brandingAlignment: "left",
-    webhookUrl: "",
-    webhookSecret: "",
-    feeResponsibility: "merchant",
-    invoiceExpirationMinutes: 60,
-    underpaymentTolerancePercentage: 1,
-    bip21Enabled: true,
-    enabledCurrencies: [],
-    plan: "starter",
+  const {
+    data: merchantData,
+    isLoading: loading,
+    mutate: mutateMerchant,
+  } = useSWR<MerchantResponse>(swrKeys.merchant, fetcher, {
+    revalidateOnFocus: false,
   });
 
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const formData = merchantData
+    ? mapMerchantToFormData(merchantData)
+    : ({
+        merchantId: "",
+        businessName: "",
+        businessEmail: "",
+        logoUrl: "",
+        returnUrl: "",
+        theme: "system",
+        brandColor: "#ffffff",
+        brandingEnabled: true,
+        removeBranding: false,
+        brandingAlignment: "left",
+        webhookUrl: "",
+        webhookSecret: "",
+        feeResponsibility: "merchant",
+        invoiceExpirationMinutes: 60,
+        underpaymentTolerancePercentage: 1,
+        bip21Enabled: true,
+        enabledCurrencies: [],
+        plan: "starter",
+      } satisfies MerchantSettings);
+
+  const twoFactorEnabled = merchantData?.twoFactorEnabled || false;
   const [twoFASetupDialogOpen, setTwoFASetupDialogOpen] = useState(false);
   const [twoFADisableDialogOpen, setTwoFADisableDialogOpen] = useState(false);
   const [twoFASetupData, setTwoFASetupData] = useState<TwoFASetupData | null>(
@@ -50,52 +110,11 @@ export function useSettings() {
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [showBackupCodes, setShowBackupCodes] = useState(false);
 
-  const fetchSettings = useCallback(async () => {
-    try {
-      const res = await api.get("/v1/merchants/me");
-      const m = res.data;
-      setFormData({
-        merchantId: m.merchantId || m._id || "",
-        businessName: m.name || "",
-        businessEmail: m.email || "",
-        logoUrl: m.logoUrl || "",
-        returnUrl: m.returnUrl || "",
-        theme: m.theme || "system",
-        brandColor: m.brandColor || "#ffffff",
-        brandingEnabled: m.brandingEnabled ?? true,
-        removeBranding: m.removeBranding ?? false,
-        brandingAlignment: m.brandingAlignment || "left",
-        webhookUrl: m.webhookUrl || "",
-        webhookSecret: m.webhookSecret || "",
-        feeResponsibility: m.feeResponsibility || "client",
-        invoiceExpirationMinutes: m.invoiceExpirationMinutes || 60,
-        underpaymentTolerancePercentage: m.underpaymentTolerancePercentage || 0,
-        bip21Enabled: m.bip21Enabled ?? true,
-        enabledCurrencies: m.enabledCurrencies || [],
-        plan: m.plan || "starter",
-      });
-      setTwoFactorEnabled(m.twoFactorEnabled || false);
-    } catch (err) {
-      console.error("Failed to fetch settings", err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchSettings();
-  }, [fetchSettings]);
-
   const handleSave = async (newData?: MerchantSettings) => {
     const dataToSave = newData || formData;
     setSaving(true);
     setSuccess(false);
     try {
-      console.log("💾 Saving settings:", {
-        brandingAlignment: dataToSave.brandingAlignment,
-        theme: dataToSave.theme,
-      });
-
       await api.patch("/v1/merchants/me", {
         name: dataToSave.businessName,
         email: dataToSave.businessEmail,
@@ -114,20 +133,14 @@ export function useSettings() {
         enabledCurrencies: dataToSave.enabledCurrencies,
       });
 
-      console.log("✅ Settings saved successfully");
-
-      if (newData) {
-        setFormData({
-          ...newData,
-          brandingAlignment: newData.brandingAlignment || "left",
-        });
-      }
+      // Revalidate SWR cache with fresh data
+      await mutateMerchant();
       // Refresh session so merchant switcher re-fetches and shows the new logo
       await update();
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err: unknown) {
-      console.error("❌ Failed to save settings", err);
+      console.error("Failed to save settings", err);
     } finally {
       setSaving(false);
     }
@@ -180,7 +193,7 @@ export function useSettings() {
       });
       setBackupCodes(res.data.backupCodes || []);
       setShowBackupCodes(true);
-      setTwoFactorEnabled(true);
+      await mutateMerchant(); // Refresh to pick up twoFactorEnabled
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { error?: string } } })?.response?.data
@@ -197,7 +210,7 @@ export function useSettings() {
     setTwoFAError("");
     try {
       await api.post("/v1/merchants/me/2fa/disable", { code: twoFACode });
-      setTwoFactorEnabled(false);
+      await mutateMerchant(); // Refresh to pick up twoFactorEnabled
       setTwoFADisableDialogOpen(false);
       setTwoFACode("");
       setSuccess(true);
@@ -222,7 +235,6 @@ export function useSettings() {
     deleteConfirmationName,
     setDeleteConfirmationName,
     formData,
-    setFormData,
     twoFactorEnabled,
     twoFASetupDialogOpen,
     setTwoFASetupDialogOpen,

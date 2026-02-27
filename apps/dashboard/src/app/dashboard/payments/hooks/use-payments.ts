@@ -1,58 +1,61 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
+import useSWR from "swr";
 import { api } from "@/lib/api";
+import { fetcher, swrKeys } from "@/lib/swr";
 import { Invoice, TimelineEvent } from "../types";
 
 type MerchantPlan = "starter" | "professional" | "enterprise";
+
+interface InvoicesResponse {
+  data: Invoice[];
+}
+
+interface StatsResponse {
+  currentPlan?: string;
+  [key: string]: unknown;
+}
 
 export function usePayments() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
 
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState(tabParam || "all");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
   const [loadingTimeline, setLoadingTimeline] = useState(false);
-  const [plan, setPlan] = useState<MerchantPlan | undefined>(undefined);
 
-  const fetchInvoices = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params: Record<string, string> = { limit: "100" };
-      if (activeTab === "testnet") {
-        params.include_testnet = "true";
-        params.only_testnet = "true";
-      }
-      const [invoicesRes, statsRes] = await Promise.all([
-        api.get("/v1/invoices", { params }),
-        api.get("/v1/merchants/me/stats"),
-      ]);
-      setInvoices(invoicesRes.data.data);
-      if (statsRes.data?.currentPlan) {
-        setPlan(statsRes.data.currentPlan as MerchantPlan);
-      }
-    } catch (err) {
-      console.error("Failed to fetch invoices", err);
-    } finally {
-      setLoading(false);
+  // Build params based on active tab
+  const invoiceParams = useMemo(() => {
+    const params: Record<string, string> = { limit: "100" };
+    if (activeTab === "testnet") {
+      params.include_testnet = "true";
+      params.only_testnet = "true";
     }
+    return params;
   }, [activeTab]);
 
-  useEffect(() => {
-    fetchInvoices();
-  }, [fetchInvoices]);
+  const {
+    data: invoicesData,
+    isLoading: invoicesLoading,
+    mutate: mutateInvoices,
+  } = useSWR<InvoicesResponse>(swrKeys.invoices(invoiceParams), fetcher, {
+    revalidateOnFocus: false,
+  });
 
-  useEffect(() => {
-    if (tabParam && tabParam !== activeTab) {
-      setActiveTab(tabParam);
-    }
-  }, [tabParam, activeTab]);
+  const { data: statsData, isLoading: statsLoading } = useSWR<StatsResponse>(
+    swrKeys.merchantStats(),
+    fetcher,
+    { revalidateOnFocus: false },
+  );
+
+  const invoices = invoicesData?.data ?? [];
+  const loading = invoicesLoading || statsLoading;
+  const plan = (statsData?.currentPlan as MerchantPlan) ?? undefined;
 
   const handleTabChange = useCallback((tab: string) => {
     setActiveTab(tab);
@@ -135,7 +138,7 @@ export function usePayments() {
   const handleResolve = async (invoiceId: string) => {
     try {
       await api.post(`/v1/invoices/${invoiceId}/resolve`);
-      await fetchInvoices();
+      await mutateInvoices();
     } catch (err) {
       console.error("Failed to resolve invoice", err);
     }
@@ -158,7 +161,7 @@ export function usePayments() {
     openInvoiceDetails,
     filteredInvoices,
     stats,
-    fetchInvoices,
+    fetchInvoices: mutateInvoices,
     handleResolve,
   };
 }

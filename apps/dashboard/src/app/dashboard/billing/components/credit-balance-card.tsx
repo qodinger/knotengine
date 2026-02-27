@@ -16,8 +16,13 @@ export function CreditBalanceCard({ stats, loading }: CreditBalanceCardProps) {
   const feeRate = stats?.currentFeeRate ?? 0.01;
   const totalVolume = stats?.totalVolume ?? 0;
 
-  const creditHealth =
-    creditBalance > 3 ? "healthy" : creditBalance > 0 ? "warning" : "critical";
+  const creditHealth = loading
+    ? "healthy"
+    : creditBalance > 3
+      ? "healthy"
+      : creditBalance > 0
+        ? "warning"
+        : "critical";
 
   const creditPercent = Math.min((creditBalance / 10) * 100, 100);
 

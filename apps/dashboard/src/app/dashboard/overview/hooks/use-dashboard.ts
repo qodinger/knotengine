@@ -1,35 +1,35 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import { api } from "@/lib/api";
+import { useState } from "react";
+import useSWR from "swr";
+import { fetcher, swrKeys } from "@/lib/swr";
 import { DashboardStats, Invoice, OverviewPeriod } from "../types";
 
+type StatsResponse = DashboardStats;
+
+interface InvoicesResponse {
+  data: Invoice[];
+}
+
 export function useDashboard() {
-  const [data, setData] = useState<DashboardStats | null>(null);
-  const [recentInvoices, setRecentInvoices] = useState<Invoice[]>([]);
-  const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<OverviewPeriod>("7d");
-  const [mounted, setMounted] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    try {
-      const [statsRes, invoicesRes] = await Promise.all([
-        api.get("/v1/merchants/me/stats", { params: { period } }),
-        api.get("/v1/invoices", { params: { limit: 5 } }),
-      ]);
-      setData(statsRes.data);
-      setRecentInvoices(invoicesRes.data.data || []);
-    } catch (err) {
-      console.error("Failed to fetch dashboard data", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [period]);
+  const {
+    data: statsData,
+    isLoading: statsLoading,
+    mutate: mutateStats,
+  } = useSWR<StatsResponse>(swrKeys.merchantStats({ period }), fetcher, {
+    revalidateOnFocus: false,
+  });
 
-  useEffect(() => {
-    setMounted(true);
-    fetchData();
-  }, [fetchData]);
+  const { data: invoicesData, isLoading: invoicesLoading } =
+    useSWR<InvoicesResponse>(swrKeys.invoices({ limit: "5" }), fetcher, {
+      revalidateOnFocus: false,
+    });
+
+  const loading = statsLoading || invoicesLoading;
+  const data = statsData ?? null;
+  const recentInvoices = invoicesData?.data ?? [];
 
   return {
     data,
@@ -37,7 +37,6 @@ export function useDashboard() {
     loading,
     period,
     setPeriod,
-    mounted,
-    fetchData,
+    fetchData: mutateStats,
   };
 }

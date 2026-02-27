@@ -9,10 +9,7 @@ import { FeaturedPartner } from "./overview/components/featured-partner";
 import { AnalyticsSection } from "./overview/components/analytics-section";
 
 export default function DashboardOverview() {
-  const { data, recentInvoices, loading, period, setPeriod, mounted } =
-    useDashboard();
-
-  if (!mounted) return null;
+  const { data, recentInvoices, loading, period, setPeriod } = useDashboard();
 
   return (
     <div className="flex flex-col gap-6">

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import useSWR from "swr";
 import { io, Socket } from "socket.io-client";
-import { api } from "@/lib/api";
+import { fetcher, swrKeys } from "@/lib/swr";
 
 export type TabNotification = {
   _id: string;
@@ -13,50 +14,61 @@ export type TabNotification = {
   type: string;
 };
 
+interface NotificationsResponse {
+  data: TabNotification[];
+}
+
 export function useEvents() {
   const { data: session } = useSession();
-  const [notifications, setNotifications] = useState<TabNotification[]>([]);
-  const [eventsLoading, setEventsLoading] = useState(true);
+  const merchantId = session?.user?.merchantId;
+
   const [selectedEvent, setSelectedEvent] = useState<TabNotification | null>(
     null,
   );
 
-  const fetchNotifications = useCallback(async () => {
-    if (!session?.user?.merchantId) return;
-    setEventsLoading(true);
-    try {
-      const res = await api.get("/v1/merchants/me/notifications");
-      setNotifications(res.data.data);
-    } catch (err) {
-      console.error("Failed to fetch notifications", err);
-    } finally {
-      setEventsLoading(false);
-    }
-  }, [session?.user?.merchantId]);
+  const {
+    data: notificationsData,
+    isLoading: eventsLoading,
+    mutate: mutateNotifications,
+  } = useSWR<NotificationsResponse>(
+    merchantId ? swrKeys.notifications() : null,
+    fetcher,
+    { revalidateOnFocus: false },
+  );
 
-  useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
+  const notifications = notificationsData?.data ?? [];
 
+  // Real-time WebSocket updates
   useEffect(() => {
-    if (!session?.user?.merchantId) return;
+    if (!merchantId) return;
 
     const socketUrl =
       process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5050";
     const socket: Socket = io(socketUrl);
 
     socket.on("connect", () => {
-      socket.emit("join_merchant", session.user.merchantId);
+      socket.emit("join_merchant", merchantId);
     });
 
     socket.on("notification", (newNotification: TabNotification) => {
-      setNotifications((prev) => [newNotification, ...prev]);
+      // Optimistically prepend the new notification to the SWR cache
+      mutateNotifications(
+        (current) => {
+          if (!current) return { data: [newNotification] };
+          return { data: [newNotification, ...current.data] };
+        },
+        { revalidate: false },
+      );
     });
 
     return () => {
       socket.disconnect();
     };
-  }, [session?.user?.merchantId]);
+  }, [merchantId, mutateNotifications]);
+
+  const fetchNotifications = () => {
+    mutateNotifications();
+  };
 
   return {
     notifications,

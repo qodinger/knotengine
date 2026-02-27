@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useMemo } from "react";
+import useSWR from "swr";
 import { api } from "@/lib/api";
+import { fetcher, swrKeys } from "@/lib/swr";
 import { ASSET_CONFIG, NETWORK_CONFIG } from "@qodinger/knot-types";
 import { MerchantProfile, StatsData, Invoice, WalletInfo } from "../types";
 
+interface InvoicesResponse {
+  data: Invoice[];
+}
+
 export function useBalances() {
-  const [merchant, setMerchant] = useState<MerchantProfile | null>(null);
-  const [stats, setStats] = useState<StatsData | null>(null);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [loading, setLoading] = useState(true);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const [isAddWalletOpen, setIsAddWalletOpen] = useState(false);
@@ -21,13 +23,30 @@ export function useBalances() {
   const [walletToRemove, setWalletToRemove] = useState<string | null>(null);
   const [isRemovingWallet, setIsRemovingWallet] = useState(false);
 
+  const { data: merchant, mutate: mutateMerchant } = useSWR<MerchantProfile>(
+    swrKeys.merchant,
+    fetcher,
+    { revalidateOnFocus: false },
+  );
+
+  const { data: stats } = useSWR<StatsData>(swrKeys.merchantStats(), fetcher, {
+    revalidateOnFocus: false,
+  });
+
+  const { data: invoicesData, isLoading: invoicesLoading } =
+    useSWR<InvoicesResponse>(swrKeys.invoices({ limit: "100" }), fetcher, {
+      revalidateOnFocus: false,
+    });
+
+  const loading = invoicesLoading;
+  const invoices = invoicesData?.data ?? [];
+
   const wallets = useMemo<WalletInfo[]>(() => {
     if (!merchant) return [];
 
     const list: WalletInfo[] = [];
     const enabled = merchant.enabledCurrencies || [];
 
-    // Iterate through all supported assets and their networks
     Object.entries(NETWORK_CONFIG).forEach(([coinId, networks]) => {
       networks.forEach((net) => {
         if (enabled.includes(net.id)) {
@@ -55,26 +74,9 @@ export function useBalances() {
     return list;
   }, [merchant]);
 
-  const fetchData = useCallback(async () => {
-    try {
-      const [merchantRes, statsRes, invoicesRes] = await Promise.all([
-        api.get("/v1/merchants/me"),
-        api.get("/v1/merchants/me/stats"),
-        api.get("/v1/invoices", { params: { limit: 100 } }),
-      ]);
-      setMerchant(merchantRes.data);
-      setStats(statsRes.data);
-      setInvoices(invoicesRes.data.data || []);
-    } catch (err) {
-      console.error("Failed to fetch data", err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const fetchData = async () => {
+    await mutateMerchant();
+  };
 
   const copyAddress = (value: string, field: string) => {
     navigator.clipboard.writeText(value);
@@ -87,8 +89,6 @@ export function useBalances() {
     const input = val.trim();
     if (!input) return;
 
-    // Detection logic can still be local as it's UX-based,
-    // but ideally we could also offload this to the backend if complex
     if (/^[xyzvtu]pub[1-9A-HJ-NP-Za-km-z]{10,}$/i.test(input)) {
       setNewWalletCoin("BTC");
       setNewWalletNetwork("BTC");
@@ -123,7 +123,6 @@ export function useBalances() {
   const handleAddWallet = async () => {
     setIsAddingWallet(true);
     try {
-      // Find the network config to know which field to update
       let merchantField = "";
       Object.values(NETWORK_CONFIG).forEach((nets) => {
         const match = nets.find((n) => n.id === newWalletNetwork);
@@ -143,7 +142,7 @@ export function useBalances() {
       payload.enabledCurrencies = updatedEnabled;
 
       await api.patch("/v1/merchants/me", payload);
-      await fetchData();
+      await mutateMerchant();
       setIsAddWalletOpen(false);
       setNewWalletAddress("");
       setNewWalletCoin("");
@@ -165,14 +164,12 @@ export function useBalances() {
       );
       payload.enabledCurrencies = updatedEnabled;
 
-      // Find which field this wallet used
       let merchantField = "";
       Object.values(NETWORK_CONFIG).forEach((nets) => {
         const match = nets.find((n) => n.id === walletToRemove);
         if (match) merchantField = match.merchantField;
       });
 
-      // If no other enabled currency uses this field, we can null it out
       if (merchantField) {
         const otherUses = updatedEnabled.some((currId) => {
           let field = "";
@@ -192,7 +189,7 @@ export function useBalances() {
       }
 
       await api.patch("/v1/merchants/me", payload);
-      await fetchData();
+      await mutateMerchant();
     } catch (err) {
       console.error("Failed to remove wallet", err);
     } finally {
@@ -203,8 +200,8 @@ export function useBalances() {
 
   return {
     wallets,
-    merchant,
-    stats,
+    merchant: merchant ?? null,
+    stats: stats ?? null,
     invoices,
     configAssets: ASSET_CONFIG,
     configNetworks: NETWORK_CONFIG,
