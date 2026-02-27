@@ -1,0 +1,51 @@
+import mongoose, { Schema, Document } from "mongoose";
+
+// ============================================================
+// 👤 USER MODEL
+// Represents an identity (OAuth user) that can own multiple merchants.
+// Holds the shared credit balance and yield earnings.
+// ============================================================
+
+export interface IUser extends Document {
+  oauthId: string;
+  email?: string;
+  /** Email verification status */
+  emailVerified: boolean;
+  /** Shared prepaid credit balance (USD) across all merchants */
+  creditBalance: number;
+  /** Total yield accrued by this user's funds */
+  yieldAccruedUsd: number;
+  lastYieldSyncAt?: Date;
+  welcomeBonusClaimed: boolean;
+  /** TOTP Two-Factor Authentication */
+  twoFactorEnabled: boolean;
+  twoFactorSecret?: string;
+  twoFactorBackupCodes?: string[];
+  /** Referral System */
+  referralCode?: string;
+  referredBy?: mongoose.Types.ObjectId;
+  referralEarningsUsd: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const UserSchema: Schema = new Schema(
+  {
+    oauthId: { type: String, unique: true, required: true },
+    email: { type: String, sparse: true },
+    emailVerified: { type: Boolean, default: false },
+    creditBalance: { type: Number, default: 0 },
+    yieldAccruedUsd: { type: Number, default: 0 },
+    lastYieldSyncAt: { type: Date },
+    welcomeBonusClaimed: { type: Boolean, default: false },
+    twoFactorEnabled: { type: Boolean, default: false },
+    twoFactorSecret: { type: String },
+    twoFactorBackupCodes: { type: [String], default: [] },
+    referralCode: { type: String, unique: true, sparse: true },
+    referredBy: { type: Schema.Types.ObjectId, ref: "User" },
+    referralEarningsUsd: { type: Number, default: 0 },
+  },
+  { timestamps: true },
+);
+
+export const User = mongoose.model<IUser>("User", UserSchema);
