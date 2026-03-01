@@ -9,14 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Gmail SMTP Email Service** — Migrated from Resend to Gmail SMTP for all transactional emails. Saves $240/year in operational costs. Includes setup documentation and test scripts.
-  - Payment notification emails (received, confirmed, overpaid, expired)
-  - Security alert emails (2FA, IP changes, account actions)
-  - Billing notification emails (subscription charged, low balance)
-  - Magic link authentication emails
-  - Email verification emails
-  - Email preferences per merchant (toggle per notification type)
-- **Email Test Scripts** — Added `pnpm test:email` and `pnpm test:auth-emails` for automated email testing.
+- **Hybrid Email Service** — Migrated to a hybrid email architecture:
+  - **Production:** Uses the `resend` SDK for professional deliverability, bounce tracking, and future React Email templating.
+  - **Development:** Uses `nodemailer` + Gmail SMTP for free, frictionless local testing without quota limits or DNS verification.
+- **Backend Unit Testing** — Implemented the first `vitest` testing suite with 24 passing tests covering:
+  - **Engine Math:** Verifies correct platform fee deductions (1.0%, 0.5%, 0.25%) and partial payment thresholds.
+  - **Rate Limiting:** Mathematically proves starter tiers are capped at 1 req/sec.
+  - **Security:** Validates that Webhook HMAC-SHA256 signatures correctly reject tampered payloads.
+- **Email Test Scripts** — Added `NODE_ENV=production pnpm test:email` to easily test both local and prod email providers.
 - **Email Setup Documentation** — Created comprehensive guides in `docs/GMAIL_SETUP.md` and `docs/EMAIL_QUICK_SETUP.md`.
 - **Checkout Header Alignment** — Added left/center alignment option for merchant branding header in checkout page.
 - **Subscription Grace Period** — Introduced automated grace periods and status UI to prevent immediate suspension when credit balance is low.
@@ -40,13 +40,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Email Provider** — Migrated from Resend ($20/month) to Gmail SMTP ($0/month) for all transactional emails.
-- **Email Configuration** — Updated `.env.example` and `.env.development` with Gmail SMTP settings (GMAIL_USER, GMAIL_APP_PASSWORD).
+- **Email Architecture** — Swapped backend email transmission logic from simple SMTP to a dual-provider `EmailService` class (`Resend` | `Gmail`) depending on `NODE_ENV`.
+- **Environment Templates** — Updated `.env.example` and `.env.development` to include merged configuration blocks for `GMAIL_APP_PASSWORD` alongside `RESEND_API_KEY`.
 - **Dynamic Versioning** — Standardized version display to pull directly from `package.json` build metadata.
 
 ### Removed
 
-- **Resend Dependency** — Removed `resend` package and related configuration in favor of Gmail SMTP.
 - **Redundant .env.template** — Consolidated environment configuration to single `.env.example` file.
 
 ## [0.3.0] - 2026-02-23
