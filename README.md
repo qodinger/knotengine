@@ -2,7 +2,7 @@
 
 **Minimalist, Non-Custodial Crypto Payment Infrastructure for Humans.**
 
-[![Version](https://img.shields.io/badge/version-0.2.1-blue.svg)](https://github.com/qodinger/knotengine/releases)
+[![Version](https://img.shields.io/badge/version-0.3.1-blue.svg)](https://github.com/qodinger/knotengine/releases)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-green.svg)](LICENSE)
 [![pnpm](https://img.shields.io/badge/pnpm-9.0.0-orange.svg)](https://pnpm.io)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
@@ -19,6 +19,7 @@ KnotEngine is a professional-grade, open-source crypto payment gateway. It lets 
 - **📊 Professional Dashboard** — Modular Next.js merchant console with real-time Analytics and Activity History.
 - **⚡ Instant Alerts** — Mempool detection and confirmation notifications pushed instantly via Socket.io.
 - **🔌 Developer-First SDK** — Typed `@qodinger/knot-sdk` with full TypeScript support.
+- **✉️ Hybrid Email Engine** — Resend for production deliverability and Gmail SMTP for frictionless local development.
 - **🧹 Automatic Cleanup** — 30-day TTL policy on notification and webhook event collections keeps your database lean.
 
 ---

@@ -148,12 +148,23 @@ INTERNAL_SECRET=your-internal-secret-here
 
 ---
 
-## 🎯 Production Recommendations
+## 🎯 Production vs Development
 
-When ready for production:
+In the latest v0.3.1 architecture, follows a **hybrid email model**:
+
+1. **Local Development**: Use this guide to set up **Gmail SMTP**. It is free, requires no DNS verification, and is perfect for testing onboarding and payment flows.
+2. **Production**: Use **Resend**. It provides enterprise-grade deliverability, bounce tracking, and professional custom domains.
+
+If `NODE_ENV=production` is set, the system will prioritize the `RESEND_API_KEY`. Otherwise, it falls back to the Gmail configuration.
+
+---
+
+## 🎯 Gmail Production Best Practices (Optional)
+
+If you still choose to use Gmail for production:
 
 1. **Use Google Workspace** - Better deliverability, higher limits
-2. **Set up custom domain** - `noreply@knotengine.com`
+2. **Set up custom domain** - `noreply@yourdomain.com`
 3. **Configure SPF/DKIM** - Improves email deliverability
 4. **Monitor bounce rates** - Keep under 5%
 

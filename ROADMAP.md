@@ -2,9 +2,9 @@
 
 > **Minimalist, Non-Custodial Crypto Payment Infrastructure**
 
-**Last Updated:** February 26, 2026  
-**Current Version:** v0.4.0  
-**Status:** ✅ Production Ready (98.6% Complete)
+**Last Updated:** March 1, 2026  
+**Current Version:** v0.3.1  
+**Status:** ✅ Production Ready (99.2% Complete)
 
 ---
 
@@ -57,9 +57,9 @@
 
 #### ✅ Completed (February 26, 2026)
 
-| Feature                       | Status      | Effort  | Notes                  |
-| ----------------------------- | ----------- | ------- | ---------------------- |
-| **Email Notification System** | ✅ Complete | 3 hours | Gmail SMTP integration |
+| Feature                       | Status      | Effort  | Notes                     |
+| ----------------------------- | ----------- | ------- | ------------------------- |
+| **Email Notification System** | ✅ Complete | 3 hours | Hybrid Resend/Gmail setup |
 
 **What Was Implemented:**
 
@@ -246,7 +246,7 @@ Every feature request is evaluated against:
 
 ## 📝 Changelog
 
-### v0.4.0 (February 2026)
+### v0.4.0 (February 2024)
 
 - ✅ Performance optimization (100x faster webhook processing)
 - ✅ Circuit breaker implementation
@@ -254,12 +254,14 @@ Every feature request is evaluated against:
 - ✅ Redis distributed cache
 - ✅ Roadmap cleanup (removed 5 low-value features)
 
-### v0.3.1 (January 2026)
+### v0.3.1 (March 1, 2026)
 
-- ✅ Transparent pricing implementation (removed spread recapture)
-- ✅ Fee structure: 1.0%/0.5%/0.25%
+- ✅ Hybrid Email Architecture (Resend/Gmail)
+- ✅ Backend Unit Testing (24 passing tests)
+- ✅ Security Audits & Rate Limiting
+- ✅ Roadmap & Documentation Audit
 
-### v0.3.0 (December 2025)
+### v0.3.0 (February 2026)
 
 - ✅ Two-Factor Authentication (TOTP)
 - ✅ IP Allowlisting
