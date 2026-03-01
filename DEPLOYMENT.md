@@ -24,7 +24,8 @@ KnotEngine uses a **hybrid deployment** approach to balance performance, cost, a
 
 - **Tatum API Key**: For multi-chain monitoring.
 - **Alchemy API Key**: For EVM specific failover.
-- **Resend API Key**: For Magic Link and email notifications.
+- **Gmail App Passwords**: For local development testing (free tier).
+- **Resend API Key**: For production emails and Magic Links.
 - **CoinGecko/Binance**: Public endpoints (no keys required).
 
 ---
@@ -62,7 +63,12 @@ REDIS_URL=redis://...
 # 3rd Party APIs
 TATUM_API_KEY=...
 ALCHEMY_API_KEY=...
-RESEND_API_KEY=...
+# Email Configuration (Hybrid)
+# Local development uses Gmail SMTP, Production uses Resend
+GMAIL_USER=your-email@gmail.com
+GMAIL_APP_PASSWORD=xxxx-xxxx-xxxx-xxxx
+RESEND_API_KEY=re_xxxxxxxxx
+FROM_EMAIL="KnotEngine <verified-sender@knotengine.com>"
 
 # URLs
 PUBLIC_URL=https://api.yourdomain.com
