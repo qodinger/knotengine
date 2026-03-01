@@ -431,6 +431,17 @@ export const MerchantCoreController = {
 
     const updates = request.body;
 
+    // Security Gate: Enforce Plan Features
+    const currentPlan = merchant.plan || "starter";
+
+    // Only Professional and Enterprise can enable 'removeBranding'
+    if (updates.removeBranding === true && currentPlan === "starter") {
+      return reply.code(403).send({
+        error:
+          "Updating 'removeBranding' to true requires the Professional or Enterprise plan.",
+      });
+    }
+
     console.log(
       "📥 PATCH /v1/merchants/me - Received updates:",
       JSON.stringify(updates, null, 2),

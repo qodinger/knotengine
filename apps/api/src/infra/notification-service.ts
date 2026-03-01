@@ -120,7 +120,7 @@ export class NotificationService {
       );
       if (!merchant) return;
 
-      const user = merchant.userId;
+      const user = merchant.userId as any;
       if (!user || !user.email) return;
 
       const merchantName = merchant.name || user.email.split("@")[0];

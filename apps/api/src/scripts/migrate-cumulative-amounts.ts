@@ -1,5 +1,6 @@
 import { connectToDatabase } from "@qodinger/knot-database";
 import { Invoice, WebhookEvent } from "@qodinger/knot-database";
+import { config } from "dotenv";
 
 /**
  * 🔄 Cumulative Amount Migration Script
@@ -8,19 +9,39 @@ import { Invoice, WebhookEvent } from "@qodinger/knot-database";
  * Calculates the cumulative cryptoAmountReceived from all webhook events
  * and updates each invoice accordingly.
  *
+ * Prerequisites:
+ *   - MongoDB must be running
+ *   - DATABASE_URL environment variable should be set
+ *
  * Usage:
  *   pnpm tsx src/scripts/migrate-cumulative-amounts.ts
+ *
+ * Docker Setup:
+ *   docker-compose up -d  # Starts MongoDB and Redis
+ *
+ * ⚠️ IMPORTANT: Run this script during a maintenance window for production
  */
 
 export async function migrateCumulativeAmounts() {
-  console.log("🔄 Starting cumulative amount migration...");
+  console.log("🔄 Starting cumulative amount migration...\n");
+
+  // Load environment variables from .env.development
+  config({ path: ".env.development" });
+
+  // Validate environment
+  const mongoUri = process.env.DATABASE_URL;
+  if (!mongoUri) {
+    console.error("❌ DATABASE_URL environment variable is not set");
+    console.error(
+      "   Please set DATABASE_URL in your .env file or environment",
+    );
+    console.error("   Example: mongodb://127.0.0.1:27017/knotengine");
+    process.exit(1);
+  }
 
   try {
     // Connect to database
-    const mongoUri =
-      process.env.DATABASE_URL || "mongodb://127.0.0.1:27017/knotengine";
     await connectToDatabase(mongoUri);
-    console.log("✅ Connected to MongoDB");
 
     // Find all invoices that might have received payments
     const invoices = await Invoice.find({
@@ -112,7 +133,13 @@ export async function migrateCumulativeAmounts() {
     console.log(`❌ Errors: ${errors}`);
     console.log("=".repeat(50));
   } catch (error) {
-    console.error("❌ Error during migration:", error);
+    console.error("\n❌ Error during migration:", error);
+    console.error("\n💡 Troubleshooting:");
+    console.error("   1. Ensure MongoDB is running: docker-compose up -d");
+    console.error("   2. Check DATABASE_URL is set correctly");
+    console.error(
+      "   3. Verify MongoDB connection: mongosh --eval 'db.adminCommand(\"ping\")'",
+    );
     throw error;
   } finally {
     // Close database connection

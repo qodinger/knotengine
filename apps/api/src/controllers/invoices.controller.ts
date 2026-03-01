@@ -307,9 +307,7 @@ export const InvoicesController = {
       }).exec();
 
       const tatumWebhookUrl = `${process.env.PUBLIC_URL}/v1/webhooks/tatum`;
-      const useDualProvider =
-        invoice.merchantId.plan === "professional" ||
-        invoice.merchantId.plan === "enterprise";
+      const useDualProvider = invoice.merchantId.plan === "enterprise";
 
       BlockchainProviderPool.getInstance()
         .subscribeAddress(
@@ -358,7 +356,11 @@ export const InvoicesController = {
         theme: invoice.merchantId.theme || "system",
         brand_color: invoice.merchantId.brandColor || "#ffffff",
         branding_enabled: invoice.merchantId.brandingEnabled ?? true,
-        remove_branding: invoice.merchantId.removeBranding ?? false,
+        // Enforce plan restriction: Starter tier CANNOT remove branding
+        remove_branding:
+          (invoice.merchantId.plan || "starter") !== "starter"
+            ? (invoice.merchantId.removeBranding ?? false)
+            : false,
         branding_alignment: invoice.merchantId.brandingAlignment ?? "left",
         bip21_enabled: invoice.merchantId.bip21Enabled ?? true,
         plan: invoice.merchantId.plan || "starter",

@@ -23,7 +23,13 @@ export async function invoiceRoutes(app: FastifyInstance) {
   // Prevents individual merchants from spamming invoice creation
   // ──────────────────────────────────────────────
   server.register(rateLimit, {
-    max: 10, // 10 invoices per minute
+    max: (request) => {
+      const merchant = (request as any).merchant;
+      // Define tier-based rate limits (Invoices created per minute)
+      if (merchant?.plan === "enterprise") return 600; // 10 req/s equivalent
+      if (merchant?.plan === "professional") return 300; // 5 req/s equivalent
+      return 60; // Starter tier limit (1 req/s)
+    },
     timeWindow: "1 minute",
     keyGenerator: (request) => {
       // Use merchant ID if authenticated, otherwise IP
@@ -34,7 +40,7 @@ export async function invoiceRoutes(app: FastifyInstance) {
     errorResponseBuilder: (request, context) => {
       return {
         error: "Too Many Requests",
-        message: `Rate limit exceeded. Maximum ${context.max} invoices per minute.`,
+        message: `Rate limit exceeded. Maximum ${context.max} invoices per minute. Please wait or upgrade your plan.`,
         retryAfter: context.after,
       };
     },

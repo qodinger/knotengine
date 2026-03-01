@@ -6,6 +6,7 @@ import {
   Merchant,
   User,
 } from "@qodinger/knot-database";
+import { config } from "dotenv";
 
 /**
  * 📇 Database Index Migration Script
@@ -13,19 +14,37 @@ import {
  * Creates compound indexes for common query patterns to improve performance.
  * Run this script once during deployment to optimize database queries.
  *
+ * Prerequisites:
+ *   - MongoDB must be running
+ *   - DATABASE_URL environment variable should be set
+ *
  * Usage:
  *   pnpm tsx src/scripts/create-indexes.ts
+ *
+ * Docker Setup:
+ *   docker-compose up -d  # Starts MongoDB and Redis
  */
 
 export async function createDatabaseIndexes() {
-  console.log("📇 Creating database indexes...");
+  console.log("📇 Creating database indexes...\n");
+
+  // Load environment variables from .env.development
+  config({ path: ".env.development" });
+
+  // Validate environment
+  const mongoUri = process.env.DATABASE_URL;
+  if (!mongoUri) {
+    console.error("❌ DATABASE_URL environment variable is not set");
+    console.error(
+      "   Please set DATABASE_URL in your .env file or environment",
+    );
+    console.error("   Example: mongodb://127.0.0.1:27017/knotengine");
+    process.exit(1);
+  }
 
   try {
     // Connect to database
-    const mongoUri =
-      process.env.DATABASE_URL || "mongodb://127.0.0.1:27017/knotengine";
     await connectToDatabase(mongoUri);
-    console.log("✅ Connected to MongoDB");
 
     // ============================================
     // Invoice Indexes
@@ -152,13 +171,29 @@ export async function createDatabaseIndexes() {
     // ============================================
     console.log("\n👤 Creating User indexes...");
 
-    // Index for email lookup
-    await User.collection.createIndex({ email: 1 });
-    console.log("  ✅ { email: 1 }");
+    // Index for email lookup (skip if already exists)
+    try {
+      await User.collection.createIndex({ email: 1 });
+      console.log("  ✅ { email: 1 }");
+    } catch (err: any) {
+      if (err.codeName === "IndexKeySpecsConflict") {
+        console.log("  ℹ️  { email: 1 } - Already exists");
+      } else {
+        throw err;
+      }
+    }
 
-    // Index for OAuth lookup
-    await User.collection.createIndex({ oauthId: 1 });
-    console.log("  ✅ { oauthId: 1 }");
+    // Index for OAuth lookup (skip if already exists)
+    try {
+      await User.collection.createIndex({ oauthId: 1 });
+      console.log("  ✅ { oauthId: 1 }");
+    } catch (err: any) {
+      if (err.codeName === "IndexKeySpecsConflict") {
+        console.log("  ℹ️  { oauthId: 1 } - Already exists");
+      } else {
+        throw err;
+      }
+    }
 
     // ============================================
     // Summary
@@ -183,7 +218,13 @@ export async function createDatabaseIndexes() {
       console.log(`\n${collection.name}: ${indexes.length} indexes`);
     }
   } catch (error) {
-    console.error("❌ Error creating indexes:", error);
+    console.error("\n❌ Error creating indexes:", error);
+    console.error("\n💡 Troubleshooting:");
+    console.error("   1. Ensure MongoDB is running: docker-compose up -d");
+    console.error("   2. Check DATABASE_URL is set correctly");
+    console.error(
+      "   3. Verify MongoDB connection: mongosh --eval 'db.adminCommand(\"ping\")'",
+    );
     throw error;
   } finally {
     // Close database connection

@@ -32,7 +32,7 @@ export class BlockchainProviderPool {
     useDualProvider: boolean = false,
   ): Promise<{ providerName: string; subscriptionId: string } | null> {
     if (useDualProvider) {
-      // Professional/Enterprise: Subscribe to ALL providers for redundancy
+      // Enterprise: Subscribe to ALL providers for redundancy
       const subscriptions: Array<{
         providerName: string;
         subscriptionId: string;
