@@ -21,9 +21,10 @@ pnpm add @qodinger/knot-sdk
 import { KnotClient } from "@qodinger/knot-sdk";
 
 const knot = new KnotClient({
+  // Use knot_sk_live_... for production or knot_sk_test_... for development
   apiKey: "knot_sk_your_api_key",
-  // Optional: override the API base URL (default: http://localhost:5050 in dev)
-  baseUrl: "http://localhost:5050",
+  // In production, point to your deployed API: https://api.yourdomain.com
+  baseUrl: process.env.KNOT_API_URL || "http://localhost:5050",
   // Optional: set the webhook secret for signature verification
   webhookSecret: "knot_wh_your_webhook_secret",
 });
