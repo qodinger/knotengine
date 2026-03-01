@@ -3,7 +3,7 @@
 > **Minimalist, Non-Custodial Crypto Payment Infrastructure**
 
 **Last Updated:** March 1, 2026  
-**Current Version:** v0.3.1  
+**Current Version:** v0.4.0  
 **Status:** ✅ Production Ready (99.2% Complete)
 
 ---
@@ -246,7 +246,7 @@ Every feature request is evaluated against:
 
 ## 📝 Changelog
 
-### v0.4.0 (February 2024)
+### v0.4.0 (February 2026)
 
 - ✅ Performance optimization (100x faster webhook processing)
 - ✅ Circuit breaker implementation

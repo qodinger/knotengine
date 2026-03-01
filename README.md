@@ -2,7 +2,7 @@
 
 **Minimalist, Non-Custodial Crypto Payment Infrastructure for Humans.**
 
-[![Version](https://img.shields.io/badge/version-0.3.1-blue.svg)](https://github.com/qodinger/knotengine/releases)
+[![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](https://github.com/qodinger/knotengine/releases)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-green.svg)](LICENSE)
 [![pnpm](https://img.shields.io/badge/pnpm-9.0.0-orange.svg)](https://pnpm.io)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
